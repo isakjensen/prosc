@@ -77,7 +77,7 @@
 	onclick={(e) => { if (e.target === e.currentTarget) onclose(); }}
 >
 	<!-- Modal -->
-	<div class="relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+	<div class="relative flex h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-2xl sm:max-w-2xl lg:max-w-4xl">
 		<!-- Header -->
 		<div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
 			<h2 class="text-xl font-bold text-gray-900">Skapa ny pipeline</h2>

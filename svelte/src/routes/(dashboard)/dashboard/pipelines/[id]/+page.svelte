@@ -141,16 +141,16 @@
 
 <div class="space-y-6">
 	<!-- Header -->
-	<div class="flex items-center gap-4">
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
 		<a
 			href="/dashboard/pipelines"
-			class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+			class="self-start rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
 		>
 			<ChevronLeftIcon class="h-5 w-5" />
 		</a>
-		<div class="flex-1">
+		<div class="flex-1 min-w-0">
 			<div class="flex items-center gap-3">
-				<h1 class="text-3xl font-bold text-gray-900">{pipeline.name}</h1>
+				<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl truncate">{pipeline.name}</h1>
 				<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {status.color} {status.bg}">
 					{status.label}
 				</span>
@@ -168,7 +168,7 @@
 				{/if}
 			</div>
 		</div>
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center gap-2">
 			<Button variant="outline" onclick={openEdit}>
 				<PencilIcon class="mr-2 h-4 w-4" />
 				Redigera
@@ -266,7 +266,7 @@
 
 	<!-- Statistik -->
 	{#if results.length > 0}
-		<div class="grid grid-cols-4 gap-4">
+		<div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
 			<Card class="p-4 text-center">
 				<p class="text-3xl font-bold text-gray-900">{totalFound}</p>
 				<p class="text-sm text-gray-500">Totalt hittade</p>
@@ -288,7 +288,7 @@
 
 	<!-- Filter -->
 	{#if results.length > 0}
-		<div class="flex gap-4">
+		<div class="flex flex-wrap gap-2 sm:gap-4">
 			<select
 				bind:value={filterCategory}
 				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -321,7 +321,7 @@
 			</p>
 		</Card>
 	{:else}
-		<div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+		<div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
 			<table class="min-w-full divide-y divide-gray-200">
 				<thead class="bg-gray-50">
 					<tr>
@@ -446,7 +446,7 @@
 	class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
 	onclick={(e) => { if (e.target === e.currentTarget) showEditModal = false; }}
 >
-	<div class="relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+	<div class="relative flex h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-2xl sm:max-w-2xl lg:max-w-4xl">
 		<!-- Header -->
 		<div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
 			<h2 class="text-xl font-bold text-gray-900">Redigera pipeline</h2>

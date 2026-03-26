@@ -78,7 +78,7 @@
 	class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
 	onclick={(e) => { if (e.target === e.currentTarget) onclose(); }}
 >
-	<div class="relative flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+	<div class="relative flex h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-2xl sm:max-w-3xl lg:max-w-5xl">
 		<!-- Header -->
 		<div class="flex-shrink-0 border-b border-gray-200 bg-gray-50 px-6 py-4">
 			<div class="flex items-center justify-between">
