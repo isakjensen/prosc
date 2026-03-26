@@ -6,7 +6,7 @@
 	import Label from "$lib/components/ui/label.svelte";
 	import Card from "$lib/components/ui/card.svelte";
 	import { XMarkIcon, SparklesIcon, PlusIcon } from "heroicons-svelte/24/outline";
-	import MapAreaSelector from "./map-area-selector.svelte";
+	import CityAreaSelector from "./city-area-selector.svelte";
 
 	interface Props {
 		onclose: () => void;
@@ -148,13 +148,13 @@
 					</div>
 				</div>
 
-				<!-- Kartval -->
+				<!-- Stadsval -->
 				<div class="space-y-4">
 					<h3 class="text-lg font-semibold text-gray-900">Sökområde</h3>
 					<p class="text-sm text-gray-500">
-						Markera ett område på kartan där du vill söka efter företag. Klicka "Markera område" och rita en rektangel.
+						Ange en stad – systemet söker automatiskt inom 1 mil (10 km) från stadskärnan.
 					</p>
-					<MapAreaSelector bind:bounds={areaBounds} />
+					<CityAreaSelector bind:bounds={areaBounds} />
 					<input type="hidden" name="areaConfig" value={areaBounds ? JSON.stringify(areaBounds) : ""} />
 				</div>
 

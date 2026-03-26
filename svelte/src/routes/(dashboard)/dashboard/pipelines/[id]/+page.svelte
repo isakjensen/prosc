@@ -3,6 +3,9 @@
 	import { invalidateAll } from "$app/navigation";
 	import Card from "$lib/components/ui/card.svelte";
 	import Button from "$lib/components/ui/button.svelte";
+	import Input from "$lib/components/ui/input.svelte";
+	import Label from "$lib/components/ui/label.svelte";
+	import CityAreaSelector from "$lib/components/pipeline/city-area-selector.svelte";
 	import {
 		PlayIcon,
 		StopIcon,
@@ -10,15 +13,50 @@
 		ChevronLeftIcon,
 		GlobeAltIcon,
 		XCircleIcon,
-		StarIcon,
 		MapPinIcon,
 		PhoneIcon,
+		PencilIcon,
+		ArrowPathIcon,
+		XMarkIcon,
+		PlusIcon,
 	} from "heroicons-svelte/24/outline";
-	import type { PageData } from "./$types";
+	import type { PageData, ActionData } from "./$types";
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let loading = $state(false);
+	let showEditModal = $state(false);
+
+	// Edit form state – initialized when modal opens
+	let editName = $state("");
+	let editDescription = $state("");
+	let editBounds = $state<{ north: number; south: number; east: number; west: number } | null>(null);
+	let editCityName = $state("");
+	let editCategories = $state<string[]>([]);
+	let editNewCategory = $state("");
+	let editLoading = $state(false);
+
+	function openEdit() {
+		const p = data.pipeline;
+		editName = p.name;
+		editDescription = p.description;
+		editBounds = p.areaConfig ? JSON.parse(p.areaConfig) : null;
+		editCityName = "";
+		editCategories = p.categories ? JSON.parse(p.categories) : [];
+		showEditModal = true;
+	}
+
+	function addEditCategory() {
+		const trimmed = editNewCategory.trim();
+		if (trimmed && !editCategories.includes(trimmed)) {
+			editCategories = [...editCategories, trimmed];
+			editNewCategory = "";
+		}
+	}
+
+	function removeEditCategory(cat: string) {
+		editCategories = editCategories.filter((c) => c !== cat);
+	}
 
 	const pipeline = $derived(data.pipeline);
 	const results = $derived(pipeline.results);
@@ -82,6 +120,27 @@
 			<p class="mt-1 text-gray-500">{pipeline.description}</p>
 		</div>
 		<div class="flex items-center gap-2">
+			<Button variant="outline" onclick={openEdit}>
+				<PencilIcon class="mr-2 h-4 w-4" />
+				Redigera
+			</Button>
+			{#if results.length > 0}
+				<form
+					method="POST"
+					action="?/clearResults"
+					use:enhance={() => {
+						return async ({ update }) => {
+							await update();
+							await invalidateAll();
+						};
+					}}
+				>
+					<Button variant="outline" type="submit" onclick={(e) => { if (!confirm("Rensa alla resultat?")) e.preventDefault(); }}>
+						<ArrowPathIcon class="mr-2 h-4 w-4" />
+						Rensa resultat
+					</Button>
+				</form>
+			{/if}
 			{#if pipeline.status === "IDLE" || pipeline.status === "STOPPED"}
 				<form
 					method="POST"
@@ -127,6 +186,13 @@
 			{/if}
 		</div>
 	</div>
+
+	<!-- Felmeddelande -->
+	{#if form && 'error' in form && form.error}
+		<div class="rounded-md bg-red-50 border border-red-200 p-4">
+			<p class="text-sm text-red-800">{form.error}</p>
+		</div>
+	{/if}
 
 	<!-- Statistik -->
 	{#if results.length > 0}
@@ -269,3 +335,121 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Redigeringsmodal -->
+{#if showEditModal}
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+	onclick={(e) => { if (e.target === e.currentTarget) showEditModal = false; }}
+>
+	<div class="relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+		<!-- Header -->
+		<div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+			<h2 class="text-xl font-bold text-gray-900">Redigera pipeline</h2>
+			<button
+				type="button"
+				onclick={() => (showEditModal = false)}
+				class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+			>
+				<XMarkIcon class="h-5 w-5" />
+			</button>
+		</div>
+
+		<!-- Innehåll -->
+		<div class="flex-1 overflow-y-auto px-6 py-6">
+			<form
+				id="edit-form"
+				method="POST"
+				action="?/update"
+				use:enhance={() => {
+					editLoading = true;
+					return async ({ result, update }) => {
+						editLoading = false;
+						if (result.type === "success") {
+							showEditModal = false;
+							await invalidateAll();
+						} else {
+							await update();
+						}
+					};
+				}}
+				class="space-y-8"
+			>
+				<!-- Grundinfo -->
+				<div class="space-y-4">
+					<h3 class="text-lg font-semibold text-gray-900">Grundinformation</h3>
+					<div>
+						<Label for="edit-name">Pipelinenamn *</Label>
+						<Input id="edit-name" name="name" bind:value={editName} required />
+					</div>
+					<div>
+						<Label for="edit-desc">Kundbeskrivning *</Label>
+						<textarea
+							id="edit-desc"
+							name="description"
+							rows="3"
+							bind:value={editDescription}
+							required
+							class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+						></textarea>
+					</div>
+				</div>
+
+				<!-- Stadsval -->
+				<div class="space-y-4">
+					<h3 class="text-lg font-semibold text-gray-900">Sökområde</h3>
+					<p class="text-sm text-gray-500">
+						Ange en stad – systemet söker automatiskt inom 1 mil (10 km) från stadskärnan.
+					</p>
+					<CityAreaSelector bind:bounds={editBounds} bind:cityName={editCityName} />
+					<input type="hidden" name="areaConfig" value={editBounds ? JSON.stringify(editBounds) : ""} />
+					{#if !editBounds}
+						<p class="text-sm text-amber-600">Inget område valt – scraping kan inte köras utan ett område.</p>
+					{/if}
+				</div>
+
+				<!-- Kategorier -->
+				<div class="space-y-4">
+					<h3 class="text-lg font-semibold text-gray-900">Sökkategorier</h3>
+					<div class="flex flex-wrap gap-2">
+						{#each editCategories as cat}
+							<span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+								{cat}
+								<button
+									type="button"
+									onclick={() => removeEditCategory(cat)}
+									class="ml-0.5 rounded-full p-0.5 hover:bg-blue-200 transition-colors"
+								>
+									<XMarkIcon class="h-3 w-3" />
+								</button>
+							</span>
+						{/each}
+					</div>
+					<div class="flex gap-2">
+						<Input
+							placeholder="Lägg till kategori..."
+							bind:value={editNewCategory}
+							class="max-w-xs"
+						/>
+						<Button variant="outline" type="button" onclick={addEditCategory}>
+							<PlusIcon class="mr-1 h-4 w-4" />
+							Lägg till
+						</Button>
+					</div>
+					<input type="hidden" name="categories" value={JSON.stringify(editCategories)} />
+				</div>
+			</form>
+		</div>
+
+		<!-- Footer -->
+		<div class="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4">
+			<Button variant="outline" onclick={() => (showEditModal = false)}>Avbryt</Button>
+			<Button type="submit" form="edit-form" disabled={editLoading}>
+				{editLoading ? "Sparar..." : "Spara ändringar"}
+			</Button>
+		</div>
+	</div>
+</div>
+{/if}

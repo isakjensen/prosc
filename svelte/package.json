@@ -36,6 +36,7 @@
 		"@types/leaflet": "^1.9.21",
 		"bcryptjs": "^3.0.3",
 		"bits-ui": "^2.16.3",
+		"cheerio": "^1.2.0",
 		"date-fns": "^4.1.0",
 		"dotenv": "^17.3.1",
 		"heroicons-svelte": "^2.0.2",

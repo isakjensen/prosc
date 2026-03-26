@@ -1011,7 +1011,7 @@ model Pipeline {
   name        String
   description String         // Fri text som beskriver målkunden
   status      PipelineStatus @default(IDLE)
-  areaConfig  String?        // JSON: { north, south, east, west } bounds från kartval
+  areaConfig  String?        // JSON: { north, south, east, west, cityName? } bounds från kartval
   categories  String?        // JSON array: AI-genererade kategorier att söka efter
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt

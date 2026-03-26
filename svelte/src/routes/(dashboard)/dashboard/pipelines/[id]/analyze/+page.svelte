@@ -22,6 +22,28 @@
 
 	let loading = $state(false);
 	let expandedRows = $state<Set<string>>(new Set());
+	let selectedIds = $state<Set<string>>(new Set());
+
+	const analyzableResults = $derived(results.filter((r) => r.status !== "ANALYZING"));
+
+	const allSelected = $derived(
+		analyzableResults.length > 0 && analyzableResults.every((r) => selectedIds.has(r.id))
+	);
+
+	function toggleSelect(id: string) {
+		const next = new Set(selectedIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedIds = next;
+	}
+
+	function toggleSelectAll() {
+		if (allSelected) {
+			selectedIds = new Set();
+		} else {
+			selectedIds = new Set(analyzableResults.map((r) => r.id));
+		}
+	}
 
 	const pipeline = $derived(data.pipeline);
 	const results = $derived(pipeline.results);
@@ -49,7 +71,16 @@
 			.toUpperCase();
 	}
 
-	function parseAnalysis(json: string | null): { summary: string } | null {
+	let expandedPrompts = $state<Set<string>>(new Set());
+
+	function togglePrompt(id: string) {
+		const next = new Set(expandedPrompts);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		expandedPrompts = next;
+	}
+
+	function parseAnalysis(json: string | null): { summary: string; priority?: string; promptUsed?: string } | null {
 		if (!json) return null;
 		try {
 			return JSON.parse(json);
@@ -107,18 +138,24 @@
 						return async ({ update }) => {
 							await update();
 							loading = false;
+							selectedIds = new Set();
 							await invalidateAll();
 						};
 					}}
 				>
-					<Button disabled={loading || analyzed === results.length}>
+					{#each [...selectedIds] as id}
+						<input type="hidden" name="selectedIds" value={id} />
+					{/each}
+					<Button disabled={loading || analyzableResults.length === 0}>
 						<SparklesIcon class="mr-2 h-5 w-5" />
 						{#if loading}
 							Analyserar...
-						{:else if analyzed === results.length}
+						{:else if selectedIds.size > 0}
+							Analysera {selectedIds.size} valda
+						{:else if analyzableResults.length === 0}
 							Alla analyserade
 						{:else}
-							Starta AI-analys
+							Analysera alla ({analyzableResults.length})
 						{/if}
 					</Button>
 				</form>
@@ -155,6 +192,24 @@
 			</p>
 		</Card>
 	{:else}
+		{#if analyzableResults.length > 0}
+			<div class="flex items-center gap-3 px-1">
+				<input
+					type="checkbox"
+					id="select-all"
+					checked={allSelected}
+					onchange={toggleSelectAll}
+					class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+				/>
+				<label for="select-all" class="text-sm text-gray-600 cursor-pointer select-none">
+					{allSelected ? "Avmarkera alla" : "Markera alla ej analyserade"}
+				</label>
+				{#if selectedIds.size > 0}
+					<span class="text-sm text-blue-600">{selectedIds.size} valda</span>
+				{/if}
+			</div>
+		{/if}
+
 		<div class="space-y-2">
 			{#each results as result}
 				{@const analysis = parseAnalysis(result.aiAnalysis)}
@@ -164,9 +219,21 @@
 
 				<Card class="overflow-hidden">
 					<!-- Huvudrad -->
+					<div class="flex items-center gap-2 px-4">
+						{#if result.status !== "ANALYZING"}
+							<input
+								type="checkbox"
+								checked={selectedIds.has(result.id)}
+								onchange={() => toggleSelect(result.id)}
+								onclick={(e) => e.stopPropagation()}
+								class="h-4 w-4 flex-shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+							/>
+						{:else}
+							<div class="h-4 w-4 flex-shrink-0"></div>
+						{/if}
 					<button
 						type="button"
-						class="flex w-full items-center gap-4 px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+						class="flex flex-1 items-center gap-4 py-4 pr-2 text-left hover:bg-gray-50 transition-colors"
 						onclick={() => toggleRow(result.id)}
 					>
 						<!-- Avatar -->
@@ -185,21 +252,32 @@
 										{result.category}
 									</span>
 								{/if}
-							</div>
-							<div class="mt-0.5 flex items-center gap-4 text-sm text-gray-500">
-								{#if result.address}
-									<span class="flex items-center gap-1">
-										<MapPinIcon class="h-3.5 w-3.5" />
-										{result.address}
-									</span>
-								{/if}
-								{#if result.phone}
-									<span class="flex items-center gap-1">
-										<PhoneIcon class="h-3.5 w-3.5" />
-										{result.phone}
+								{#if parseAnalysis(result.aiAnalysis)?.priority}
+									{@const p = parseAnalysis(result.aiAnalysis)?.priority}
+									<span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium
+										{p === 'Hög' ? 'bg-red-100 text-red-700' : p === 'Medel' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}">
+										{p}
 									</span>
 								{/if}
 							</div>
+							{#if parseAnalysis(result.aiAnalysis)?.summary}
+								<p class="mt-0.5 text-sm text-gray-500 line-clamp-1">{parseAnalysis(result.aiAnalysis)?.summary}</p>
+							{:else}
+								<div class="mt-0.5 flex items-center gap-4 text-sm text-gray-500">
+									{#if result.address}
+										<span class="flex items-center gap-1">
+											<MapPinIcon class="h-3.5 w-3.5" />
+											{result.address}
+										</span>
+									{/if}
+									{#if result.phone}
+										<span class="flex items-center gap-1">
+											<PhoneIcon class="h-3.5 w-3.5" />
+											{result.phone}
+										</span>
+									{/if}
+								</div>
+							{/if}
 						</div>
 
 						<!-- Hemsida Maps -->
@@ -251,6 +329,7 @@
 							{/if}
 						</div>
 					</button>
+					</div>
 
 					<!-- Expanderad sektion -->
 					{#if isExpanded}
@@ -261,6 +340,28 @@
 									<h4 class="text-sm font-semibold text-gray-700 mb-2">AI-analys</h4>
 									{#if analysis}
 										<p class="text-sm text-gray-600">{analysis.summary}</p>
+										{#if analysis.priority}
+											<span class="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium
+												{analysis.priority === 'Hög' ? 'bg-red-100 text-red-700' :
+												 analysis.priority === 'Medel' ? 'bg-yellow-100 text-yellow-700' :
+												 'bg-gray-100 text-gray-600'}">
+												Prioritet: {analysis.priority}
+											</span>
+										{/if}
+										{#if analysis.promptUsed}
+											<div class="mt-3">
+												<button
+													type="button"
+													onclick={() => togglePrompt(result.id)}
+													class="text-xs text-gray-400 hover:text-gray-600 underline"
+												>
+													{expandedPrompts.has(result.id) ? "Dölj prompt" : "Visa prompt & data som användes"}
+												</button>
+												{#if expandedPrompts.has(result.id)}
+													<pre class="mt-2 whitespace-pre-wrap rounded-md bg-gray-900 p-3 text-xs text-green-400 overflow-x-auto">{analysis.promptUsed}</pre>
+												{/if}
+											</div>
+										{/if}
 									{:else}
 										<p class="text-sm text-gray-400 italic">Inte analyserad ännu</p>
 									{/if}

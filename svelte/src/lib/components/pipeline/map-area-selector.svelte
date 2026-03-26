@@ -39,7 +39,8 @@
 				setTimeout(resolve, 1000);
 			});
 
-			map = L.map(mapContainer).setView([62.0, 15.0], 5); // Sverige centrerad
+			map = L.map(mapContainer, { preferCanvas: true }).setView([62.0, 15.0], 5); // Sverige centrerad
+			setTimeout(() => map.invalidateSize(), 100);
 
 			L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 				attribution: "&copy; OpenStreetMap contributors",
@@ -108,7 +109,11 @@
 
 	function startDrawing() {
 		drawing = true;
-		if (map) map.dragging.disable();
+		if (map) {
+			map.dragging.disable();
+			// Force Leaflet to recalculate container size after DOM update
+			setTimeout(() => map.invalidateSize(), 0);
+		}
 	}
 
 	function clearArea() {
