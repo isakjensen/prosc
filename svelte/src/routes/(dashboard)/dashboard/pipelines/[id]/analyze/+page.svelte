@@ -24,6 +24,8 @@
 	let expandedRows = $state<Set<string>>(new Set());
 	let selectedIds = $state<Set<string>>(new Set());
 
+	const pipeline = $derived(data.pipeline);
+	const results = $derived(pipeline.results);
 	const analyzableResults = $derived(results.filter((r) => r.status !== "ANALYZING"));
 
 	const allSelected = $derived(
@@ -45,8 +47,6 @@
 		}
 	}
 
-	const pipeline = $derived(data.pipeline);
-	const results = $derived(pipeline.results);
 	const analyzed = $derived(results.filter((r) => r.status === "ANALYZED").length);
 	const analyzing = $derived(results.filter((r) => r.status === "ANALYZING").length);
 	const pending = $derived(results.filter((r) => r.status === "FOUND").length);
@@ -80,7 +80,38 @@
 		expandedPrompts = next;
 	}
 
-	function parseAnalysis(json: string | null): { summary: string; priority?: string; promptUsed?: string } | null {
+	interface AnalysisData {
+		summary: string;
+		priority?: string;
+		promptUsed?: string;
+		allabolag?: {
+			orgNr: string | null;
+			companyName: string | null;
+			companyType: string | null;
+			revenue: string | null;
+			profit: string | null;
+			employees: string | null;
+			sniDescription: string | null;
+			registeredYear: string | null;
+			boardMembers: string[];
+			url: string | null;
+		} | null;
+		ownWebsite?: {
+			url: string;
+			title: string | null;
+			techHints: string[];
+			isMobileResponsive: boolean;
+			hasSSL: boolean;
+			socialMedia: Record<string, string | null>;
+			emails: string[];
+			phones: string[];
+		} | null;
+		searchResultCount?: number;
+		directoryCount?: number;
+		scrapedSiteCount?: number;
+	}
+
+	function parseAnalysis(json: string | null): AnalysisData | null {
 		if (!json) return null;
 		try {
 			return JSON.parse(json);
@@ -368,28 +399,162 @@
 								</div>
 
 								<!-- Detaljer -->
-								<div class="space-y-2">
-									<h4 class="text-sm font-semibold text-gray-700 mb-2">Detaljer</h4>
-									<dl class="space-y-1 text-sm">
-										{#if result.website}
-											<div class="flex gap-2">
-												<dt class="text-gray-500">Maps-hemsida:</dt>
-												<dd class="text-blue-600 underline">{result.website}</dd>
-											</div>
-										{/if}
-										{#if result.aiWebsiteFound}
-											<div class="flex gap-2">
-												<dt class="text-gray-500">AI-hittad hemsida:</dt>
-												<dd class="text-purple-600 underline">{result.aiWebsiteFound}</dd>
-											</div>
-										{/if}
-										{#if result.rating}
-											<div class="flex gap-2">
-												<dt class="text-gray-500">Betyg:</dt>
-												<dd class="text-gray-900">{result.rating} / 5 ({result.reviewCount} recensioner)</dd>
-											</div>
-										{/if}
-									</dl>
+								<div class="space-y-4">
+									<!-- Hemsidor -->
+									<div>
+										<h4 class="text-sm font-semibold text-gray-700 mb-2">Hemsidor</h4>
+										<dl class="space-y-1 text-sm">
+											{#if result.website}
+												<div class="flex gap-2">
+													<dt class="text-gray-500 w-32 flex-shrink-0">Maps-hemsida:</dt>
+													<dd><a href={result.website} target="_blank" class="text-blue-600 underline hover:text-blue-800">{result.website}</a></dd>
+												</div>
+											{/if}
+											{#if result.aiWebsiteFound}
+												<div class="flex gap-2">
+													<dt class="text-gray-500 w-32 flex-shrink-0">AI-hittad:</dt>
+													<dd><a href={result.aiWebsiteFound} target="_blank" class="text-purple-600 underline hover:text-purple-800">{result.aiWebsiteFound}</a></dd>
+												</div>
+											{/if}
+										</dl>
+									</div>
+
+									<!-- Allabolag -->
+									{#if analysis?.allabolag}
+										{@const ab = analysis.allabolag}
+										<div>
+											<h4 class="text-sm font-semibold text-gray-700 mb-2">Bolagsdata (Allabolag.se)</h4>
+											<dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+												{#if ab.companyName}
+													<div class="flex gap-1">
+														<dt class="text-gray-500">Bolag:</dt>
+														<dd class="text-gray-900 font-medium">{ab.companyName}</dd>
+													</div>
+												{/if}
+												{#if ab.orgNr}
+													<div class="flex gap-1">
+														<dt class="text-gray-500">Org.nr:</dt>
+														<dd class="text-gray-900">{ab.orgNr}</dd>
+													</div>
+												{/if}
+												{#if ab.companyType}
+													<div class="flex gap-1">
+														<dt class="text-gray-500">Bolagsform:</dt>
+														<dd class="text-gray-900">{ab.companyType}</dd>
+													</div>
+												{/if}
+												{#if ab.revenue}
+													<div class="flex gap-1">
+														<dt class="text-gray-500">Omsättning:</dt>
+														<dd class="text-gray-900 font-semibold">{ab.revenue}</dd>
+													</div>
+												{/if}
+												{#if ab.profit}
+													<div class="flex gap-1">
+														<dt class="text-gray-500">Resultat:</dt>
+														<dd class="text-gray-900">{ab.profit}</dd>
+													</div>
+												{/if}
+												{#if ab.employees}
+													<div class="flex gap-1">
+														<dt class="text-gray-500">Anställda:</dt>
+														<dd class="text-gray-900">{ab.employees}</dd>
+													</div>
+												{/if}
+												{#if ab.sniDescription}
+													<div class="flex gap-1 col-span-2">
+														<dt class="text-gray-500">Bransch:</dt>
+														<dd class="text-gray-900">{ab.sniDescription}</dd>
+													</div>
+												{/if}
+												{#if ab.registeredYear}
+													<div class="flex gap-1">
+														<dt class="text-gray-500">Registrerad:</dt>
+														<dd class="text-gray-900">{ab.registeredYear}</dd>
+													</div>
+												{/if}
+												{#if ab.boardMembers && ab.boardMembers.length > 0}
+													<div class="flex gap-1 col-span-2">
+														<dt class="text-gray-500">Styrelse:</dt>
+														<dd class="text-gray-900">{ab.boardMembers.join(", ")}</dd>
+													</div>
+												{/if}
+											</dl>
+											{#if ab.url}
+												<a href={ab.url} target="_blank" class="mt-1 inline-block text-xs text-blue-500 hover:underline">Visa på Allabolag.se →</a>
+											{/if}
+										</div>
+									{/if}
+
+									<!-- Teknisk info om hemsida -->
+									{#if analysis?.ownWebsite}
+										{@const web = analysis.ownWebsite}
+										<div>
+											<h4 class="text-sm font-semibold text-gray-700 mb-2">Teknisk analys av hemsida</h4>
+											<dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+												{#if web.title}
+													<div class="flex gap-1 col-span-2">
+														<dt class="text-gray-500">Titel:</dt>
+														<dd class="text-gray-900">{web.title}</dd>
+													</div>
+												{/if}
+												<div class="flex gap-1">
+													<dt class="text-gray-500">SSL:</dt>
+													<dd class={web.hasSSL ? "text-green-600" : "text-red-500"}>{web.hasSSL ? "Ja ✓" : "Nej ✗"}</dd>
+												</div>
+												<div class="flex gap-1">
+													<dt class="text-gray-500">Mobilanpassad:</dt>
+													<dd class={web.isMobileResponsive ? "text-green-600" : "text-red-500"}>{web.isMobileResponsive ? "Ja ✓" : "Nej ✗"}</dd>
+												</div>
+												{#if web.techHints && web.techHints.length > 0}
+													<div class="flex gap-1 col-span-2">
+														<dt class="text-gray-500">Teknik:</dt>
+														<dd class="text-gray-900">{web.techHints.join(", ")}</dd>
+													</div>
+												{/if}
+												{#if web.emails && web.emails.length > 0}
+													<div class="flex gap-1 col-span-2">
+														<dt class="text-gray-500">E-post:</dt>
+														<dd class="text-gray-900">{web.emails.join(", ")}</dd>
+													</div>
+												{/if}
+												{#if web.phones && web.phones.length > 0}
+													<div class="flex gap-1 col-span-2">
+														<dt class="text-gray-500">Telefon:</dt>
+														<dd class="text-gray-900">{web.phones.join(", ")}</dd>
+													</div>
+												{/if}
+											</dl>
+											<!-- Sociala medier -->
+											{#if web.socialMedia}
+												{@const socials = Object.entries(web.socialMedia).filter(([, v]) => v)}
+												{#if socials.length > 0}
+													<div class="mt-2 flex flex-wrap gap-2">
+														{#each socials as [platform, url]}
+															<a
+																href={url}
+																target="_blank"
+																class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+															>
+																{platform}
+															</a>
+														{/each}
+													</div>
+												{/if}
+											{/if}
+										</div>
+									{/if}
+
+									<!-- Datainsamling sammanfattning -->
+									{#if analysis?.searchResultCount !== undefined}
+										<div class="border-t border-gray-200 pt-2">
+											<p class="text-xs text-gray-400">
+												Datainsamling: {analysis.searchResultCount ?? 0} organiska sökträffar,
+												{analysis.directoryCount ?? 0} kataloglistningar,
+												{analysis.scrapedSiteCount ?? 0} scrapade sidor
+											</p>
+										</div>
+									{/if}
 								</div>
 							</div>
 						</div>

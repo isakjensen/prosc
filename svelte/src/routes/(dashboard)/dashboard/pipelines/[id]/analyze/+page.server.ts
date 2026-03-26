@@ -66,11 +66,44 @@ export const actions: Actions = {
 
 				console.log(`${prefix} ✓ Klar – Prioritet: ${analysis.priority} | Hemsida: ${analysis.websiteFound ?? "ingen hittad"}`);
 
+				// Spara all insamlad data
+				const { collectedData } = analysis;
+				const allabolag = collectedData.allabolag;
+
 				await db.pipelineResult.update({
 					where: { id: result.id },
 					data: {
 						status: "ANALYZED",
-						aiAnalysis: JSON.stringify({ summary: analysis.summary, priority: analysis.priority, promptUsed: analysis.promptUsed }),
+						aiAnalysis: JSON.stringify({
+							summary: analysis.summary,
+							priority: analysis.priority,
+							promptUsed: analysis.promptUsed,
+							allabolag: allabolag.found ? {
+								orgNr: allabolag.orgNr,
+								companyName: allabolag.companyName,
+								companyType: allabolag.companyType,
+								revenue: allabolag.revenue,
+								profit: allabolag.profit,
+								employees: allabolag.employees,
+								sniDescription: allabolag.sniDescription,
+								registeredYear: allabolag.registeredYear,
+								boardMembers: allabolag.boardMembers,
+								url: allabolag.url,
+							} : null,
+							ownWebsite: collectedData.ownWebsite ? {
+								url: collectedData.ownWebsite.url,
+								title: collectedData.ownWebsite.title,
+								techHints: collectedData.ownWebsite.techHints,
+								isMobileResponsive: collectedData.ownWebsite.isMobileResponsive,
+								hasSSL: collectedData.ownWebsite.hasSSL,
+								socialMedia: collectedData.ownWebsite.socialMedia,
+								emails: collectedData.ownWebsite.emails,
+								phones: collectedData.ownWebsite.phones,
+							} : null,
+							searchResultCount: collectedData.searchResults.organic.length,
+							directoryCount: collectedData.searchResults.directories.length,
+							scrapedSiteCount: collectedData.scrapedSites.length,
+						}),
 						aiWebsiteFound: analysis.websiteFound,
 					},
 				});
