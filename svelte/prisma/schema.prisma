@@ -1030,22 +1030,23 @@ enum PipelineStatus {
 }
 
 model PipelineResult {
-  id            String               @id @default(cuid())
-  pipelineId    String
-  businessName  String
-  address       String?
-  phone         String?
-  category      String?
-  website       String?              // null = ingen hemsida funnen på Maps
-  hasWebsite    Boolean              @default(false)
-  logoUrl       String?
-  googleMapsUrl String?
-  rating        Float?
-  reviewCount   Int?
-  aiAnalysis    String?              // JSON: djupare AI-analys (steg 2)
-  aiWebsiteFound String?             // Hemsida hittad av AI i steg 2
-  status        PipelineResultStatus @default(FOUND)
-  createdAt     DateTime             @default(now())
+  id              String               @id @default(cuid())
+  pipelineId      String
+  businessName    String
+  address         String?
+  phone           String?
+  category        String?
+  website         String?              // null = ingen hemsida funnen på Maps
+  hasWebsite      Boolean              @default(false)
+  logoUrl         String?
+  googleMapsUrl   String?
+  rating          Float?
+  reviewCount     Int?
+  enrichmentData  String?              // JSON: all insamlad rådata (Allabolag, sökning, scraping)
+  aiAnalysis      String?              // JSON: djupare AI-analys (steg 2)
+  aiWebsiteFound  String?              // Hemsida hittad av AI i steg 2
+  status          PipelineResultStatus @default(FOUND)
+  createdAt       DateTime             @default(now())
 
   // Relations
   pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
@@ -1055,6 +1056,8 @@ model PipelineResult {
 
 enum PipelineResultStatus {
   FOUND
+  ENRICHING
+  ENRICHED
   ANALYZING
   ANALYZED
 }

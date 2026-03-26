@@ -6,6 +6,7 @@
 	import Input from "$lib/components/ui/input.svelte";
 	import Label from "$lib/components/ui/label.svelte";
 	import CityAreaSelector from "$lib/components/pipeline/city-area-selector.svelte";
+	import BusinessReportModal from "$lib/components/pipeline/business-report-modal.svelte";
 	import {
 		PlayIcon,
 		StopIcon,
@@ -19,13 +20,18 @@
 		ArrowPathIcon,
 		XMarkIcon,
 		PlusIcon,
+		DocumentMagnifyingGlassIcon,
+		SparklesIcon,
 	} from "heroicons-svelte/24/outline";
 	import type { PageData, ActionData } from "./$types";
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let loading = $state(false);
+	let enrichLoading = $state(false);
 	let showEditModal = $state(false);
+	let reportResult = $state<(typeof results)[number] | null>(null);
+	let selectedIds = $state<Set<string>>(new Set());
 
 	// Edit form state – initialized when modal opens
 	let editName = $state("");
@@ -98,7 +104,33 @@
 		STOPPED: { label: "Stoppad", color: "text-yellow-600", bg: "bg-yellow-100" },
 	};
 
+	const resultStatusConfig: Record<string, { label: string; color: string; bg: string }> = {
+		FOUND: { label: "Hittad", color: "text-gray-600", bg: "bg-gray-100" },
+		ENRICHING: { label: "Berikar...", color: "text-purple-600", bg: "bg-purple-100" },
+		ENRICHED: { label: "Berikad", color: "text-emerald-600", bg: "bg-emerald-100" },
+		ANALYZING: { label: "Analyserar...", color: "text-blue-600", bg: "bg-blue-100" },
+		ANALYZED: { label: "Analyserad", color: "text-blue-600", bg: "bg-blue-100" },
+	};
+
 	const status = $derived(statusConfig[pipeline.status] ?? statusConfig.IDLE);
+	const enrichedCount = $derived(results.filter((r) => r.status === "ENRICHED" || r.status === "ANALYZED").length);
+	const enrichingCount = $derived(results.filter((r) => r.status === "ENRICHING").length);
+	const allSelected = $derived(filteredResults.length > 0 && filteredResults.every((r) => selectedIds.has(r.id)));
+
+	function toggleAll() {
+		if (allSelected) {
+			selectedIds = new Set();
+		} else {
+			selectedIds = new Set(filteredResults.map((r) => r.id));
+		}
+	}
+
+	function toggleOne(id: string) {
+		const next = new Set(selectedIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedIds = next;
+	}
 </script>
 
 <div class="space-y-6">
@@ -177,6 +209,27 @@
 				</form>
 			{/if}
 			{#if results.length > 0}
+				<form
+					method="POST"
+					action="?/enrich"
+					use:enhance={() => {
+						enrichLoading = true;
+						return async ({ update }) => {
+							enrichLoading = false;
+							selectedIds = new Set();
+							await update();
+							await invalidateAll();
+						};
+					}}
+				>
+					{#each [...selectedIds] as id}
+						<input type="hidden" name="selectedIds" value={id} />
+					{/each}
+					<Button variant="outline" type="submit" disabled={enrichLoading}>
+						<SparklesIcon class="mr-2 h-4 w-4" />
+						{enrichLoading ? "Berikar..." : selectedIds.size > 0 ? `Berika (${selectedIds.size})` : "Berika alla"}
+					</Button>
+				</form>
 				<a href="/dashboard/pipelines/{pipeline.id}/analyze">
 					<Button variant="outline">
 						Gå vidare till analys
@@ -196,7 +249,7 @@
 
 	<!-- Statistik -->
 	{#if results.length > 0}
-		<div class="grid grid-cols-3 gap-4">
+		<div class="grid grid-cols-4 gap-4">
 			<Card class="p-4 text-center">
 				<p class="text-3xl font-bold text-gray-900">{totalFound}</p>
 				<p class="text-sm text-gray-500">Totalt hittade</p>
@@ -208,6 +261,10 @@
 			<Card class="p-4 text-center">
 				<p class="text-3xl font-bold text-green-600">{withWebsite}</p>
 				<p class="text-sm text-gray-500">Med hemsida</p>
+			</Card>
+			<Card class="p-4 text-center">
+				<p class="text-3xl font-bold text-emerald-600">{enrichedCount}</p>
+				<p class="text-sm text-gray-500">Berikade{enrichingCount > 0 ? ` (${enrichingCount} pågår)` : ""}</p>
 			</Card>
 		</div>
 	{/if}
@@ -251,6 +308,14 @@
 			<table class="min-w-full divide-y divide-gray-200">
 				<thead class="bg-gray-50">
 					<tr>
+						<th class="w-10 px-4 py-3">
+							<input
+								type="checkbox"
+								checked={allSelected}
+								onchange={toggleAll}
+								class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+							/>
+						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
 							Företag
 						</th>
@@ -267,13 +332,24 @@
 							Hemsida
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-							Betyg
+							Status
+						</th>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							Rapport
 						</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-gray-200">
 					{#each filteredResults as result}
 						<tr class="hover:bg-gray-50 transition-colors">
+							<td class="w-10 px-4 py-4">
+								<input
+									type="checkbox"
+									checked={selectedIds.has(result.id)}
+									onchange={() => toggleOne(result.id)}
+									class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								/>
+							</td>
 							<td class="whitespace-nowrap px-6 py-4">
 								<div class="flex items-center gap-3">
 									<div
@@ -319,13 +395,23 @@
 								{/if}
 							</td>
 							<td class="whitespace-nowrap px-6 py-4">
-								{#if result.rating}
-									<div class="flex items-center gap-1">
-										<span class="text-sm text-yellow-500">{renderStars(result.rating)}</span>
-										<span class="text-xs text-gray-500">({result.reviewCount})</span>
-									</div>
+								{@const rs = resultStatusConfig[result.status] ?? resultStatusConfig.FOUND}
+								<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {rs.color} {rs.bg}">
+									{rs.label}
+								</span>
+							</td>
+							<td class="whitespace-nowrap px-6 py-4">
+								{#if result.enrichmentData}
+									<button
+										type="button"
+										onclick={() => (reportResult = result)}
+										class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+									>
+										<DocumentMagnifyingGlassIcon class="h-4 w-4" />
+										Visa rapport
+									</button>
 								{:else}
-									<span class="text-sm text-gray-400">—</span>
+									<span class="text-xs text-gray-400">—</span>
 								{/if}
 							</td>
 						</tr>
@@ -452,4 +538,18 @@
 		</div>
 	</div>
 </div>
+{/if}
+
+<!-- Företagsrapport-modal -->
+{#if reportResult}
+	<BusinessReportModal
+		businessName={reportResult.businessName}
+		category={reportResult.category}
+		address={reportResult.address}
+		phone={reportResult.phone}
+		website={reportResult.website}
+		hasWebsite={reportResult.hasWebsite}
+		enrichmentData={reportResult.enrichmentData}
+		onclose={() => (reportResult = null)}
+	/>
 {/if}

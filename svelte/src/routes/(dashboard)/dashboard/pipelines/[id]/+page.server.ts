@@ -2,6 +2,7 @@ import { error, fail } from "@sveltejs/kit";
 import type { PageServerLoad, Actions } from "./$types";
 import { db } from "$lib/db";
 import { scrapeCategory } from "$lib/server/overpass";
+import { enrichBusiness } from "$lib/server/enrich";
 
 export const load: PageServerLoad = async ({ params }) => {
 	const pipeline = await db.pipeline.findUnique({
@@ -106,6 +107,68 @@ export const actions: Actions = {
 			where: { id: params.id },
 			data: { status: "STOPPED" },
 		});
+		return { success: true };
+	},
+
+	enrich: async ({ params, request }) => {
+		const formData = await request.formData();
+		const selectedIds = formData.getAll("selectedIds") as string[];
+
+		const where = selectedIds.length > 0
+			? { pipelineId: params.id, id: { in: selectedIds } }
+			: { pipelineId: params.id, enrichmentData: null };
+
+		// Markera som ENRICHING
+		await db.pipelineResult.updateMany({ where, data: { status: "ENRICHING" } });
+
+		const results = await db.pipelineResult.findMany({
+			where: { pipelineId: params.id, status: "ENRICHING" },
+		});
+
+		const pipeline = await db.pipeline.findUnique({ where: { id: params.id } });
+		const cityName: string | undefined = pipeline?.areaConfig
+			? JSON.parse(pipeline.areaConfig).cityName
+			: undefined;
+
+		const total = results.length;
+		console.log(`\n[Berikning] Startar – ${total} företag${cityName ? ` (${cityName})` : ""}`);
+
+		for (let i = 0; i < results.length; i++) {
+			const result = results[i];
+			const prefix = `[${i + 1}/${total}] ${result.businessName}`;
+			console.log(`${prefix}`);
+
+			try {
+				const enrichment = await enrichBusiness(
+					{
+						businessName: result.businessName,
+						category: result.category,
+						address: result.address,
+						phone: result.phone,
+						hasWebsite: result.hasWebsite,
+						website: result.website,
+					},
+					prefix,
+					cityName,
+				);
+
+				await db.pipelineResult.update({
+					where: { id: result.id },
+					data: {
+						status: "ENRICHED",
+						enrichmentData: JSON.stringify(enrichment),
+					},
+				});
+			} catch (err) {
+				console.error(`${prefix} ✗ Misslyckades:`, err);
+				await db.pipelineResult.update({
+					where: { id: result.id },
+					data: { status: "FOUND" },
+				});
+			}
+		}
+
+		console.log(`[Berikning] Klar!\n`);
 		return { success: true };
 	},
 };
