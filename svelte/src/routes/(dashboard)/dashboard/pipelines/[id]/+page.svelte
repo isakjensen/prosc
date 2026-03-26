@@ -229,7 +229,10 @@
 				<form
 					method="POST"
 					action="?/enrich"
-					use:enhance={() => {
+					use:enhance={({ formData }) => {
+						for (const id of selectedIds) {
+							formData.append("selectedIds", id);
+						}
 						enrichLoading = true;
 						return async ({ update }) => {
 							enrichLoading = false;
@@ -239,9 +242,6 @@
 						};
 					}}
 				>
-					{#each [...selectedIds] as id}
-						<input type="hidden" name="selectedIds" value={id} />
-					{/each}
 					<Button variant="outline" type="submit" disabled={enrichLoading || selectedIds.size === 0}>
 						<SparklesIcon class="mr-2 h-4 w-4" />
 						{enrichLoading ? "Berikar..." : `Berika (${selectedIds.size})`}

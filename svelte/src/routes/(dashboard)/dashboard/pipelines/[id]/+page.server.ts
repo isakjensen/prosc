@@ -114,15 +114,17 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const selectedIds = formData.getAll("selectedIds") as string[];
 
+		if (selectedIds.length === 0) {
+			return { error: "Inga företag valda" };
+		}
+
 		const where = { pipelineId: params.id, id: { in: selectedIds } };
 
 		// Nollställ stoppflagga och markera som ENRICHING
 		await db.pipeline.update({ where: { id: params.id }, data: { enrichStopped: false } });
 		await db.pipelineResult.updateMany({ where, data: { status: "ENRICHING" } });
 
-		const results = await db.pipelineResult.findMany({
-			where: { pipelineId: params.id, status: "ENRICHING" },
-		});
+		const results = await db.pipelineResult.findMany({ where });
 
 		const pipeline = await db.pipeline.findUnique({ where: { id: params.id } });
 		const cityName: string | undefined = pipeline?.areaConfig

@@ -122,7 +122,6 @@ export const actions: Actions = {
 		await db.pipeline.update({ where: { id: params.id }, data: { lastAnalyzedAt: new Date() } });
 		return { success: true };
 	},
-,
 
 	stopAnalysis: async ({ params }) => {
 		await db.pipelineResult.updateMany({
