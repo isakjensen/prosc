@@ -55,10 +55,14 @@
 			: baseNavItems.filter((item) => item.href !== "/dashboard/systemloggar"),
 	);
 
-	// Auto-close on navigation
+	// Auto-close on navigation (track pathname changes, skip initial run)
+	let prevPathname = $state($page.url.pathname);
 	$effect(() => {
-		$page.url.pathname;
-		if (open) onclose?.();
+		const current = $page.url.pathname;
+		if (current !== prevPathname) {
+			prevPathname = current;
+			if (open) onclose?.();
+		}
 	});
 </script>
 
