@@ -116,6 +116,12 @@
 	const enrichedCount = $derived(results.filter((r) => r.status === "ENRICHED" || r.status === "ANALYZED").length);
 	const enrichingCount = $derived(results.filter((r) => r.status === "ENRICHING").length);
 	const allSelected = $derived(filteredResults.length > 0 && filteredResults.every((r) => selectedIds.has(r.id)));
+	const isEnriching = $derived(results.some((r) => r.status === "ENRICHING"));
+
+	function formatDate(d: string | Date | null | undefined) {
+		if (!d) return null;
+		return new Intl.DateTimeFormat("sv-SE", { dateStyle: "short", timeStyle: "short" }).format(new Date(d));
+	}
 
 	function toggleAll() {
 		if (allSelected) {
@@ -150,6 +156,17 @@
 				</span>
 			</div>
 			<p class="mt-1 text-gray-500">{pipeline.description}</p>
+			<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+				{#if pipeline.lastScrapedAt}
+					<span>Senaste fetch: <span class="font-medium text-gray-600">{formatDate(pipeline.lastScrapedAt)}</span></span>
+				{/if}
+				{#if pipeline.lastEnrichedAt}
+					<span>Senaste berikning: <span class="font-medium text-gray-600">{formatDate(pipeline.lastEnrichedAt)}</span></span>
+				{/if}
+				{#if pipeline.lastAnalyzedAt}
+					<span>Senaste AI-analys: <span class="font-medium text-gray-600">{formatDate(pipeline.lastAnalyzedAt)}</span></span>
+				{/if}
+			</div>
 		</div>
 		<div class="flex items-center gap-2">
 			<Button variant="outline" onclick={openEdit}>
@@ -225,9 +242,9 @@
 					{#each [...selectedIds] as id}
 						<input type="hidden" name="selectedIds" value={id} />
 					{/each}
-					<Button variant="outline" type="submit" disabled={enrichLoading}>
+					<Button variant="outline" type="submit" disabled={enrichLoading || selectedIds.size === 0}>
 						<SparklesIcon class="mr-2 h-4 w-4" />
-						{enrichLoading ? "Berikar..." : selectedIds.size > 0 ? `Berika (${selectedIds.size})` : "Berika alla"}
+						{enrichLoading ? "Berikar..." : `Berika (${selectedIds.size})`}
 					</Button>
 				</form>
 				<a href="/dashboard/pipelines/{pipeline.id}/analyze">
@@ -320,10 +337,7 @@
 							Företag
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-							Adress
-						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-							Telefon
+							Adress / Telefon
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
 							Kategori
@@ -360,17 +374,17 @@
 									<span class="font-medium text-gray-900">{result.businessName}</span>
 								</div>
 							</td>
-							<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+							<td class="px-6 py-4 text-sm text-gray-500">
 								<div class="flex items-center gap-1">
 									<MapPinIcon class="h-4 w-4 flex-shrink-0" />
 									{result.address || "—"}
 								</div>
-							</td>
-							<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-								<div class="flex items-center gap-1">
-									<PhoneIcon class="h-4 w-4 flex-shrink-0" />
-									{result.phone || "—"}
-								</div>
+								{#if result.phone}
+									<div class="mt-0.5 flex items-center gap-1">
+										<PhoneIcon class="h-4 w-4 flex-shrink-0" />
+										{result.phone}
+									</div>
+								{/if}
 							</td>
 							<td class="whitespace-nowrap px-6 py-4">
 								{#if result.category}
@@ -395,10 +409,12 @@
 								{/if}
 							</td>
 							<td class="whitespace-nowrap px-6 py-4">
-								{@const rs = resultStatusConfig[result.status] ?? resultStatusConfig.FOUND}
-								<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {rs.color} {rs.bg}">
-									{rs.label}
-								</span>
+								{#if true}
+									{@const rs = resultStatusConfig[result.status] ?? resultStatusConfig.FOUND}
+									<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {rs.color} {rs.bg}">
+										{rs.label}
+									</span>
+								{/if}
 							</td>
 							<td class="whitespace-nowrap px-6 py-4">
 								{#if result.enrichmentData}

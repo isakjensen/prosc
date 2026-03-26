@@ -64,7 +64,7 @@ export const actions: Actions = {
 
 			await db.pipeline.update({
 				where: { id: params.id },
-				data: { status: "COMPLETED" },
+				data: { status: "COMPLETED", lastScrapedAt: new Date() },
 			});
 
 			return { success: true };
@@ -114,11 +114,10 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const selectedIds = formData.getAll("selectedIds") as string[];
 
-		const where = selectedIds.length > 0
-			? { pipelineId: params.id, id: { in: selectedIds } }
-			: { pipelineId: params.id, enrichmentData: null };
+		const where = { pipelineId: params.id, id: { in: selectedIds } };
 
-		// Markera som ENRICHING
+		// Nollställ stoppflagga och markera som ENRICHING
+		await db.pipeline.update({ where: { id: params.id }, data: { enrichStopped: false } });
 		await db.pipelineResult.updateMany({ where, data: { status: "ENRICHING" } });
 
 		const results = await db.pipelineResult.findMany({
@@ -134,6 +133,14 @@ export const actions: Actions = {
 		console.log(`\n[Berikning] Startar – ${total} företag${cityName ? ` (${cityName})` : ""}`);
 
 		for (let i = 0; i < results.length; i++) {
+			// Kontrollera stoppflagga
+			const pipelineCheck = await db.pipeline.findUnique({ where: { id: params.id }, select: { enrichStopped: true } });
+			if (pipelineCheck?.enrichStopped) {
+				console.log(`[Berikning] Stoppad av användaren`);
+				await db.pipelineResult.updateMany({ where: { pipelineId: params.id, status: "ENRICHING" }, data: { status: "FOUND" } });
+				break;
+			}
+
 			const result = results[i];
 			const prefix = `[${i + 1}/${total}] ${result.businessName}`;
 			console.log(`${prefix}`);
@@ -168,7 +175,21 @@ export const actions: Actions = {
 			}
 		}
 
-		console.log(`[Berikning] Klar!\n`);
+		console.log(`[Berikning] Klar!
+`);
+		await db.pipeline.update({ where: { id: params.id }, data: { lastEnrichedAt: new Date() } });
+		return { success: true };
+	},
+
+	stopEnrich: async ({ params }) => {
+		await db.pipeline.update({
+			where: { id: params.id },
+			data: { enrichStopped: true },
+		});
+		await db.pipelineResult.updateMany({
+			where: { pipelineId: params.id, status: "ENRICHING" },
+			data: { status: "FOUND" },
+		});
 		return { success: true };
 	},
 };

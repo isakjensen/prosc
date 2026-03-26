@@ -1013,6 +1013,10 @@ model Pipeline {
   status      PipelineStatus @default(IDLE)
   areaConfig  String?        // JSON: { north, south, east, west, cityName? } bounds från kartval
   categories  String?        // JSON array: AI-genererade kategorier att söka efter
+  enrichStopped  Boolean   @default(false)
+  lastScrapedAt  DateTime?
+  lastEnrichedAt DateTime?
+  lastAnalyzedAt DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 

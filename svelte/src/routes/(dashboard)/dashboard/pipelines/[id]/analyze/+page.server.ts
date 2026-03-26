@@ -116,10 +116,13 @@ export const actions: Actions = {
 			}
 		}
 
-		console.log(`[AI-analys] Klar!\n`);
+		console.log(`[AI-analys] Klar!
+`);
 
+		await db.pipeline.update({ where: { id: params.id }, data: { lastAnalyzedAt: new Date() } });
 		return { success: true };
 	},
+,
 
 	stopAnalysis: async ({ params }) => {
 		await db.pipelineResult.updateMany({
