@@ -10,9 +10,10 @@
 		ChevronLeftIcon,
 		GlobeAltIcon,
 		XCircleIcon,
-		StarIcon,
 		MapPinIcon,
 		PhoneIcon,
+		EnvelopeIcon,
+		BuildingOfficeIcon,
 	} from "heroicons-svelte/24/outline";
 	import type { PageData } from "./$types";
 
@@ -192,7 +193,7 @@
 							Adress
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-							Telefon
+							Kontakt
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
 							Kategori
@@ -208,28 +209,64 @@
 				<tbody class="divide-y divide-gray-200">
 					{#each filteredResults as result}
 						<tr class="hover:bg-gray-50 transition-colors">
-							<td class="whitespace-nowrap px-6 py-4">
+							<!-- Företagsnamn + org-nummer -->
+							<td class="px-6 py-4">
 								<div class="flex items-center gap-3">
-									<div
-										class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700"
-									>
+									<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
 										{getInitials(result.businessName)}
 									</div>
-									<span class="font-medium text-gray-900">{result.businessName}</span>
+									<div class="min-w-0">
+										<p class="font-medium text-gray-900 truncate">{result.businessName}</p>
+										{#if result.orgNumber}
+											<a
+												href={result.allabolagUrl ?? `https://www.allabolag.se/what/${encodeURIComponent(result.businessName)}`}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="inline-flex items-center gap-1 text-xs text-blue-500 hover:underline"
+												onclick={(e) => e.stopPropagation()}
+											>
+												<BuildingOfficeIcon class="h-3 w-3" />
+												{result.orgNumber}
+											</a>
+										{/if}
+									</div>
 								</div>
 							</td>
-							<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-								<div class="flex items-center gap-1">
-									<MapPinIcon class="h-4 w-4 flex-shrink-0" />
-									{result.address || "—"}
+
+							<!-- Adress -->
+							<td class="px-6 py-4 text-sm text-gray-500">
+								<div class="flex items-start gap-1">
+									<MapPinIcon class="h-4 w-4 flex-shrink-0 mt-0.5" />
+									<span class="break-words max-w-xs">{result.address || "—"}</span>
 								</div>
 							</td>
-							<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-								<div class="flex items-center gap-1">
-									<PhoneIcon class="h-4 w-4 flex-shrink-0" />
-									{result.phone || "—"}
+
+							<!-- Kontakt: telefon + e-post -->
+							<td class="px-6 py-4 text-sm text-gray-500">
+								<div class="space-y-1">
+									{#if result.phone}
+										<div class="flex items-center gap-1">
+											<PhoneIcon class="h-3.5 w-3.5 flex-shrink-0" />
+											<span>{result.phone}</span>
+										</div>
+									{:else}
+										<div class="flex items-center gap-1 text-gray-300">
+											<PhoneIcon class="h-3.5 w-3.5 flex-shrink-0" />
+											<span>—</span>
+										</div>
+									{/if}
+									{#if result.email}
+										<div class="flex items-center gap-1 text-blue-500">
+											<EnvelopeIcon class="h-3.5 w-3.5 flex-shrink-0" />
+											<a href="mailto:{result.email}" class="hover:underline truncate max-w-[160px]">
+												{result.email}
+											</a>
+										</div>
+									{/if}
 								</div>
 							</td>
+
+							<!-- Kategori -->
 							<td class="whitespace-nowrap px-6 py-4">
 								{#if result.category}
 									<span class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
@@ -239,12 +276,20 @@
 									<span class="text-sm text-gray-400">—</span>
 								{/if}
 							</td>
+
+							<!-- Hemsida -->
 							<td class="whitespace-nowrap px-6 py-4">
 								{#if result.hasWebsite}
-									<span class="inline-flex items-center gap-1 text-sm text-green-600">
+									<a
+										href={result.website ?? "#"}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline"
+										onclick={(e) => e.stopPropagation()}
+									>
 										<GlobeAltIcon class="h-4 w-4" />
 										Ja
-									</span>
+									</a>
 								{:else}
 									<span class="inline-flex items-center gap-1 text-sm text-red-500">
 										<XCircleIcon class="h-4 w-4" />
@@ -252,6 +297,8 @@
 									</span>
 								{/if}
 							</td>
+
+							<!-- Betyg -->
 							<td class="whitespace-nowrap px-6 py-4">
 								{#if result.rating}
 									<div class="flex items-center gap-1">

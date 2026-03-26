@@ -1047,6 +1047,13 @@ model PipelineResult {
   status        PipelineResultStatus @default(FOUND)
   createdAt     DateTime             @default(now())
 
+  // Allabolag.se-berikningsdata
+  orgNumber     String?              // Organisationsnummer
+  email         String?              // E-post från Allabolag
+  employeeCount Int?                 // Antal anställda
+  revenueKSEK   Int?                 // Omsättning i tkr
+  allabolagUrl  String?              // Länk till allabolag.se
+
   // Relations
   pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
 

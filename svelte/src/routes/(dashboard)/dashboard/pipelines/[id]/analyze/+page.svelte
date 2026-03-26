@@ -13,6 +13,8 @@
 		ChevronUpIcon,
 		MapPinIcon,
 		PhoneIcon,
+		EnvelopeIcon,
+		BuildingOfficeIcon,
 		CheckCircleIcon,
 		ClockIcon,
 	} from "heroicons-svelte/24/outline";
@@ -270,16 +272,53 @@
 								<div class="space-y-2">
 									<h4 class="text-sm font-semibold text-gray-700 mb-2">Detaljer</h4>
 									<dl class="space-y-1 text-sm">
+										{#if result.orgNumber}
+											<div class="flex gap-2">
+												<dt class="flex items-center gap-1 text-gray-500">
+													<BuildingOfficeIcon class="h-3.5 w-3.5" />Org-nr:
+												</dt>
+												<dd>
+													<a
+														href={result.allabolagUrl ?? `https://www.allabolag.se/what/${encodeURIComponent(result.businessName)}`}
+														target="_blank"
+														rel="noopener noreferrer"
+														class="text-blue-600 hover:underline"
+													>
+														{result.orgNumber}
+													</a>
+												</dd>
+											</div>
+										{/if}
+										{#if result.email}
+											<div class="flex gap-2">
+												<dt class="flex items-center gap-1 text-gray-500">
+													<EnvelopeIcon class="h-3.5 w-3.5" />E-post:
+												</dt>
+												<dd>
+													<a href="mailto:{result.email}" class="text-blue-600 hover:underline">
+														{result.email}
+													</a>
+												</dd>
+											</div>
+										{/if}
 										{#if result.website}
 											<div class="flex gap-2">
 												<dt class="text-gray-500">Maps-hemsida:</dt>
-												<dd class="text-blue-600 underline">{result.website}</dd>
+												<dd>
+													<a href={result.website} target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
+														{result.website}
+													</a>
+												</dd>
 											</div>
 										{/if}
 										{#if result.aiWebsiteFound}
 											<div class="flex gap-2">
 												<dt class="text-gray-500">AI-hittad hemsida:</dt>
-												<dd class="text-purple-600 underline">{result.aiWebsiteFound}</dd>
+												<dd>
+													<a href={result.aiWebsiteFound} target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline">
+														{result.aiWebsiteFound}
+													</a>
+												</dd>
 											</div>
 										{/if}
 										{#if result.rating}

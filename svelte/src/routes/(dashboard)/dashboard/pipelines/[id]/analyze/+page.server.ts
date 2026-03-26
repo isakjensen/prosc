@@ -1,6 +1,70 @@
-import { error } from "@sveltejs/kit";
+import { error, fail } from "@sveltejs/kit";
 import type { PageServerLoad, Actions } from "./$types";
 import { db } from "$lib/db";
+import { env } from "$env/dynamic/private";
+
+interface AnalysisResult {
+	summary: string;
+	websiteFound: string | null;
+}
+
+async function analyzeWithClaude(business: {
+	businessName: string;
+	address: string | null;
+	phone: string | null;
+	category: string | null;
+	website: string | null;
+	hasWebsite: boolean;
+	rating: number | null;
+	reviewCount: number | null;
+}, apiKey: string): Promise<AnalysisResult> {
+	const prompt = `Du är säljanalytiker på ett webbyrå som söker nya kunder. Analysera detta företag och bedöm deras digitala närvaro.
+
+Företag: ${business.businessName}
+Kategori: ${business.category ?? "okänd"}
+Adress: ${business.address ?? "okänd"}
+Telefon: ${business.phone ?? "saknas"}
+Hemsida (Google Maps): ${business.website ?? "ingen"}
+Betyg: ${business.rating ? `${business.rating}/5 (${business.reviewCount} recensioner)` : "inga recensioner"}
+
+Svara ENDAST med ett JSON-objekt (ingen markdown, inga kommentarer):
+{
+  "summary": "kortfattad mening om företagets webbnärvaro och potential som kund",
+  "websiteFound": "url om du känner till deras hemsida/sociala media utöver Google Maps, annars null"
+}`;
+
+	const response = await fetch("https://api.anthropic.com/v1/messages", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"x-api-key": apiKey,
+			"anthropic-version": "2023-06-01",
+		},
+		body: JSON.stringify({
+			model: "claude-haiku-4-5-20251001",
+			max_tokens: 300,
+			messages: [{ role: "user", content: prompt }],
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Claude API ${response.status}`);
+	}
+
+	const data = await response.json();
+	const text: string = data.content?.[0]?.text ?? "{}";
+
+	try {
+		const parsed = JSON.parse(text);
+		return {
+			summary: parsed.summary ?? "Analys ej tillgänglig",
+			websiteFound: parsed.websiteFound ?? null,
+		};
+	} catch {
+		// Om Claude svarade med text utanför JSON-formatet, använd det som summary
+		return { summary: text.slice(0, 300), websiteFound: null };
+	}
+}
 
 export const load: PageServerLoad = async ({ params }) => {
 	const pipeline = await db.pipeline.findUnique({
@@ -21,45 +85,41 @@ export const load: PageServerLoad = async ({ params }) => {
 
 export const actions: Actions = {
 	startAnalysis: async ({ params }) => {
+		const apiKey = env.ANTHROPIC_API_KEY;
+		if (!apiKey) {
+			return fail(500, { error: "ANTHROPIC_API_KEY saknas i miljövariabler" });
+		}
+
 		// Markera alla FOUND-resultat som ANALYZING
 		await db.pipelineResult.updateMany({
 			where: { pipelineId: params.id, status: "FOUND" },
 			data: { status: "ANALYZING" },
 		});
 
-		// Simulera AI-analys med mockdata
 		const results = await db.pipelineResult.findMany({
-			where: { pipelineId: params.id },
+			where: { pipelineId: params.id, status: "ANALYZING" },
 		});
 
-		const mockAnalyses = [
-			{ summary: "Litet café med stark lokal kundkrets. Aktiv på Instagram men saknar egen hemsida. Bra potential för enkel webbsida med meny och öppettider.", websiteFound: null },
-			{ summary: "Etablerad restaurang med många recensioner. Har en enkel Facebook-sida men ingen riktig hemsida. Behöver bokningssystem och menyvisning online.", websiteFound: "https://facebook.com/sjostaden-goteborg" },
-			{ summary: "Populär frisörsalong med högt betyg. Ingen hemsida, bokar via telefon. Stor potential för online-bokningssystem.", websiteFound: null },
-			{ summary: "Hantverksföretag som jobbar lokalt. Hittas bara på Eniro. Behöver presentationssida med referensprojekt.", websiteFound: "https://eniro.se/bygg-fix-ab" },
-			{ summary: "Pizzeria med stort antal recensioner men lågt betyg. Har en gammal hemsida som inte fungerar på mobil.", websiteFound: "https://pizzeriaroma.nu" },
-			{ summary: "Välskött bilverkstad med bra rykte. Hemsidan finns men är väldigt föråldrad.", websiteFound: null },
-			{ summary: "Blomsterbutik med utmärkta recensioner. Ingen digital närvaro alls förutom Google Maps. Hög potential.", websiteFound: null },
-			{ summary: "Städfirma med växande verksamhet. Ingen hemsida, marknadsför via lokala Facebook-grupper.", websiteFound: null },
-			{ summary: "Franchiserestaurang med centralt läge. Har rikstäckande hemsida men inte lokal landningssida.", websiteFound: null },
-			{ summary: "Elektriker med bra betyg. Hittas på Mittanbud men saknar egen hemsida.", websiteFound: "https://mittanbud.se/el-teknik" },
-			{ summary: "Mysigt café med trogen kundkrets. Ingen hemsida, bara Google Maps-profil. Vill gärna visa sin meny online.", websiteFound: null },
-			{ summary: "Bilglasföretag med litet kundunderlag. Ingen digital marknadsföring alls. Låg prioritet.", websiteFound: null },
-			{ summary: "Modern tandvårdsklinik med proffsig hemsida. Behöver ingen hjälp med web.", websiteFound: null },
-			{ summary: "Redovisningsbyrå utan hemsida. Jobbar mest via rekommendationer. Behöver trovärdighetsbyggande webbplats.", websiteFound: null },
-			{ summary: "Frisörsalong med bra rykte. Bokar via Instagram DM. Vill ha eget bokningssystem.", websiteFound: "https://instagram.com/frisor_harmony" },
-		];
+		for (const result of results) {
+			try {
+				const analysis = await analyzeWithClaude(result, apiKey);
 
-		for (let i = 0; i < results.length; i++) {
-			const analysis = mockAnalyses[i % mockAnalyses.length];
-			await db.pipelineResult.update({
-				where: { id: results[i].id },
-				data: {
-					status: "ANALYZED",
-					aiAnalysis: JSON.stringify({ summary: analysis.summary }),
-					aiWebsiteFound: analysis.websiteFound,
-				},
-			});
+				await db.pipelineResult.update({
+					where: { id: result.id },
+					data: {
+						status: "ANALYZED",
+						aiAnalysis: JSON.stringify({ summary: analysis.summary }),
+						aiWebsiteFound: analysis.websiteFound,
+					},
+				});
+			} catch (err) {
+				console.error(`Analys misslyckades för ${result.businessName}:`, err);
+				// Återställ till FOUND vid fel så användaren kan försöka igen
+				await db.pipelineResult.update({
+					where: { id: result.id },
+					data: { status: "FOUND" },
+				});
+			}
 		}
 
 		return { success: true };
