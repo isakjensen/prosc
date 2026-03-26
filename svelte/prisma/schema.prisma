@@ -1001,3 +1001,60 @@ model SystemUpdate {
 
   @@map("system_updates")
 }
+
+// ============================================
+// Pipeline (Google Maps Scraping)
+// ============================================
+
+model Pipeline {
+  id          String         @id @default(cuid())
+  name        String
+  description String         // Fri text som beskriver målkunden
+  status      PipelineStatus @default(IDLE)
+  areaConfig  String?        // JSON: { north, south, east, west } bounds från kartval
+  categories  String?        // JSON array: AI-genererade kategorier att söka efter
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  results PipelineResult[]
+
+  @@map("pipelines")
+}
+
+enum PipelineStatus {
+  IDLE
+  RUNNING
+  COMPLETED
+  STOPPED
+}
+
+model PipelineResult {
+  id            String               @id @default(cuid())
+  pipelineId    String
+  businessName  String
+  address       String?
+  phone         String?
+  category      String?
+  website       String?              // null = ingen hemsida funnen på Maps
+  hasWebsite    Boolean              @default(false)
+  logoUrl       String?
+  googleMapsUrl String?
+  rating        Float?
+  reviewCount   Int?
+  aiAnalysis    String?              // JSON: djupare AI-analys (steg 2)
+  aiWebsiteFound String?             // Hemsida hittad av AI i steg 2
+  status        PipelineResultStatus @default(FOUND)
+  createdAt     DateTime             @default(now())
+
+  // Relations
+  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@map("pipeline_results")
+}
+
+enum PipelineResultStatus {
+  FOUND
+  ANALYZING
+  ANALYZED
+}

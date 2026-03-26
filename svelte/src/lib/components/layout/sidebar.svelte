@@ -13,6 +13,7 @@
 		ChartBarIcon,
 		Cog6ToothIcon,
 		DocumentMagnifyingGlassIcon,
+		BoltIcon,
 	} from "heroicons-svelte/24/outline";
 
 	interface Props {
@@ -29,6 +30,7 @@
 
 	const baseNavItems: NavItem[] = [
 		{ label: "Instrumentpanel", href: "/dashboard", icon: HomeIcon },
+		{ label: "Pipelines", href: "/dashboard/pipelines", icon: BoltIcon },
 		{ label: "Prospekt", href: "/dashboard/prospects", icon: UserGroupIcon },
 		{ label: "Kunder", href: "/dashboard/customers", icon: BuildingOfficeIcon },
 		{ label: "Kontakter", href: "/dashboard/contacts", icon: UserGroupIcon },
