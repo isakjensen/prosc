@@ -3,7 +3,12 @@
     "allow": [
       "Skill(update-config)",
       "mcp__plugin_playwright_playwright__browser_navigate",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(python fix_conflicts.py)",
+      "Bash(python fix_all.py)",
+      "Bash(rm fix_all.py)",
+      "Bash(find /c/Users/isakl/Documents/git-projects/prosc -type f \\\\\\(-name *.py -o -name *.js -o -name *.ts \\\\\\))",
+      "Bash(find /c/Users/isakl/Documents/git-projects/prosc/svelte/src -type f \\\\\\(-name *.ts -o -name *.js -o -name *.svelte \\\\\\))"
     ]
   }
 }

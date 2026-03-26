@@ -16,17 +16,14 @@
 		XCircleIcon,
 		MapPinIcon,
 		PhoneIcon,
-<<<<<<< HEAD
 		EnvelopeIcon,
 		BuildingOfficeIcon,
-=======
 		PencilIcon,
 		ArrowPathIcon,
 		XMarkIcon,
 		PlusIcon,
 		DocumentMagnifyingGlassIcon,
 		SparklesIcon,
->>>>>>> claude/clarify-project-scope-i0Hoj
 	} from "heroicons-svelte/24/outline";
 	import type { PageData, ActionData } from "./$types";
 
@@ -342,14 +339,10 @@
 							Företag
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-<<<<<<< HEAD
 							Adress
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
 							Kontakt
-=======
-							Adress / Telefon
->>>>>>> claude/clarify-project-scope-i0Hoj
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
 							Kategori
@@ -368,10 +361,6 @@
 				<tbody class="divide-y divide-gray-200">
 					{#each filteredResults as result}
 						<tr class="hover:bg-gray-50 transition-colors">
-<<<<<<< HEAD
-							<!-- Företagsnamn + org-nummer -->
-							<td class="px-6 py-4">
-=======
 							<td class="w-10 px-4 py-4">
 								<input
 									type="checkbox"
@@ -380,8 +369,8 @@
 									class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 								/>
 							</td>
+							<!-- Företagsnamn + org-nummer -->
 							<td class="whitespace-nowrap px-6 py-4">
->>>>>>> claude/clarify-project-scope-i0Hoj
 								<div class="flex items-center gap-3">
 									<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
 										{getInitials(result.businessName)}
@@ -403,7 +392,6 @@
 									</div>
 								</div>
 							</td>
-<<<<<<< HEAD
 
 							<!-- Adress -->
 							<td class="px-6 py-4 text-sm text-gray-500">
@@ -436,19 +424,6 @@
 										</div>
 									{/if}
 								</div>
-=======
-							<td class="px-6 py-4 text-sm text-gray-500">
-								<div class="flex items-center gap-1">
-									<MapPinIcon class="h-4 w-4 flex-shrink-0" />
-									{result.address || "—"}
-								</div>
-								{#if result.phone}
-									<div class="mt-0.5 flex items-center gap-1">
-										<PhoneIcon class="h-4 w-4 flex-shrink-0" />
-										{result.phone}
-									</div>
-								{/if}
->>>>>>> claude/clarify-project-scope-i0Hoj
 							</td>
 
 							<!-- Kategori -->
