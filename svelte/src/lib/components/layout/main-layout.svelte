@@ -13,13 +13,14 @@
 	}
 
 	let { user, children }: Props = $props();
+	let sidebarOpen = $state(false);
 </script>
 
 <div class="flex h-screen overflow-hidden bg-gray-50">
-	<Sidebar {user} />
+	<Sidebar {user} open={sidebarOpen} onclose={() => (sidebarOpen = false)} />
 	<div class="flex flex-1 flex-col overflow-hidden">
-		<TopBar {user} />
-		<main class="flex-1 overflow-y-auto p-6">
+		<TopBar {user} ontogglemenu={() => (sidebarOpen = !sidebarOpen)} />
+		<main class="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6">
 			{#if children}
 				{@render children()}
 			{/if}

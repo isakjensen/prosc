@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(update-config)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "Bash(python3:*)"
+    ]
+  }
+}

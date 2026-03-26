@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -62,7 +62,7 @@ model Company {
   country     String?
   phone       String?
   email       String?
-  notes       String?
+  notes       String?       @db.Text
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -97,7 +97,7 @@ model Contact {
   email       String?
   phone       String?
   title       String?
-  notes       String?
+  notes       String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -114,12 +114,12 @@ model Project {
   id          String        @id @default(cuid())
   companyId   String
   name        String
-  description String?
+  description String?       @db.Text
   status      ProjectStatus @default(PLANNING)
   startDate   DateTime?
   endDate     DateTime?
   budget      Float?
-  notes       String?
+  notes       String?       @db.Text
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -148,7 +148,7 @@ model ProspectStage {
   id          String   @id @default(cuid())
   name        String   @unique
   order       Int      @unique
-  description String?
+  description String?  @db.Text
   color       String?
   createdAt   DateTime @default(now())
 
@@ -163,7 +163,7 @@ model ProspectStageHistory {
   companyId       String        @unique
   currentStageId  String
   enteredAt       DateTime      @default(now())
-  notes           String?
+  notes           String?       @db.Text
 
   // Relations
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -176,7 +176,7 @@ model Activity {
   id          String       @id @default(cuid())
   type        ActivityType
   title       String
-  description String?
+  description String?      @db.Text
   userId      String?
   companyId   String?
   contactId   String?
@@ -185,7 +185,7 @@ model Activity {
   contractId  String?
   invoiceId   String?
   ticketId    String?
-  metadata    String? // JSON string for additional data
+  metadata    String?      @db.Text // JSON string for additional data
   createdAt   DateTime     @default(now())
 
   // Relations
@@ -224,7 +224,7 @@ model SystemLog {
   action      String
   entityType  String?
   entityId    String?
-  details     String?  // JSON string
+  details     String?  @db.Text // JSON string
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime @default(now())
@@ -248,7 +248,7 @@ model Quote {
   subtotal    Float       @default(0)
   tax         Float       @default(0)
   total       Float       @default(0)
-  notes       String?
+  notes       String?     @db.Text
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -272,7 +272,7 @@ enum QuoteStatus {
 model QuoteLineItem {
   id          String  @id @default(cuid())
   quoteId     String
-  description String
+  description String  @db.Text
   quantity    Float   @default(1)
   unitPrice   Float
   total       Float
@@ -287,9 +287,9 @@ model QuoteLineItem {
 model ContractTemplate {
   id          String   @id @default(cuid())
   name        String
-  description String?
-  content     String   // Template content with variables like {{company_name}}
-  variables   String?  // JSON array of available variables
+  description String?  @db.Text
+  content     String   @db.LongText // Template content with variables like {{company_name}}
+  variables   String?  @db.Text // JSON array of available variables
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -306,7 +306,7 @@ model Contract {
   quoteId     String?
   number      String         @unique
   title       String
-  content     String         // Final rendered content
+  content     String         @db.LongText // Final rendered content
   status      ContractStatus @default(DRAFT)
   signedAt    DateTime?
   expiresAt   DateTime?
@@ -343,7 +343,7 @@ model File {
   mimeType    String
   size        Int
   folder      String?
-  tags        String? // JSON array
+  tags        String?  @db.Text // JSON array
   uploadedBy  String?
   createdAt   DateTime @default(now())
 
@@ -362,8 +362,8 @@ model EmailTemplate {
   id          String   @id @default(cuid())
   name        String
   subject     String
-  body        String   // Template content with variables
-  variables   String?  // JSON array of available variables
+  body        String   @db.LongText // Template content with variables
+  variables   String?  @db.Text // JSON array of available variables
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -373,11 +373,11 @@ model EmailTemplate {
 model OutboundEmail {
   id          String   @id @default(cuid())
   userId      String
-  to          String   // JSON array of recipients
-  cc          String?  // JSON array
-  bcc         String?  // JSON array
+  to          String   @db.Text // JSON array of recipients
+  cc          String?  @db.Text // JSON array
+  bcc         String?  @db.Text // JSON array
   subject     String
-  body        String
+  body        String   @db.LongText
   status      EmailStatus @default(LOGGED)
   sentAt      DateTime?
   createdAt   DateTime @default(now())
@@ -419,7 +419,7 @@ model Task {
   id          String       @id @default(cuid())
   projectId   String?
   title       String
-  description String?
+  description String?      @db.Text
   status      TaskStatus   @default(TODO)
   priority    TaskPriority @default(MEDIUM)
   assignedTo  String?
@@ -456,7 +456,7 @@ model TaskComment {
   id        String   @id @default(cuid())
   taskId    String
   userId    String
-  content   String
+  content   String   @db.Text
   createdAt DateTime @default(now())
 
   // Relations
@@ -483,7 +483,7 @@ model Invoice {
   tax         Float         @default(0)
   total       Float         @default(0)
   paidAmount  Float         @default(0)
-  notes       String?
+  notes       String?       @db.Text
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -508,7 +508,7 @@ enum InvoiceStatus {
 model InvoiceLineItem {
   id          String   @id @default(cuid())
   invoiceId   String
-  description String
+  description String   @db.Text
   quantity    Float    @default(1)
   unitPrice   Float
   total       Float
@@ -527,7 +527,7 @@ model Payment {
   method      PaymentMethod
   reference   String?
   paidAt      DateTime      @default(now())
-  notes       String?
+  notes       String?       @db.Text
   createdAt   DateTime      @default(now())
 
   // Relations
@@ -554,7 +554,7 @@ model SupportTicket {
   id          String           @id @default(cuid())
   companyId   String
   title       String
-  description String
+  description String           @db.Text
   status      TicketStatus     @default(OPEN)
   priority    TicketPriority   @default(MEDIUM)
   createdById String
@@ -591,7 +591,7 @@ model TicketComment {
   id        String   @id @default(cuid())
   ticketId  String
   userId    String
-  content   String
+  content   String   @db.Text
   createdAt DateTime @default(now())
 
   // Relations
@@ -610,7 +610,7 @@ model TimeEntry {
   userId      String
   projectId   String?
   taskId      String?
-  description String
+  description String   @db.Text
   hours       Float
   date        DateTime @default(now())
   billable    Boolean  @default(true)
@@ -632,12 +632,12 @@ model TimeEntry {
 model Meeting {
   id          String   @id @default(cuid())
   title       String
-  description String?
+  description String?  @db.Text
   startTime   DateTime
   endTime     DateTime
   location    String?
   videoLink   String?
-  notes       String?
+  notes       String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -681,9 +681,9 @@ model Document {
   companyId   String?
   createdById String
   title       String
-  content     String?
+  content     String?  @db.LongText
   category    String?
-  tags        String?  // JSON array
+  tags        String?  @db.Text // JSON array
   version     Int      @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -705,7 +705,7 @@ model Notification {
   userId    String
   type      NotificationType
   title     String
-  message   String
+  message   String           @db.Text
   read      Boolean          @default(false)
   link      String?
   createdAt DateTime         @default(now())
@@ -739,8 +739,8 @@ model Report {
   createdById String
   name        String
   type        ReportType
-  parameters  String?  // JSON object
-  data        String?  // JSON object with report data
+  parameters  String?  @db.Text // JSON object
+  data        String?  @db.LongText // JSON object with report data
   createdAt   DateTime @default(now())
 
   // Relations
@@ -773,7 +773,7 @@ model Integration {
   apiKey      String?
   apiSecret   String?
   webhookUrl  String?
-  config      String?  // JSON object
+  config      String?  @db.Text // JSON object
   enabled     Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -788,7 +788,7 @@ model Integration {
 model SystemSetting {
   id    String @id @default(cuid())
   key   String @unique
-  value String
+  value String @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -823,7 +823,7 @@ model Milestone {
   id          String   @id @default(cuid())
   projectId   String
   name        String
-  description String?
+  description String?  @db.Text
   dueDate     DateTime?
   completedAt DateTime?
   createdAt   DateTime @default(now())
@@ -843,7 +843,7 @@ model Expense {
   id          String        @id @default(cuid())
   projectId   String?
   category    String
-  description String
+  description String        @db.Text
   amount      Float
   date        DateTime      @default(now())
   receiptPath String?
@@ -877,7 +877,7 @@ model Campaign {
   budget      Float?
   spent       Float     @default(0)
   status      CampaignStatus @default(PLANNING)
-  notes       String?
+  notes       String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -902,9 +902,9 @@ enum CampaignStatus {
 model KnowledgeBase {
   id          String   @id @default(cuid())
   title       String
-  content     String
+  content     String   @db.LongText
   category    String?
-  tags        String?  // JSON array
+  tags        String?  @db.Text // JSON array
   published   Boolean  @default(false)
   views       Int      @default(0)
   createdAt   DateTime @default(now())
@@ -920,10 +920,10 @@ model KnowledgeBase {
 model SystemRequirement {
   id                String   @id @default(cuid())
   companyId          String   @unique
-  designNotes        String?  // General design notes / AI context
-  colorTheme         String?  // JSON: primary, secondary, accent etc.
-  typography         String?  // JSON: font families, sizes
-  logoPaths          String?  // JSON array of uploaded logo paths/URLs
+  designNotes        String?  @db.Text // General design notes / AI context
+  colorTheme         String?  @db.Text // JSON: primary, secondary, accent etc.
+  typography         String?  @db.Text // JSON: font families, sizes
+  logoPaths          String?  @db.Text // JSON array of uploaded logo paths/URLs
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -954,7 +954,7 @@ model SystemFeature {
   id          String          @id @default(cuid())
   requirementId String
   name        String
-  description String?         // AI-prompt / note for agent
+  description String?         @db.Text // AI-prompt / note for agent
   status      FeatureStatus   @default(PLANNING)
   priority    FeaturePriority @default(MEDIUM)
   order       Int             @default(0)
@@ -990,9 +990,9 @@ model SystemUpdate {
   requirementId   String
   featureId       String?  // Optional link to a specific feature
   title           String
-  description     String?  // What was done
-  imagePaths      String?  // JSON array of image paths/URLs
-  commitLinks     String?  // JSON array of commit URLs
+  description     String?  @db.Text // What was done
+  imagePaths      String?  @db.Text // JSON array of image paths/URLs
+  commitLinks     String?  @db.Text // JSON array of commit URLs
   createdAt       DateTime @default(now())
 
   // Relations
@@ -1009,10 +1009,14 @@ model SystemUpdate {
 model Pipeline {
   id          String         @id @default(cuid())
   name        String
-  description String         // Fri text som beskriver målkunden
+  description String         @db.Text // Fri text som beskriver målkunden
   status      PipelineStatus @default(IDLE)
-  areaConfig  String?        // JSON: { north, south, east, west } bounds från kartval
-  categories  String?        // JSON array: AI-genererade kategorier att söka efter
+  areaConfig  String?        @db.Text // JSON: { north, south, east, west, cityName? } bounds från kartval
+  categories  String?        @db.Text // JSON array: AI-genererade kategorier att söka efter
+  enrichStopped  Boolean   @default(false)
+  lastScrapedAt  DateTime?
+  lastEnrichedAt DateTime?
+  lastAnalyzedAt DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -1030,22 +1034,23 @@ enum PipelineStatus {
 }
 
 model PipelineResult {
-  id            String               @id @default(cuid())
-  pipelineId    String
-  businessName  String
-  address       String?
-  phone         String?
-  category      String?
-  website       String?              // null = ingen hemsida funnen på Maps
-  hasWebsite    Boolean              @default(false)
-  logoUrl       String?
-  googleMapsUrl String?
-  rating        Float?
-  reviewCount   Int?
-  aiAnalysis    String?              // JSON: djupare AI-analys (steg 2)
-  aiWebsiteFound String?             // Hemsida hittad av AI i steg 2
-  status        PipelineResultStatus @default(FOUND)
-  createdAt     DateTime             @default(now())
+  id              String               @id @default(cuid())
+  pipelineId      String
+  businessName    String
+  address         String?
+  phone           String?
+  category        String?
+  website         String?              // null = ingen hemsida funnen på Maps
+  hasWebsite      Boolean              @default(false)
+  logoUrl         String?
+  googleMapsUrl   String?
+  rating          Float?
+  reviewCount     Int?
+  enrichmentData  String?              @db.LongText // JSON: all insamlad rådata (Allabolag, sökning, scraping)
+  aiAnalysis      String?              @db.LongText // JSON: djupare AI-analys (steg 2)
+  aiWebsiteFound  String?              // Hemsida hittad av AI i steg 2
+  status          PipelineResultStatus @default(FOUND)
+  createdAt       DateTime             @default(now())
 
   // Allabolag.se-berikningsdata
   orgNumber     String?              // Organisationsnummer
@@ -1062,6 +1067,8 @@ model PipelineResult {
 
 enum PipelineResultStatus {
   FOUND
+  ENRICHING
+  ENRICHED
   ANALYZING
   ANALYZED
 }

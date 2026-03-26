@@ -5,12 +5,13 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
+		"build": "prisma db push --accept-data-loss && tsx prisma/seed.ts && vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"db:seed": "tsx prisma/seed.ts"
+		"db:seed": "tsx prisma/seed.ts",
+		"postinstall": "prisma generate"
 	},
 	"prisma": {
 		"seed": "tsx prisma/seed.ts"
@@ -37,10 +38,11 @@
 	},
 	"dependencies": {
 		"@internationalized/date": "^3.12.0",
-		"@sveltejs/adapter-node": "^5.5.4",
+		"@sveltejs/adapter-vercel": "^6.3.3",
 		"@types/leaflet": "^1.9.21",
 		"bcryptjs": "^3.0.3",
 		"bits-ui": "^2.16.3",
+		"cheerio": "^1.2.0",
 		"date-fns": "^4.1.0",
 		"dotenv": "^17.3.1",
 		"heroicons-svelte": "^2.0.2",

@@ -1,19 +1,27 @@
 <script lang="ts">
-	import { BellIcon, MagnifyingGlassIcon } from "heroicons-svelte/24/outline";
-	
+	import { Bars3Icon, BellIcon, MagnifyingGlassIcon } from "heroicons-svelte/24/outline";
+
 	interface Props {
 		user?: {
 			name: string;
 			email: string;
 		};
+		ontogglemenu?: () => void;
 	}
 
-	let { user }: Props = $props();
+	let { user, ontogglemenu }: Props = $props();
 </script>
 
-<header class="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
-	<div class="flex flex-1 items-center gap-4">
-		<div class="relative flex-1 max-w-md">
+<header class="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-3 sm:px-6">
+	<div class="flex flex-1 items-center gap-2 sm:gap-4">
+		<button
+			type="button"
+			onclick={ontogglemenu}
+			class="rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden"
+		>
+			<Bars3Icon class="h-6 w-6" />
+		</button>
+		<div class="relative hidden flex-1 sm:block sm:max-w-md">
 			<MagnifyingGlassIcon class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
 			<input
 				type="text"
@@ -22,13 +30,13 @@
 			/>
 		</div>
 	</div>
-	
-	<div class="flex items-center gap-4">
+
+	<div class="flex items-center gap-2 sm:gap-4">
 		<button class="relative rounded-lg p-2 text-gray-600 hover:bg-gray-100">
 			<BellIcon class="h-5 w-5" />
 			<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"></span>
 		</button>
-		
+
 		<div class="flex items-center gap-3">
 			<div class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
 				{user?.name?.[0]?.toUpperCase() || "U"}
@@ -40,7 +48,7 @@
 			<form method="POST" action="/logout">
 				<button
 					type="submit"
-					class="ml-4 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+					class="ml-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
 				>
 					Logga ut
 				</button>

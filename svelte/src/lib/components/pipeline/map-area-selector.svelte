@@ -52,10 +52,15 @@
 			// Vänta tills modalen/containern har sin slutliga storlek
 			await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
+<<<<<<< HEAD
 			map = L.map(mapContainer, {
 				dragging: true,
 				scrollWheelZoom: true,
 			}).setView([62.0, 15.0], 5);
+=======
+			map = L.map(mapContainer, { preferCanvas: true }).setView([62.0, 15.0], 5); // Sverige centrerad
+			setTimeout(() => map.invalidateSize(), 100);
+>>>>>>> claude/clarify-project-scope-i0Hoj
 
 			L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 				attribution: "&copy; OpenStreetMap contributors",
@@ -142,8 +147,16 @@
 
 	function startDrawing() {
 		drawing = true;
+<<<<<<< HEAD
 		drawStart = null;
 		map?.dragging.disable();
+=======
+		if (map) {
+			map.dragging.disable();
+			// Force Leaflet to recalculate container size after DOM update
+			setTimeout(() => map.invalidateSize(), 0);
+		}
+>>>>>>> claude/clarify-project-scope-i0Hoj
 	}
 
 	function clearArea() {
