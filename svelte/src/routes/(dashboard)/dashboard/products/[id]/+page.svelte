@@ -20,7 +20,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	type Tab = "features" | "board" | "economy";
+	type Tab = "customers" | "features" | "board" | "economy";
 	let activeTab = $state<Tab>("features");
 
 	// ── Feature state ────────────────────────────────────
@@ -167,11 +167,16 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<div class="flex items-center gap-3">
+			<div class="flex items-center gap-3 flex-wrap">
 				<h1 class="text-3xl font-bold text-gray-900">{data.product.name}</h1>
-				<span class="rounded-full bg-blue-100 px-3 py-0.5 text-sm font-medium text-blue-700">
-					{data.product.company.name}
-				</span>
+				{#each data.product.customers as pc}
+					<span class="rounded-full bg-blue-100 px-3 py-0.5 text-sm font-medium text-blue-700">
+						{pc.company.name}
+					</span>
+				{/each}
+				{#if data.product.customers.length === 0}
+					<span class="rounded-full bg-gray-100 px-3 py-0.5 text-sm text-gray-500">Inga kunder</span>
+				{/if}
 			</div>
 			{#if data.product.description}
 				<p class="mt-1 text-gray-500">{data.product.description}</p>
@@ -186,6 +191,7 @@
 	<div class="border-b border-gray-200">
 		<nav class="-mb-px flex gap-4">
 			{#each [
+				{ id: "customers", label: "Kunder" },
 				{ id: "features", label: "Funktioner" },
 				{ id: "board", label: "Planering" },
 				{ id: "economy", label: "Ekonomi" },
@@ -202,6 +208,66 @@
 			{/each}
 		</nav>
 	</div>
+
+	<!-- ═══════════════════════════════════════════════════
+	     TAB: Customers
+	     ═══════════════════════════════════════════════════ -->
+	{#if activeTab === "customers"}
+		<div class="space-y-4">
+			<!-- Add customer -->
+			{#if data.availableCustomers.length > 0}
+				<Card class="p-4">
+					<form
+						method="POST"
+						action="?/addCustomer"
+						use:enhance={handleEnhance}
+						class="flex items-end gap-3"
+					>
+						<div class="flex-1">
+							<Label for="addCompanyId">Lägg till kund</Label>
+							<select
+								id="addCompanyId"
+								name="companyId"
+								required
+								class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+							>
+								<option value="">Välj kund...</option>
+								{#each data.availableCustomers as customer}
+									<option value={customer.id}>{customer.name}</option>
+								{/each}
+							</select>
+						</div>
+						<Button type="submit">
+							<PlusIcon class="mr-1 h-4 w-4" />
+							Lägg till
+						</Button>
+					</form>
+				</Card>
+			{/if}
+
+			<!-- Linked customers -->
+			{#if data.product.customers.length > 0}
+				<div class="space-y-2">
+					{#each data.product.customers as pc}
+						<Card class="flex items-center justify-between p-4">
+							<a href="/dashboard/customers/{pc.company.id}" class="font-medium text-gray-900 hover:text-blue-600">
+								{pc.company.name}
+							</a>
+							<form method="POST" action="?/removeCustomer" use:enhance={handleEnhance}>
+								<input type="hidden" name="id" value={pc.id} />
+								<Button type="submit" variant="destructive" size="sm">
+									<TrashIcon class="mr-1 h-4 w-4" />
+									Ta bort
+								</Button>
+							</form>
+						</Card>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-center text-gray-500 py-8">Inga kunder kopplade till denna produkt ännu.</p>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- ═══════════════════════════════════════════════════
 	     TAB: Features

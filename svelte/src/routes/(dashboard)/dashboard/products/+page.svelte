@@ -23,25 +23,13 @@
 		PAUSED: "bg-yellow-100 text-yellow-700",
 		ARCHIVED: "bg-gray-100 text-gray-500",
 	};
-
-	const grouped = $derived(() => {
-		const map = new Map<string, { company: { id: string; name: string }; products: typeof data.products }>();
-		for (const p of data.products) {
-			const key = p.company.id;
-			if (!map.has(key)) {
-				map.set(key, { company: p.company, products: [] });
-			}
-			map.get(key)!.products.push(p);
-		}
-		return Array.from(map.values());
-	});
 </script>
 
 <div class="space-y-6">
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold text-gray-900">Produkter</h1>
-			<p class="mt-1 text-gray-500">Hantera produkter kopplade till dina kunder</p>
+			<p class="mt-1 text-gray-500">Hantera dina produkter och koppla kunder</p>
 		</div>
 		<a href="/dashboard/products/new">
 			<Button>
@@ -57,7 +45,7 @@
 		<Input
 			type="text"
 			name="search"
-			placeholder="Sök produkt eller kund..."
+			placeholder="Sök produkt..."
 			bind:value={searchQuery}
 			class="pl-10"
 		/>
@@ -76,35 +64,38 @@
 			</a>
 		</div>
 	{:else}
-		{#each grouped() as group}
-			<div class="space-y-3">
-				<h2 class="text-lg font-semibold text-gray-700">
-					<a href="/dashboard/customers/{group.company.id}" class="hover:text-blue-600">
-						{group.company.name}
-					</a>
-				</h2>
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-					{#each group.products as product}
-						<a href="/dashboard/products/{product.id}">
-							<Card class="p-5 hover:shadow-md transition-shadow cursor-pointer">
-								<div class="flex items-start justify-between">
-									<h3 class="font-semibold text-gray-900">{product.name}</h3>
-									<span class="rounded-full px-2 py-0.5 text-xs font-medium {statusColors[product.status]}">
-										{statusLabels[product.status]}
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+			{#each data.products as product}
+				<a href="/dashboard/products/{product.id}">
+					<Card class="p-5 hover:shadow-md transition-shadow cursor-pointer">
+						<div class="flex items-start justify-between">
+							<h3 class="font-semibold text-gray-900">{product.name}</h3>
+							<span class="rounded-full px-2 py-0.5 text-xs font-medium {statusColors[product.status]}">
+								{statusLabels[product.status]}
+							</span>
+						</div>
+						{#if product.description}
+							<p class="mt-2 text-sm text-gray-600 line-clamp-2">{product.description}</p>
+						{/if}
+						<!-- Kunder -->
+						{#if product.customers.length > 0}
+							<div class="mt-3 flex flex-wrap gap-1">
+								{#each product.customers as pc}
+									<span class="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
+										{pc.company.name}
 									</span>
-								</div>
-								{#if product.description}
-									<p class="mt-2 text-sm text-gray-600 line-clamp-2">{product.description}</p>
-								{/if}
-								<div class="mt-4 flex items-center gap-4 text-xs text-gray-500">
-									<span>{product._count.features} funktioner</span>
-									<span>{product._count.financeEntries} ekonomiposter</span>
-								</div>
-							</Card>
-						</a>
-					{/each}
-				</div>
-			</div>
-		{/each}
+								{/each}
+							</div>
+						{:else}
+							<p class="mt-3 text-xs text-gray-400">Inga kunder kopplade</p>
+						{/if}
+						<div class="mt-3 flex items-center gap-4 text-xs text-gray-500">
+							<span>{product._count.features} funktioner</span>
+							<span>{product._count.financeEntries} ekonomiposter</span>
+						</div>
+					</Card>
+				</a>
+			{/each}
+		</div>
 	{/if}
 </div>

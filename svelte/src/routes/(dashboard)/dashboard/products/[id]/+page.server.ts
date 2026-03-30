@@ -7,7 +7,9 @@ export const load: PageServerLoad = async ({ params }) => {
 	const product = await db.product.findUnique({
 		where: { id: params.id },
 		include: {
-			company: { select: { id: true, name: true } },
+			customers: {
+				include: { company: { select: { id: true, name: true } } },
+			},
 			features: {
 				include: { subtasks: { orderBy: { order: "asc" } } },
 				orderBy: { order: "asc" },
@@ -24,7 +26,18 @@ export const load: PageServerLoad = async ({ params }) => {
 		error(404, "Produkten hittades inte");
 	}
 
-	return { product };
+	// Fetch available customers (not already linked)
+	const linkedIds = product.customers.map((c) => c.companyId);
+	const availableCustomers = await db.company.findMany({
+		where: {
+			type: "CUSTOMER",
+			...(linkedIds.length > 0 ? { id: { notIn: linkedIds } } : {}),
+		},
+		select: { id: true, name: true },
+		orderBy: { name: "asc" },
+	});
+
+	return { product, availableCustomers };
 };
 
 export const actions: Actions = {
@@ -273,6 +286,42 @@ export const actions: Actions = {
 		await createSystemLog(db, {
 			userId: locals.user?.id,
 			action: "product.finance.delete",
+			entityId: params.id,
+			request,
+		});
+		return { success: true };
+	},
+
+	// ── Customers ────────────────────────────────────────
+	addCustomer: async ({ request, params, locals }) => {
+		const fd = await request.formData();
+		const companyId = fd.get("companyId") as string;
+		if (!companyId) return fail(400, { error: "Välj en kund" });
+
+		await db.productCustomer.create({
+			data: { productId: params.id, companyId },
+		});
+
+		await createSystemLog(db, {
+			userId: locals.user?.id,
+			action: "product.customer.add",
+			entityId: params.id,
+			details: { companyId },
+			request,
+		});
+		return { success: true };
+	},
+
+	removeCustomer: async ({ request, params, locals }) => {
+		const fd = await request.formData();
+		const id = fd.get("id") as string;
+		if (!id) return fail(400, { error: "ID saknas" });
+
+		await db.productCustomer.delete({ where: { id } });
+
+		await createSystemLog(db, {
+			userId: locals.user?.id,
+			action: "product.customer.remove",
 			entityId: params.id,
 			request,
 		});

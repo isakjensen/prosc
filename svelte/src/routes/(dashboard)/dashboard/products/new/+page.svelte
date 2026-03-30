@@ -5,9 +5,6 @@
 	import Input from "$lib/components/ui/input.svelte";
 	import Label from "$lib/components/ui/label.svelte";
 	import Card from "$lib/components/ui/card.svelte";
-	import type { PageData } from "./$types";
-
-	let { data }: { data: PageData } = $props();
 
 	let loading = $state(false);
 	let error = $state("");
@@ -16,7 +13,7 @@
 <div class="mx-auto max-w-2xl space-y-6">
 	<div>
 		<h1 class="text-3xl font-bold text-gray-900">Ny produkt</h1>
-		<p class="mt-1 text-gray-500">Skapa en ny produkt kopplad till en kund</p>
+		<p class="mt-1 text-gray-500">Skapa en ny produkt – kunder kan kopplas i efterhand</p>
 	</div>
 
 	<Card class="p-6">
@@ -43,21 +40,6 @@
 			}}
 			class="space-y-4"
 		>
-			<div>
-				<Label for="companyId">Kund *</Label>
-				<select
-					id="companyId"
-					name="companyId"
-					required
-					class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-				>
-					<option value="">Välj kund...</option>
-					{#each data.customers as customer}
-						<option value={customer.id}>{customer.name}</option>
-					{/each}
-				</select>
-			</div>
-
 			<div>
 				<Label for="name">Produktnamn *</Label>
 				<Input id="name" name="name" required placeholder="T.ex. Webbshop, Mobilapp..." />

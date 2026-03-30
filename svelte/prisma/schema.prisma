@@ -69,7 +69,7 @@ model Company {
   // Relations
   contacts        Contact[]
   projects        Project[]
-  products        Product[]
+  products        ProductCustomer[]
   quotes          Quote[]
   contracts       Contract[]
   files           File[]
@@ -1080,7 +1080,6 @@ enum PipelineResultStatus {
 
 model Product {
   id          String        @id @default(cuid())
-  companyId   String
   name        String
   description String?       @db.Text
   status      ProductStatus @default(ACTIVE)
@@ -1088,12 +1087,25 @@ model Product {
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  company        Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customers      ProductCustomer[]
   features       ProductFeature[]
   boardColumns   ProductBoardColumn[]
   financeEntries ProductFinanceEntry[]
 
   @@map("products")
+}
+
+model ProductCustomer {
+  id        String   @id @default(cuid())
+  productId String
+  companyId String
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, companyId])
+  @@map("product_customers")
 }
 
 enum ProductStatus {

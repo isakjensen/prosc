@@ -6,15 +6,12 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	const products = await db.product.findMany({
 		where: search
-			? {
-					OR: [
-						{ name: { contains: search } },
-						{ company: { name: { contains: search } } },
-					],
-				}
+			? { name: { contains: search } }
 			: undefined,
 		include: {
-			company: { select: { id: true, name: true } },
+			customers: {
+				include: { company: { select: { id: true, name: true } } },
+			},
 			_count: {
 				select: {
 					features: true,
