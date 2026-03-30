@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -16,13 +16,6 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, description, size = 'md', children }: ModalProps) {
-  const mounted = useRef(false)
-
-  useEffect(() => {
-    mounted.current = true
-    return () => { mounted.current = false }
-  }, [])
-
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -60,7 +53,7 @@ export function Modal({ isOpen, onClose, title, description, size = 'md', childr
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
               onClick={onClose}
-              className="fixed inset-0 bg-zinc-950/50 backdrop-blur-sm"
+              className="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 16 }}
@@ -68,21 +61,21 @@ export function Modal({ isOpen, onClose, title, description, size = 'md', childr
               exit={{ opacity: 0, scale: 0.97, y: 8 }}
               transition={{ type: 'spring', duration: 0.38, bounce: 0.18 }}
               className={cn(
-                'relative z-10 w-full bg-white rounded-lg shadow-2xl border border-gray-100 overflow-hidden',
+                'relative z-10 w-full bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-gray-100 dark:border-zinc-700/50 overflow-hidden',
                 maxWidth,
               )}
             >
               {title && (
-                <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-gray-100 z-10">
+                <div className="sticky top-0 bg-white dark:bg-zinc-900 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800 z-10">
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h2>
                     {description && (
-                      <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{description}</p>
                     )}
                   </div>
                   <button
                     onClick={onClose}
-                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -105,7 +98,7 @@ interface ModalFooterProps {
 
 export function ModalFooter({ children, className }: ModalFooterProps) {
   return (
-    <div className={cn('flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50', className)}>
+    <div className={cn('flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30', className)}>
       {children}
     </div>
   )

@@ -2,10 +2,24 @@
 
 import { useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday, getDay } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+const DAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+const MONTHS = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni', 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December']
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+function getDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+function getFirstDayOfWeek(year: number, month: number) {
+  const day = new Date(year, month, 1).getDay()
+  return day === 0 ? 6 : day - 1 // Monday = 0
+}
 
 interface DatePickerProps {
   value?: Date | null
@@ -16,114 +30,176 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ value, onChange, placeholder = 'Välj datum', disabled, className }: DatePickerProps) {
-  const [open, setOpen] = useState(false)
-  const [viewDate, setViewDate] = useState(value ?? new Date())
+  const [isOpen, setIsOpen] = useState(false)
+  const today = new Date()
+  const [viewYear, setViewYear] = useState(value?.getFullYear() ?? today.getFullYear())
+  const [viewMonth, setViewMonth] = useState(value?.getMonth() ?? today.getMonth())
 
-  const monthStart = startOfMonth(viewDate)
-  const monthEnd = endOfMonth(viewDate)
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const daysInMonth = getDaysInMonth(viewYear, viewMonth)
+  const firstDay = getFirstDayOfWeek(viewYear, viewMonth)
+  const prevMonthDays = getDaysInMonth(viewYear, viewMonth - 1)
 
-  // Adjust so week starts on Monday (0=Mon ... 6=Sun)
-  const startPad = (getDay(monthStart) + 6) % 7
+  const goToPrevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1) }
+    else setViewMonth(viewMonth - 1)
+  }
 
-  const weekDays = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+  const goToNextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1) }
+    else setViewMonth(viewMonth + 1)
+  }
+
+  const handleSelect = (day: number) => {
+    onChange(new Date(viewYear, viewMonth, day))
+    setIsOpen(false)
+  }
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onChange(undefined)
+  }
+
+  const formattedValue = value
+    ? `${value.getDate()} ${MONTHS[value.getMonth()]?.toLowerCase()} ${value.getFullYear()}`
+    : null
+
+  // Build calendar grid
+  const cells: { day: number; currentMonth: boolean }[] = []
+  for (let i = 0; i < firstDay; i++) {
+    cells.push({ day: prevMonthDays - firstDay + 1 + i, currentMonth: false })
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ day: d, currentMonth: true })
+  }
+  const remaining = 7 - (cells.length % 7)
+  if (remaining < 7) {
+    for (let i = 1; i <= remaining; i++) {
+      cells.push({ day: i, currentMonth: false })
+    }
+  }
 
   return (
-    <Popover.Root open={open} onOpenChange={disabled ? undefined : setOpen}>
+    <Popover.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (disabled) return
+        setIsOpen(open)
+        if (open) {
+          setViewYear(value?.getFullYear() ?? today.getFullYear())
+          setViewMonth(value?.getMonth() ?? today.getMonth())
+        }
+      }}
+    >
       <Popover.Trigger asChild>
         <button
           type="button"
           disabled={disabled}
           className={cn(
-            'flex h-10 w-full items-center gap-2 rounded-md border border-gray-200 bg-gray-50/50 px-3 text-sm transition-all hover:bg-gray-50 focus:outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 focus:bg-white disabled:cursor-not-allowed disabled:opacity-50 text-left',
-            !value && 'text-gray-400',
-            value && 'text-gray-900',
+            'group flex w-full items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-left text-sm transition-all outline-none',
+            'hover:border-zinc-300 hover:bg-white focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 focus:bg-white',
+            'dark:border-zinc-700 dark:bg-zinc-800/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:focus:border-zinc-400 dark:focus:bg-zinc-900',
+            'data-[state=open]:border-zinc-500 data-[state=open]:ring-2 data-[state=open]:ring-zinc-500/20 data-[state=open]:bg-white dark:data-[state=open]:border-zinc-400 dark:data-[state=open]:bg-zinc-900',
+            'disabled:cursor-not-allowed disabled:opacity-50',
             className,
           )}
         >
-          <CalendarIcon className="h-4 w-4 text-gray-400 shrink-0" />
-          <span className="flex-1">
-            {value ? format(value, 'd MMM yyyy', { locale: sv }) : placeholder}
+          <CalendarIcon className="h-4 w-4 shrink-0 text-gray-400 dark:text-zinc-500" />
+          <span className={cn('flex-1 truncate', formattedValue ? 'text-gray-900 dark:text-zinc-100' : 'text-gray-400 dark:text-zinc-500')}>
+            {formattedValue ?? placeholder}
           </span>
+          {value && (
+            <span
+              onClick={handleClear}
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+            >
+              <X className="h-3 w-3" />
+            </span>
+          )}
         </button>
       </Popover.Trigger>
 
       <Popover.Portal>
         <Popover.Content
-          align="start"
-          sideOffset={6}
-          className="z-[800] w-72 rounded-lg border border-gray-200 bg-white shadow-lg p-4 animate-in fade-in-0 zoom-in-95"
+          sideOffset={8}
+          collisionPadding={16}
+          className="z-[800] w-[280px] rounded-lg border border-gray-200 bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] dark:border-zinc-700 dark:bg-zinc-900"
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => setViewDate(subMonths(viewDate, 1))}
-              className="p-1 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
+              onClick={goToPrevMonth}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold text-gray-900 capitalize">
-              {format(viewDate, 'MMMM yyyy', { locale: sv })}
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+              {MONTHS[viewMonth]} {viewYear}
             </span>
             <button
               type="button"
-              onClick={() => setViewDate(addMonths(viewDate, 1))}
-              className="p-1 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
+              onClick={goToNextMonth}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
           {/* Weekday headers */}
-          <div className="grid grid-cols-7 mb-1">
-            {weekDays.map((d) => (
-              <div key={d} className="text-center text-[10px] font-semibold uppercase tracking-wider text-gray-400 py-1">
+          <div className="mb-1 grid grid-cols-7 gap-0">
+            {DAYS.map((d) => (
+              <div key={d} className="py-1 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500">
                 {d}
               </div>
             ))}
           </div>
 
-          {/* Day grid */}
-          <div className="grid grid-cols-7 gap-y-0.5">
-            {Array.from({ length: startPad }).map((_, i) => (
-              <div key={`pad-${i}`} />
-            ))}
-            {days.map((day) => {
-              const selected = value ? isSameDay(day, value) : false
-              const today = isToday(day)
+          {/* Days grid */}
+          <div className="grid grid-cols-7 gap-0">
+            {cells.map((cell, i) => {
+              const isCurrentMonth = cell.currentMonth
+              const isToday = isCurrentMonth && isSameDay(new Date(viewYear, viewMonth, cell.day), today)
+              const isSelected = isCurrentMonth && !!value && isSameDay(new Date(viewYear, viewMonth, cell.day), value)
+
               return (
                 <button
-                  key={day.toISOString()}
+                  key={i}
                   type="button"
-                  onClick={() => {
-                    onChange(day)
-                    setOpen(false)
-                  }}
+                  disabled={!isCurrentMonth}
+                  onClick={() => isCurrentMonth && handleSelect(cell.day)}
                   className={cn(
-                    'h-8 w-full rounded-md text-sm transition-colors',
-                    selected && 'bg-zinc-800 text-white font-semibold',
-                    !selected && today && 'bg-zinc-100 font-bold text-zinc-900',
-                    !selected && !today && 'text-gray-700 hover:bg-gray-100',
+                    'flex h-9 w-full items-center justify-center rounded-lg text-sm transition-all',
+                    !isCurrentMonth && 'text-gray-300 dark:text-zinc-700 cursor-default',
+                    isCurrentMonth && !isSelected && !isToday && 'text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800',
+                    isToday && !isSelected && 'font-bold text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800',
+                    isSelected && 'bg-zinc-800 text-white font-semibold dark:bg-zinc-200 dark:text-zinc-900 hover:bg-zinc-900 dark:hover:bg-zinc-300',
                   )}
                 >
-                  {format(day, 'd')}
+                  {cell.day}
                 </button>
               )
             })}
           </div>
 
-          {value && (
-            <div className="mt-3 pt-3 border-t border-gray-100">
+          {/* Footer */}
+          <div className="mt-3 border-t border-gray-100 pt-3 dark:border-zinc-800 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => { onChange(today); setIsOpen(false) }}
+              className="rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              Idag
+            </button>
+            {value && (
               <button
                 type="button"
-                onClick={() => { onChange(undefined); setOpen(false) }}
-                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => { onChange(undefined); setIsOpen(false) }}
+                className="rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
               >
-                Rensa val
+                Rensa
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'motion/react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useEffect } from 'react'
@@ -47,29 +47,29 @@ export function ConfirmModal({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
               onClick={onCancel}
-              className="fixed inset-0 bg-zinc-950/50 backdrop-blur-sm"
+              className="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 6 }}
               transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
-              className="relative z-10 w-full max-w-sm rounded-lg border border-gray-100 bg-white p-6 shadow-2xl"
+              className="relative z-10 w-full max-w-sm rounded-lg border border-gray-100 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 p-6 shadow-2xl"
             >
               <div className="flex items-start gap-4">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${destructive ? 'bg-red-100' : 'bg-zinc-100'}`}>
-                  <AlertTriangle className={`h-5 w-5 ${destructive ? 'text-red-600' : 'text-zinc-600'}`} />
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${destructive ? 'bg-red-100 dark:bg-red-950' : 'bg-zinc-100 dark:bg-zinc-800'}`}>
+                  <AlertTriangle className={`h-5 w-5 ${destructive ? 'text-red-600 dark:text-red-400' : 'text-zinc-600 dark:text-zinc-400'}`} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-                  <p className="mt-1.5 text-sm text-gray-500">{message}</p>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
+                  <p className="mt-1.5 text-sm text-gray-500 dark:text-zinc-400">{message}</p>
                 </div>
               </div>
               <div className="mt-6 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
                 >
                   {cancelLabel}
                 </button>
@@ -79,7 +79,7 @@ export function ConfirmModal({
                   className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
                     destructive
                       ? 'bg-red-600 text-white hover:bg-red-700'
-                      : 'bg-zinc-800 text-white hover:bg-zinc-900'
+                      : 'bg-zinc-800 text-white hover:bg-zinc-900 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white'
                   }`}
                 >
                   {confirmLabel}

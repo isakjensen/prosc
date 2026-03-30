@@ -31,7 +31,7 @@ export default async function KontaktDetailPage({ params }: PageProps) {
       : `/prospekts/${contact.companyId}`
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
           <Link href="/kontakter" className="hover:text-gray-600 transition-colors">Kontakter</Link>

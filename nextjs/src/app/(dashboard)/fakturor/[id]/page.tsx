@@ -36,7 +36,7 @@ export default async function FakturaDetailPage({ params }: PageProps) {
   if (!invoice) notFound()
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
           <Link href="/fakturor" className="hover:text-gray-600 transition-colors">Fakturor</Link>

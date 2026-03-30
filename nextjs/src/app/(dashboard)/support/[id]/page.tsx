@@ -56,7 +56,7 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
   if (!ticket) notFound()
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">

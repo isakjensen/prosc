@@ -2,13 +2,13 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { formatCurrency } from '@/lib/utils'
 import {
-  BuildingOfficeIcon,
-  BanknotesIcon,
-  DocumentTextIcon,
-  ClockIcon,
-  FunnelIcon,
-  TicketIcon,
-} from '@heroicons/react/24/outline'
+  Building2,
+  Banknote,
+  FileText,
+  Clock,
+  Filter,
+  LifeBuoy,
+} from 'lucide-react'
 import Link from 'next/link'
 
 async function getDashboardStats() {
@@ -68,42 +68,42 @@ export default async function DashboardPage() {
     {
       label: 'Kunder',
       value: stats.customerCount,
-      icon: BuildingOfficeIcon,
+      icon: Building2,
       iconClass: 'hero-chip__icon',
       href: '/kunder',
     },
     {
       label: 'Prospekts',
       value: stats.prospectCount,
-      icon: FunnelIcon,
+      icon: Filter,
       iconClass: 'hero-chip__icon--violet',
       href: '/prospekts',
     },
     {
       label: 'Utestående fakturor',
       value: formatCurrency(stats.openInvoicesTotal),
-      icon: BanknotesIcon,
+      icon: Banknote,
       iconClass: 'hero-chip__icon--emerald',
       href: '/fakturor',
     },
     {
       label: 'Offerter (utkast)',
       value: stats.draftQuotesCount,
-      icon: DocumentTextIcon,
+      icon: FileText,
       iconClass: 'hero-chip__icon--amber',
       href: '/offerter',
     },
     {
       label: 'Öppna ärenden',
       value: stats.openTickets,
-      icon: TicketIcon,
+      icon: LifeBuoy,
       iconClass: 'hero-chip__icon--red',
       href: '/support',
     },
     {
       label: 'Pågående uppgifter',
       value: stats.pendingTasks,
-      icon: ClockIcon,
+      icon: Clock,
       iconClass: 'hero-chip__icon--blue',
       href: '/uppgifter',
     },
@@ -114,7 +114,7 @@ export default async function DashboardPage() {
       {/* Page header */}
       <div className="page-hero pb-5">
         <p className="page-kicker">Affärssystem</p>
-        <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Översikt</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">Översikt</h1>
       </div>
 
       {/* Stats grid */}
@@ -134,23 +134,23 @@ export default async function DashboardPage() {
 
       {/* Recent activity */}
       <div className="panel-surface">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">Senaste aktivitet</h2>
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Senaste aktivitet</h2>
         </div>
         <div className="p-6">
           {stats.recentActivities.length === 0 ? (
-            <p className="text-sm text-gray-400">Ingen aktivitet ännu</p>
+            <p className="text-sm text-gray-400 dark:text-zinc-500">Ingen aktivitet ännu</p>
           ) : (
             <div className="space-y-4">
               {stats.recentActivities.map((activity) => (
                 <div key={activity.id} className="flex items-start gap-3">
-                  <div className="h-7 w-7 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
+                  <div className="h-7 w-7 rounded-full bg-zinc-800 dark:bg-zinc-700 flex items-center justify-center shrink-0">
                     <span className="text-[10px] font-semibold text-white">
                       {activity.user?.name?.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() ?? '?'}
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-gray-700 dark:text-zinc-300">
                       <span className="font-medium">{activity.user?.name ?? 'System'}</span>{' '}
                       {activityLabels[activity.type] ?? activity.type}{' '}
                       {activity.company && (
@@ -160,7 +160,7 @@ export default async function DashboardPage() {
                         <span className="font-medium">{activity.title}</span>
                       )}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">
                       {new Date(activity.createdAt).toLocaleDateString('sv-SE', {
                         day: 'numeric',
                         month: 'short',

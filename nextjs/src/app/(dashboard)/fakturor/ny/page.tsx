@@ -97,7 +97,7 @@ export default function NyFakturaPage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
           <Link href="/fakturor" className="hover:text-gray-600 transition-colors">Fakturor</Link>

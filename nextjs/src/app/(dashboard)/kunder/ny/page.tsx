@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5">
       {children}{required && <span className="ml-1 text-red-400 normal-case tracking-normal">*</span>}
     </label>
   )
@@ -45,7 +45,7 @@ export default function NyKundPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       {/* Breadcrumb + header */}
       <div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
@@ -60,8 +60,8 @@ export default function NyKundPage() {
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Grunduppgifter */}
         <div className="panel-surface">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Företagsinformation</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Företagsinformation</h2>
           </div>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -91,8 +91,8 @@ export default function NyKundPage() {
 
         {/* Adress */}
         <div className="panel-surface">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Adress</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Adress</h2>
           </div>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -118,8 +118,8 @@ export default function NyKundPage() {
 
         {/* Anteckningar */}
         <div className="panel-surface">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Anteckningar</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Anteckningar</h2>
           </div>
           <div className="p-6">
             <Textarea name="notes" placeholder="Övrig information om kunden…" rows={4} />
