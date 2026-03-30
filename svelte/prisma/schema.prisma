@@ -69,6 +69,7 @@ model Company {
   // Relations
   contacts        Contact[]
   projects        Project[]
+  products        Product[]
   quotes          Quote[]
   contracts       Contract[]
   files           File[]
@@ -1071,4 +1072,123 @@ enum PipelineResultStatus {
   ENRICHED
   ANALYZING
   ANALYZED
+}
+
+// ============================================
+// Products (Produkter)
+// ============================================
+
+model Product {
+  id          String        @id @default(cuid())
+  companyId   String
+  name        String
+  description String?       @db.Text
+  status      ProductStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  company        Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  features       ProductFeature[]
+  boardColumns   ProductBoardColumn[]
+  financeEntries ProductFinanceEntry[]
+
+  @@map("products")
+}
+
+enum ProductStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+model ProductFeature {
+  id          String          @id @default(cuid())
+  productId   String
+  name        String
+  description String?         @db.Text
+  status      FeatureStatus   @default(PLANNING)
+  priority    FeaturePriority @default(MEDIUM)
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relations
+  product  Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  subtasks ProductSubtask[]
+
+  @@map("product_features")
+}
+
+model ProductSubtask {
+  id          String    @id @default(cuid())
+  featureId   String
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  feature ProductFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@map("product_subtasks")
+}
+
+model ProductBoardColumn {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  order     Int      @default(0)
+  color     String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  product Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cards   ProductBoardCard[]
+
+  @@map("product_board_columns")
+}
+
+model ProductBoardCard {
+  id          String       @id @default(cuid())
+  columnId    String
+  title       String
+  description String?      @db.Text
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  column ProductBoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@map("product_board_cards")
+}
+
+model ProductFinanceEntry {
+  id          String           @id @default(cuid())
+  productId   String
+  type        FinanceEntryType
+  category    String?
+  description String
+  amount      Float
+  vatRate     Float            @default(0.25)
+  isRecurring Boolean          @default(false)
+  startDate   DateTime         @default(now())
+  endDate     DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_finance_entries")
+}
+
+enum FinanceEntryType {
+  INCOME
+  EXPENSE
 }

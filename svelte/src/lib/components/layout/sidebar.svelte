@@ -15,6 +15,7 @@
 		DocumentMagnifyingGlassIcon,
 		BoltIcon,
 		XMarkIcon,
+		CubeIcon,
 	} from "heroicons-svelte/24/outline";
 
 	interface Props {
@@ -36,6 +37,7 @@
 		{ label: "Pipelines", href: "/dashboard/pipelines", icon: BoltIcon },
 		{ label: "Prospekt", href: "/dashboard/prospects", icon: UserGroupIcon },
 		{ label: "Kunder", href: "/dashboard/customers", icon: BuildingOfficeIcon },
+		{ label: "Produkter", href: "/dashboard/products", icon: CubeIcon },
 		{ label: "Kontakter", href: "/dashboard/contacts", icon: UserGroupIcon },
 		{ label: "Offerter", href: "/dashboard/quotes", icon: DocumentTextIcon },
 		{ label: "Avtal", href: "/dashboard/contracts", icon: DocumentTextIcon },
