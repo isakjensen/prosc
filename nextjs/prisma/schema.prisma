@@ -40,6 +40,7 @@ model User {
   ticketComments    TicketComment[]
   systemLogs        SystemLog[]
   customerFlowNotes CustomerFlowNote[]
+  outreaches        Outreach[]
 
   @@map("users")
 }
@@ -89,6 +90,7 @@ model Customer {
   bolagsfaktaForetag BolagsfaktaForetag[]
   flowNotes              CustomerFlowNote[]
   flowOccurredAtOverrides CustomerFlowOccurredAtOverride[]
+  outreaches             Outreach[]
 
   @@map("customers")
 }
@@ -1271,4 +1273,41 @@ model ProjectFinanceEntry {
 enum FinanceEntryType {
   INCOME
   EXPENSE
+}
+
+// ============================================
+// Outreach (planerade kontakter per kund/prospekt)
+// ============================================
+
+enum OutreachType {
+  EMAIL
+  PHONE
+  SMS
+  PHYSICAL
+}
+
+enum OutreachStatus {
+  PLANNED
+  COMPLETED
+}
+
+model Outreach {
+  id          String         @id @default(cuid())
+  customerId  String
+  userId      String?
+  title       String
+  type        OutreachType
+  scheduledAt DateTime
+  recipients  String?        @db.Text   // JSON array of recipient strings
+  body        String?        @db.LongText
+  attachments String?        @db.Text   // JSON array of attachment file names
+  status      OutreachStatus @default(PLANNED)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@map("outreach")
 }
