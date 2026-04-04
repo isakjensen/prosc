@@ -75,7 +75,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       {/* Logo */}
       <div className="flex h-14 shrink-0 items-center px-5 border-b border-gray-200 dark:border-zinc-800">
         <span className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight">
-          Pro<span className="text-zinc-400 dark:text-zinc-500">SC</span>
+          Full<span className="text-zinc-400 dark:text-zinc-500">stack</span>
         </span>
       </div>
 

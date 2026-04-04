@@ -14,6 +14,24 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+/**
+ * Bolagsfakta lagrar nyckeltal som t.ex. "64 000 KSEK" (tusental kronor).
+ * Visar motsvarande belopp i hela SEK (t.ex. "64 000 000 kr").
+ */
+export function formatBolagsfaktaKsekSnippetAsSek(value: string | null | undefined): string | null {
+  if (value === null || value === undefined || value === '') return null
+  const trimmed = value.replace(/\s+/g, ' ').trim()
+  const m = trimmed.match(/^(-?[\d\s]+)\s*KSEK$/i)
+  if (!m) return trimmed
+  const ksek = parseInt(m[1].replace(/\s/g, ''), 10)
+  if (Number.isNaN(ksek)) return trimmed
+  const sek = ksek * 1000
+  const formatted = new Intl.NumberFormat('sv-SE', {
+    maximumFractionDigits: 0,
+  }).format(sek)
+  return `${formatted} kr`
+}
+
 export function formatDate(date: Date | string | null | undefined): string {
   if (!date) return '–'
   return new Intl.DateTimeFormat('sv-SE', {

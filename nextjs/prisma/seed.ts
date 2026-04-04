@@ -7,10 +7,10 @@ async function main() {
   // Admin user
   const hash = await bcrypt.hash('password123', 10)
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@prosc.com' },
+    where: { email: 'admin@fullstack.com' },
     update: {},
     create: {
-      email: 'admin@prosc.com',
+      email: 'admin@fullstack.com',
       name: 'Admin',
       passwordHash: hash,
       role: 'ADMIN',
@@ -40,13 +40,13 @@ async function main() {
 
   // Default system settings
   const settings = [
-    { key: 'company_name', value: 'ProSC AB' },
+    { key: 'company_name', value: 'Fullstack AB' },
     { key: 'company_org_number', value: '556000-0000' },
     { key: 'company_address', value: 'Storgatan 1' },
     { key: 'company_city', value: 'Stockholm' },
     { key: 'company_zip', value: '111 22' },
     { key: 'company_phone', value: '' },
-    { key: 'company_email', value: 'info@prosc.com' },
+    { key: 'company_email', value: 'info@fullstack.com' },
     { key: 'quote_prefix', value: 'OFF' },
     { key: 'contract_prefix', value: 'AVT' },
     { key: 'invoice_prefix', value: 'FAK' },

@@ -18,8 +18,8 @@ const ubuntuMono = Ubuntu_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'ProSC',
-  description: 'ProSC – Affärssystem',
+  title: 'Fullstack',
+  description: 'Fullstack – Affärssystem',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

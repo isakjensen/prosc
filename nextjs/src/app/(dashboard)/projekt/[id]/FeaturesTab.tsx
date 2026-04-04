@@ -133,7 +133,7 @@ export default function FeaturesTab({ projektId, features: initialFeatures }: Pr
       setShowForm(false)
       router.refresh()
     } catch {
-      toast.error('Kunde inte lägga till feature. Försök igen.')
+      toast.error('Kunde inte lägga till funktionen. Försök igen.')
     } finally {
       setLoading(false)
     }
@@ -143,7 +143,7 @@ export default function FeaturesTab({ projektId, features: initialFeatures }: Pr
     <div className="space-y-4">
       {features.length === 0 && !showForm ? (
         <div className="panel-surface p-10 text-center text-gray-400 text-sm">
-          Inga features ännu
+          Inga funktioner ännu
         </div>
       ) : (
         features.map((feature) => (
@@ -202,7 +202,7 @@ export default function FeaturesTab({ projektId, features: initialFeatures }: Pr
       {showForm ? (
         <div className="panel-surface">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Lägg till feature</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Lägg till funktion</h2>
           </div>
           <div className="p-6">
             <form onSubmit={handleAddFeature} className="space-y-4">
@@ -213,7 +213,7 @@ export default function FeaturesTab({ projektId, features: initialFeatures }: Pr
 
               <div>
                 <FieldLabel>Beskrivning</FieldLabel>
-                <Textarea name="description" placeholder="Beskriv featuren…" rows={3} />
+                <Textarea name="description" placeholder="Beskriv funktionen…" rows={3} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -251,7 +251,7 @@ export default function FeaturesTab({ projektId, features: initialFeatures }: Pr
         </div>
       ) : (
         <Button variant="outline" onClick={() => setShowForm(true)}>
-          + Lägg till feature
+          + Lägg till funktion
         </Button>
       )}
     </div>

@@ -39,6 +39,7 @@ model User {
   taskComments      TaskComment[]
   ticketComments    TicketComment[]
   systemLogs        SystemLog[]
+  customerFlowNotes CustomerFlowNote[]
 
   @@map("users")
 }
@@ -68,6 +69,8 @@ model Customer {
   notes       String?        @db.Text
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+  /// Satt när SCRAPED → PROSPECT via pipeline (lyft till prospekt)
+  promotedToProspectAt DateTime?
 
   // Relations
   contacts        Contact[]
@@ -84,8 +87,51 @@ model Customer {
   systemRequirement SystemRequirement?
   bolagsfaktaData   BolagsfaktaData?
   bolagsfaktaForetag BolagsfaktaForetag[]
+  flowNotes              CustomerFlowNote[]
+  flowOccurredAtOverrides CustomerFlowOccurredAtOverride[]
 
   @@map("customers")
+}
+
+enum CustomerFlowOverrideSourceType {
+  MEETING
+  QUOTE
+  BOLAGSFAKTA_SCRAPE
+  CUSTOMER_RECORD
+  PROSPECT_MILESTONE
+  ACTIVITY
+}
+
+model CustomerFlowNote {
+  id          String   @id @default(cuid())
+  customerId  String
+  userId      String?
+  title       String
+  description String?  @db.Text
+  occurredAt  DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@map("customer_flow_notes")
+}
+
+model CustomerFlowOccurredAtOverride {
+  id          String                       @id @default(cuid())
+  customerId  String
+  sourceType  CustomerFlowOverrideSourceType
+  sourceId    String
+  occurredAt  DateTime
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, sourceType, sourceId])
+  @@map("customer_flow_occurred_at_overrides")
 }
 
 enum CustomerStage {
@@ -1063,8 +1109,6 @@ model BolagsfaktaData {
   aretsResultatSenaste   String?
   ebitdaSenaste          String?
   utdelningSenaste       String?
-  /// Lista SNI: [{ "kod": "10112", "benamning": "..." }]
-  sniPoster              Json?
 
   overviewJson    Json?
   ansvarigaJson   Json?
@@ -1096,11 +1140,27 @@ model Project {
 
   // Relations
   customers      ProjectCustomer[]
+  links          ProjectLink[]
   features       ProjectFeature[]
   boardColumns   ProjectBoardColumn[]
   financeEntries ProjectFinanceEntry[]
 
   @@map("projects")
+}
+
+/// Bokmärken med titel + URL per projekt (t.ex. repo, Figma, dokumentation)
+model ProjectLink {
+  id        String   @id @default(cuid())
+  projektId String
+  title     String
+  url       String   @db.VarChar(2048)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@index([projektId])
+  @@map("project_links")
 }
 
 model ProjectCustomer {

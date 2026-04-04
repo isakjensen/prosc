@@ -22,6 +22,8 @@ export type { CompanyEnrichmentFromOllama, WebsiteDiscoveryResult } from "@/lib/
 /** Minimalt underlag för söksträng (undviker cirkulär import mot detail-scraper). */
 export type DiscoveryFlatInput = {
   orgNumberFormatted?: string
+  sniKodPrimary?: string
+  sniBenamningPrimary?: string
 }
 
 /** Grova koordinater för geolocation i Playwright (samma land, ungefär samma stad). */
@@ -266,13 +268,8 @@ function buildCompanyContextForDiscovery(
   add("Street", display.gatuadress)
   add("Postal", display.postadress)
   add("Seat", display.seatLocation)
-  if (display.sniPoster?.length) {
-    const sni = display.sniPoster
-      .slice(0, 4)
-      .map((s) => `${s.kod} ${s.benamning}`)
-      .join("; ")
-    add("SNI", sni)
-  }
+  const primaryBransch = [flat.sniKodPrimary, flat.sniBenamningPrimary].filter(Boolean).join(" – ")
+  if (primaryBransch.trim()) add("Primär bransch", primaryBransch)
   return rows.length ? rows.join("\n") : "(no extra fields)"
 }
 

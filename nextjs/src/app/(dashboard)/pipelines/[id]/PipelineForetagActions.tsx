@@ -10,6 +10,10 @@ import type { WebsiteDiscoveryResult } from "@/lib/website-discovery-types"
 import { ChevronDown } from "lucide-react"
 
 const MENU_WIDTH = 224
+const MENU_VIEW_MARGIN = 8
+const MENU_GAP = 4
+/** Fallback om höjd inte hunnit mätas (≈ 4 knappar + separator + padding). */
+const MENU_HEIGHT_FALLBACK = 260
 
 interface Props {
   pipelineId: string
@@ -26,6 +30,7 @@ export default function PipelineForetagActions({
 }: Props) {
   const router = useRouter()
   const anchorRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
@@ -44,16 +49,48 @@ export default function PipelineForetagActions({
       if (!el) return
       const r = el.getBoundingClientRect()
       const left = Math.min(
-        window.innerWidth - MENU_WIDTH - 8,
-        Math.max(8, r.right - MENU_WIDTH),
+        window.innerWidth - MENU_WIDTH - MENU_VIEW_MARGIN,
+        Math.max(MENU_VIEW_MARGIN, r.right - MENU_WIDTH),
       )
-      setMenuPos({ top: r.bottom + 4, left })
+
+      const menuEl = menuRef.current
+      const measured =
+        menuEl && menuEl.getBoundingClientRect().height > 0
+          ? menuEl.getBoundingClientRect().height
+          : MENU_HEIGHT_FALLBACK
+      const menuHeight = measured
+
+      const vh = window.innerHeight
+      const spaceBelow = vh - r.bottom - MENU_VIEW_MARGIN
+      const spaceAbove = r.top - MENU_VIEW_MARGIN
+
+      const fitsBelow = menuHeight + MENU_GAP <= spaceBelow
+      const fitsAbove = menuHeight + MENU_GAP <= spaceAbove
+
+      let top: number
+      if (fitsBelow) {
+        top = r.bottom + MENU_GAP
+      } else if (fitsAbove) {
+        top = r.top - menuHeight - MENU_GAP
+      } else if (spaceBelow >= spaceAbove) {
+        top = r.bottom + MENU_GAP
+      } else {
+        top = r.top - menuHeight - MENU_GAP
+      }
+
+      const maxTop = vh - menuHeight - MENU_VIEW_MARGIN
+      if (top > maxTop) top = Math.max(MENU_VIEW_MARGIN, maxTop)
+      if (top < MENU_VIEW_MARGIN) top = MENU_VIEW_MARGIN
+
+      setMenuPos({ top, left })
     }
 
     updatePosition()
+    const id = requestAnimationFrame(() => updatePosition())
     window.addEventListener("scroll", updatePosition, true)
     window.addEventListener("resize", updatePosition)
     return () => {
+      cancelAnimationFrame(id)
       window.removeEventListener("scroll", updatePosition, true)
       window.removeEventListener("resize", updatePosition)
     }
@@ -178,6 +215,7 @@ export default function PipelineForetagActions({
           onClick={() => setOpen(false)}
         />
         <div
+          ref={menuRef}
           className="fixed z-[9999] min-w-[14rem] rounded-md border border-gray-200 bg-white py-1 shadow-xl"
           style={{ top: menuPos.top, left: menuPos.left, width: MENU_WIDTH }}
         >

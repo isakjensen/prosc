@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
 import type { BolagsfaktaData, Contact } from "@prisma/client"
+import { formatBolagsfaktaKsekSnippetAsSek } from "@/lib/utils"
 import BolagsfaktaRefreshButton from "./BolagsfaktaRefreshButton"
 
 export type BolagsfaktaKundViewProps = {
@@ -8,8 +9,6 @@ export type BolagsfaktaKundViewProps = {
   data: BolagsfaktaData
   contacts: Pick<Contact, "id" | "firstName" | "lastName" | "role" | "title" | "email" | "phone">[]
 }
-
-type SniRow = { kod: string; benamning: string }
 
 function formatOrgNr(s: string | null | undefined): string | null {
   if (!s) return null
@@ -39,9 +38,26 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-export default function BolagsfaktaKundView({ customerId, data, contacts }: BolagsfaktaKundViewProps) {
-  const sniList = (data.sniPoster as unknown as SniRow[] | null) ?? []
+const BOKSLUT_TERM_EXPLANATIONS: { term: string; text: string }[] = [
+  {
+    term: "Omsättning",
+    text: "Bolagets intäkter från försäljning under räkenskapsåret; visar verksamhetens volym i kronor.",
+  },
+  {
+    term: "Årets resultat",
+    text: "Nettoresultat efter skatt för räkenskapsåret; i årsredovisningen redovisas det som årets vinst eller förlust.",
+  },
+  {
+    term: "EBITDA",
+    text: "Rörelseresultat före räntor, skatt samt av- och nedskrivningar; ofta använt för att jämföra lönsamhet utan finansiell struktur och större avskrivningar.",
+  },
+  {
+    term: "Utdelning",
+    text: "Utbetalt belopp till aktieägare enligt bolagsstämmans beslut, vanligtvis från bolagets vinstmedel.",
+  },
+]
 
+export default function BolagsfaktaKundView({ customerId, data, contacts }: BolagsfaktaKundViewProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -88,35 +104,24 @@ export default function BolagsfaktaKundView({ customerId, data, contacts }: Bola
         data.ebitdaSenaste ||
         data.utdelningSenaste) && (
         <Section title="Senaste bokslut (översikt)">
-          <dl className="grid gap-3 sm:grid-cols-2">
-            <Field label="Omsättning" value={data.omsattningSenaste} />
-            <Field label="Årets resultat" value={data.aretsResultatSenaste} />
-            <Field label="EBITDA" value={data.ebitdaSenaste} />
-            <Field label="Utdelning" value={data.utdelningSenaste} />
+          <details className="rounded-lg border border-gray-100 bg-gray-50/40 px-4 py-3 text-sm text-gray-600">
+            <summary className="cursor-pointer font-medium text-gray-800 outline-none hover:text-gray-900">
+              Vad betyder nyckeltalen?
+            </summary>
+            <ul className="mt-3 space-y-2 border-t border-gray-100 pt-3 text-xs leading-relaxed">
+              {BOKSLUT_TERM_EXPLANATIONS.map(({ term, text }) => (
+                <li key={term}>
+                  <span className="font-semibold text-gray-800">{term}:</span> {text}
+                </li>
+              ))}
+            </ul>
+          </details>
+          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Field label="Omsättning" value={formatBolagsfaktaKsekSnippetAsSek(data.omsattningSenaste)} />
+            <Field label="Årets resultat" value={formatBolagsfaktaKsekSnippetAsSek(data.aretsResultatSenaste)} />
+            <Field label="EBITDA" value={formatBolagsfaktaKsekSnippetAsSek(data.ebitdaSenaste)} />
+            <Field label="Utdelning" value={formatBolagsfaktaKsekSnippetAsSek(data.utdelningSenaste)} />
           </dl>
-        </Section>
-      )}
-
-      {sniList.length > 0 && (
-        <Section title="SNI-koder">
-          <div className="overflow-x-auto rounded-lg border border-gray-100">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/80 text-left text-xs uppercase tracking-wide text-gray-400">
-                  <th className="px-4 py-2">Kod</th>
-                  <th className="px-4 py-2">Benämning</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {sniList.map((row) => (
-                  <tr key={`${row.kod}-${row.benamning}`}>
-                    <td className="px-4 py-2 font-mono text-gray-800">{row.kod}</td>
-                    <td className="px-4 py-2 text-gray-700">{row.benamning}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </Section>
       )}
 
@@ -126,11 +131,11 @@ export default function BolagsfaktaKundView({ customerId, data, contacts }: Bola
           <Field label="Koncernmoder" value={data.koncernModerNamn} />
           <Field label="Antal anställda" value={data.antalAnstalldaText} />
           <Field
-            label="Primär bransch (SNI)"
+            label="Primär bransch"
             value={
-              data.sniKodPrimary || data.sniBenamningPrimary
-                ? [data.sniKodPrimary, data.sniBenamningPrimary].filter(Boolean).join(" – ")
-                : null
+              data.sniBenamningPrimary?.trim() ||
+              data.sniKodPrimary?.trim() ||
+              null
             }
           />
         </dl>

@@ -60,7 +60,7 @@ export default function NyProjektPage() {
               <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
                 Namn <span className="text-red-500">*</span>
               </label>
-              <Input name="name" required placeholder="T.ex. ProSc Enterprise" />
+              <Input name="name" required placeholder="T.ex. Fullstack Enterprise" />
             </div>
 
             <div>

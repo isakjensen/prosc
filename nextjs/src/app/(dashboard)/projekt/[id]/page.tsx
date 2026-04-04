@@ -7,6 +7,7 @@ import { ChevronRight } from 'lucide-react'
 import ProjektEditForm from './ProduktEditForm'
 import FeaturesTab from './FeaturesTab'
 import KunderTab from './KunderTab'
+import ProjektLankarTab from './ProjektLankarTab'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -51,6 +52,9 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
           customer: true,
         },
       },
+      links: {
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      },
       features: {
         orderBy: { order: 'asc' },
         include: {
@@ -72,15 +76,15 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
   if (!project) notFound()
 
   const allCustomers = await prisma.customer.findMany({
-    where: { stage: 'CUSTOMER' },
     orderBy: { name: 'asc' },
   })
 
   const tabs = [
     { key: 'oversikt', label: 'Översikt' },
     { key: 'kunder', label: 'Kunder' },
-    { key: 'features', label: 'Features' },
-    { key: 'board', label: 'Board' },
+    { key: 'lankar', label: 'Länkar' },
+    { key: 'features', label: 'Funktioner' },
+    { key: 'board', label: 'Tavla' },
     { key: 'ekonomi', label: 'Ekonomi' },
   ]
 
@@ -142,7 +146,8 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
               {[
                 { label: 'Status', value: projectStatusLabel[project.status] ?? project.status },
                 { label: 'Kunder', value: project.customers.length },
-                { label: 'Features', value: project.features.length },
+                { label: 'Länkar', value: project.links.length },
+                { label: 'Funktioner', value: project.features.length },
                 { label: 'Skapad', value: formatDate(project.createdAt) },
                 { label: 'Uppdaterad', value: formatDate(project.updatedAt) },
               ].map(({ label, value }) => (
@@ -168,7 +173,14 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
         />
       )}
 
-      {/* Features */}
+      {tab === 'lankar' && (
+        <ProjektLankarTab
+          projektId={id}
+          links={project.links.map((l) => ({ id: l.id, title: l.title, url: l.url }))}
+        />
+      )}
+
+      {/* Funktioner */}
       {tab === 'features' && (
         <FeaturesTab
           projektId={id}
@@ -187,12 +199,12 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
         />
       )}
 
-      {/* Board */}
+      {/* Tavla (Kanban) */}
       {tab === 'board' && (
         <div>
           {project.boardColumns.length === 0 ? (
             <div className="panel-surface p-10 text-center text-gray-400 text-sm">
-              Inga kolumner i boardet ännu
+              Inga kolumner på tavlan ännu
             </div>
           ) : (
             <div className="flex gap-4 overflow-x-auto pb-4">

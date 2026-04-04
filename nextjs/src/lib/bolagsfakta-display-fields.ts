@@ -1,5 +1,3 @@
-export type SniPost = { kod: string; benamning: string }
-
 export type BolagsfaktaDisplayFields = {
   firmaNamn: string | null
   bolagsformDetail: string | null
@@ -14,7 +12,6 @@ export type BolagsfaktaDisplayFields = {
   aretsResultatSenaste: string | null
   ebitdaSenaste: string | null
   utdelningSenaste: string | null
-  sniPoster: SniPost[]
 }
 
 function tableLookup(tables: Record<string, string>, keys: string[]): string | null {
@@ -32,35 +29,6 @@ function mergeForetagTables(parsed: {
   const alla = (om?.allaTabeller as Record<string, string>) ?? {}
   const fp = (om?.företagsuppgifterTabell as Record<string, string>) ?? {}
   return { ...fp, ...alla }
-}
-
-function extractSniPoster(tables: Record<string, string>): SniPost[] {
-  const out: SniPost[] = []
-  const seen = new Set<string>()
-  for (const [key, value] of Object.entries(tables)) {
-    const k = key.trim()
-    const v = value.trim()
-    const keyKod = k.match(/^(\d{4,5})\s*[-–]?\s*$/)
-    if (keyKod && v) {
-      const kod = keyKod[1]
-      const benamning = v.replace(/\s+/g, " ").trim()
-      if (!seen.has(`${kod}|${benamning}`)) {
-        seen.add(`${kod}|${benamning}`)
-        out.push({ kod, benamning })
-      }
-      continue
-    }
-    const m = v.match(/^(\d{4,5})\s*[-–]\s*([\s\S]+)$/)
-    if (m) {
-      const kod = m[1]
-      const benamning = m[2].replace(/\s+/g, " ").trim()
-      if (!seen.has(`${kod}|${benamning}`)) {
-        seen.add(`${kod}|${benamning}`)
-        out.push({ kod, benamning })
-      }
-    }
-  }
-  return out
 }
 
 /** Parsar översikt senaste bokslut från översiktssidan (KSEK-block) */
@@ -95,8 +63,6 @@ export function buildBolagsfaktaDisplayFields(parsed: {
   const tables = mergeForetagTables(parsed)
   const kpis = extractSenasteBokslutFromOverview(parsed.overview)
 
-  const sniPoster = extractSniPoster(tables)
-
   return {
     firmaNamn: tableLookup(tables, ["Firmanamn"]),
     bolagsformDetail: tableLookup(tables, ["Bolagsform"]),
@@ -114,6 +80,5 @@ export function buildBolagsfaktaDisplayFields(parsed: {
     aretsResultatSenaste: kpis.aretsResultatSenaste,
     ebitdaSenaste: kpis.ebitdaSenaste,
     utdelningSenaste: kpis.utdelningSenaste,
-    sniPoster,
   }
 }

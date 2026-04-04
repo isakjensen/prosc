@@ -1,6 +1,5 @@
 import * as cheerio from 'cheerio'
 import type { Page } from 'playwright'
-import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { buildBolagsfaktaDisplayFields } from '@/lib/bolagsfakta-display-fields'
 import type { BolagsfaktaDebugLogger } from '@/lib/bolagsfakta-debug-logger'
@@ -325,9 +324,7 @@ export async function persistBolagsfaktaDetail(
   await logger?.info("persist_start", {
     customerId,
     firmaNamn: display.firmaNamn,
-    sniPosterCount: display.sniPoster.length,
   })
-  const sniJson = display.sniPoster.length ? display.sniPoster : null
 
   const dataBlock = {
     sourceUrl: parsed.sourceUrl,
@@ -352,7 +349,6 @@ export async function persistBolagsfaktaDetail(
     aretsResultatSenaste: display.aretsResultatSenaste,
     ebitdaSenaste: display.ebitdaSenaste,
     utdelningSenaste: display.utdelningSenaste,
-    sniPoster: (sniJson as object) ?? Prisma.JsonNull,
     overviewJson: parsed.overview as object,
     ansvarigaJson: parsed.ansvariga as object,
     ekonomiJson: parsed.ekonomi as object,

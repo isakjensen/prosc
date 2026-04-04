@@ -12,10 +12,20 @@ interface ModalProps {
   title?: string
   description?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** Extra classes on the dialog panel (e.g. rounded-2xl) */
+  panelClassName?: string
   children: React.ReactNode
 }
 
-export function Modal({ isOpen, onClose, title, description, size = 'md', children }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  description,
+  size = 'md',
+  panelClassName,
+  children,
+}: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -61,21 +71,27 @@ export function Modal({ isOpen, onClose, title, description, size = 'md', childr
               exit={{ opacity: 0, scale: 0.97, y: 8 }}
               transition={{ type: 'spring', duration: 0.38, bounce: 0.18 }}
               className={cn(
-                'relative z-10 w-full bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-gray-100 dark:border-zinc-700/50 overflow-hidden',
+                'relative z-10 w-full bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-zinc-200/90 dark:border-zinc-700/60 overflow-hidden',
                 maxWidth,
+                panelClassName,
               )}
             >
               {title && (
-                <div className="sticky top-0 bg-white dark:bg-zinc-900 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800 z-10">
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h2>
+                <div className="sticky top-0 bg-gradient-to-b from-zinc-50/90 to-white dark:from-zinc-900 dark:to-zinc-900 flex items-start justify-between gap-4 px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 z-10">
+                  <div className="min-w-0 pt-0.5">
+                    <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-white">
+                      {title}
+                    </h2>
                     {description && (
-                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{description}</p>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed max-w-md">
+                        {description}
+                      </p>
                     )}
                   </div>
                   <button
+                    type="button"
                     onClick={onClose}
-                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+                    className="shrink-0 p-2 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -98,7 +114,12 @@ interface ModalFooterProps {
 
 export function ModalFooter({ children, className }: ModalFooterProps) {
   return (
-    <div className={cn('flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30', className)}>
+    <div
+      className={cn(
+        'flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-950/40',
+        className,
+      )}
+    >
       {children}
     </div>
   )
@@ -106,7 +127,12 @@ export function ModalFooter({ children, className }: ModalFooterProps) {
 
 export function ModalBody({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('px-6 py-5 space-y-5 max-h-[calc(85vh-120px)] overflow-y-auto no-scrollbar', className)}>
+    <div
+      className={cn(
+        'px-6 py-6 space-y-5 max-h-[calc(85vh-120px)] overflow-y-auto no-scrollbar',
+        className,
+      )}
+    >
       {children}
     </div>
   )

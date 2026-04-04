@@ -22,6 +22,7 @@ export default async function ProjektPage() {
       _count: {
         select: {
           customers: true,
+          links: true,
           features: true,
         },
       },
@@ -64,14 +65,18 @@ export default async function ProjektPage() {
                   <p className="text-sm text-gray-500 mb-4 line-clamp-2">{project.description}</p>
                 )}
 
-                <div className="flex gap-4 text-xs text-gray-500 mt-auto pt-3 border-t border-gray-100">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-auto pt-3 border-t border-gray-100">
                   <span>
                     <span className="font-semibold text-gray-700">{project._count.customers}</span>{' '}
                     {project._count.customers === 1 ? 'kund' : 'kunder'}
                   </span>
                   <span>
+                    <span className="font-semibold text-gray-700">{project._count.links}</span>{' '}
+                    {project._count.links === 1 ? 'länk' : 'länkar'}
+                  </span>
+                  <span>
                     <span className="font-semibold text-gray-700">{project._count.features}</span>{' '}
-                    {project._count.features === 1 ? 'feature' : 'features'}
+                    {project._count.features === 1 ? 'funktion' : 'funktioner'}
                   </span>
                 </div>
               </div>

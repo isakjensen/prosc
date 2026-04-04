@@ -4,6 +4,8 @@ import { formatDate, formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import BolagsfaktaKundView from "@/components/bolagsfakta/BolagsfaktaKundView"
 import BolagsfaktaRefreshButton from "@/components/bolagsfakta/BolagsfaktaRefreshButton"
+import KundProjektTab from "./KundProjektTab"
+import KundFlodeTab from "./KundFlodeTab"
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -47,18 +49,6 @@ const invoiceStatusVariant: Record<string, 'gray' | 'info' | 'success' | 'warnin
   CANCELLED: 'danger',
 }
 
-const activityLabel: Record<string, string> = {
-  CREATED: 'Skapades',
-  UPDATED: 'Uppdaterades',
-  STAGE_CHANGED: 'Status ändrades',
-  EMAIL_SENT: 'E-post skickades',
-  QUOTE_SENT: 'Offert skickades',
-  INVOICE_SENT: 'Faktura skickades',
-  PAYMENT_RECEIVED: 'Betalning mottagen',
-  CONTRACT_SIGNED: 'Avtal signerades',
-  NOTE_ADDED: 'Notering tillagd',
-}
-
 function listBreadcrumb(stage: CustomerStage): { href: string; label: string } {
   switch (stage) {
     case 'CUSTOMER':
@@ -76,7 +66,9 @@ function listBreadcrumb(stage: CustomerStage): { href: string; label: string } {
 
 export default async function KundDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params
-  const { tab = 'oversikt' } = await searchParams
+  const sp = await searchParams
+  const rawTab = sp.tab ?? "oversikt"
+  const tab = rawTab === "aktivitet" ? "flode" : rawTab
 
   const customer = await prisma.customer.findUnique({
     where: { id },
@@ -91,16 +83,27 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
       quotes: { include: { lineItems: true }, orderBy: { createdAt: 'desc' } },
       contracts: { orderBy: { createdAt: 'desc' } },
       invoices: { include: { lineItems: true }, orderBy: { createdAt: 'desc' } },
-      activities: {
-        include: { user: true },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-      },
       prospectStage: { include: { currentStage: true } },
+      projects: {
+        include: {
+          project: { select: { id: true, name: true, status: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   })
 
   if (!customer) notFound()
+
+  const allProjects = await prisma.project.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, status: true },
+  })
+
+  const linkedProjects = customer.projects
+    .map((pc) => pc.project)
+    .sort((a, b) => a.name.localeCompare(b.name, "sv"))
+  const linkedProjectIds = linkedProjects.map((p) => p.id)
 
   const showFinanceTabs = customer.stage === 'CUSTOMER'
   const bc = listBreadcrumb(customer.stage)
@@ -130,10 +133,11 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
   const baseTabs = [
     { key: 'oversikt', label: 'Översikt' },
     { key: 'bolagsfakta', label: 'Bolagsfakta' },
+    { key: 'projekt', label: 'Projekt' },
     { key: 'kontakter', label: 'Kontakter' },
     { key: 'offerter', label: 'Offerter' },
     ...(showFinanceTabs ? ([{ key: 'fakturor', label: 'Fakturor' }] as const) : []),
-    { key: 'aktivitet', label: 'Aktivitet' },
+    { key: 'flode', label: 'Flöde' },
   ]
 
   const thClass = 'px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400'
@@ -237,6 +241,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
               </div>
               <div className="p-6 space-y-3">
                 {[
+                  { label: 'Projekt', value: linkedProjects.length },
                   { label: 'Kontakter', value: customer.contacts.length },
                   { label: 'Offerter', value: customer.quotes.length },
                   ...(showFinanceTabs ? [{ label: 'Fakturor', value: customer.invoices.length }] : []),
@@ -261,6 +266,15 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
             )}
           </div>
         </div>
+      )}
+
+      {tab === 'projekt' && (
+        <KundProjektTab
+          customerId={customer.id}
+          linkedProjects={linkedProjects}
+          allProjects={allProjects}
+          linkedProjectIds={linkedProjectIds}
+        />
       )}
 
       {tab === 'bolagsfakta' && (
@@ -419,35 +433,16 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
         </div>
       )}
 
-      {tab === 'aktivitet' && (
+      {tab === "flode" && (
         <div className="panel-surface">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Aktivitetslogg</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Flöde</h2>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+              Möten, offerter, milstolpar och egna händelser — nyast först
+            </p>
           </div>
           <div className="p-6">
-            {customer.activities.length === 0 ? (
-              <p className="text-sm text-gray-400">Ingen aktivitet</p>
-            ) : (
-              <div className="space-y-4">
-                {customer.activities.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3">
-                    <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-semibold text-zinc-700">
-                        {a.user?.name?.charAt(0) ?? 'S'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-medium">{a.user?.name ?? 'System'}</span>{' '}
-                        {activityLabel[a.type] ?? a.type}
-                        {a.title && ` – ${a.title}`}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(a.createdAt)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <KundFlodeTab customerId={id} />
           </div>
         </div>
       )}

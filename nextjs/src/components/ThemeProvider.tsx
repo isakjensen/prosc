@@ -4,6 +4,10 @@ import { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 
+const THEME_STORAGE_KEY = 'fullstack-theme'
+/** Tidigare ProSC-nyckel — läses en gång så befintliga användare behåller tema. */
+const LEGACY_THEME_STORAGE_KEY = 'prosc-theme'
+
 const ThemeContext = createContext<{
   theme: Theme
   setTheme: (t: Theme) => void
@@ -12,7 +16,9 @@ const ThemeContext = createContext<{
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'light'
-    const stored = localStorage.getItem('prosc-theme') as Theme | null
+    const stored =
+      (localStorage.getItem(THEME_STORAGE_KEY) ??
+        localStorage.getItem(LEGACY_THEME_STORAGE_KEY)) as Theme | null
     return stored ?? 'light'
   })
 
@@ -29,7 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme])
 
   function setTheme(t: Theme) {
-    localStorage.setItem('prosc-theme', t)
+    localStorage.setItem(THEME_STORAGE_KEY, t)
     setThemeState(t)
   }
 

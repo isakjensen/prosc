@@ -27,7 +27,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
 
   await prisma.customer.update({
     where: { id: foretag.customerId },
-    data: { stage: 'PROSPECT' },
+    data: { stage: 'PROSPECT', promotedToProspectAt: new Date() },
   })
 
   return NextResponse.json({ ok: true })

@@ -42,11 +42,11 @@ export default function LoginPage() {
           <div className="border-b border-gray-100 px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-zinc-900 text-white">
-                <span className="text-sm font-bold">P</span>
+                <span className="text-sm font-bold">F</span>
               </div>
               <div>
                 <h1 className="text-sm font-semibold text-gray-900">
-                  Pro<span className="text-zinc-500">SC</span>
+                  Full<span className="text-zinc-500">stack</span>
                 </h1>
                 <p className="text-xs text-gray-500">Logga in för att fortsätta</p>
               </div>
@@ -63,7 +63,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@prosc.com"
+                  placeholder="admin@fullstack.com"
                   required
                   autoFocus
                 />
