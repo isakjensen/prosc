@@ -20,7 +20,7 @@ export default async function KontakterPage({ searchParams }: PageProps) {
           ],
         }
       : {},
-    include: { company: true },
+    include: { customer: true },
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   })
 
@@ -72,14 +72,10 @@ export default async function KontakterPage({ searchParams }: PageProps) {
                     </td>
                     <td className="px-6 py-4 text-gray-600">
                       <Link
-                        href={
-                          contact.company.type === 'CUSTOMER'
-                            ? `/kunder/${contact.companyId}`
-                            : `/prospekts/${contact.companyId}`
-                        }
+                        href={`/kunder/${contact.customerId}`}
                         className="hover:underline text-gray-700"
                       >
-                        {contact.company.name}
+                        {contact.customer.name}
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{contact.title ?? '–'}</td>

@@ -1,9 +1,14 @@
 import { prisma } from '@/lib/db'
+import { bolagsfaktaStadPostnummerLand, formatSwedishOrgNumber } from '@/lib/bolagsfakta-overview'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import BolagsfaktaKundView from "@/components/bolagsfakta/BolagsfaktaKundView"
+import BolagsfaktaRefreshButton from "@/components/bolagsfakta/BolagsfaktaRefreshButton"
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import type { ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
+import type { CustomerStage } from '@prisma/client'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -54,13 +59,34 @@ const activityLabel: Record<string, string> = {
   NOTE_ADDED: 'Notering tillagd',
 }
 
+function listBreadcrumb(stage: CustomerStage): { href: string; label: string } {
+  switch (stage) {
+    case 'CUSTOMER':
+      return { href: '/kunder', label: 'Kunder' }
+    case 'PROSPECT':
+      return { href: '/prospekts', label: 'Prospekts' }
+    case 'SCRAPED':
+      return { href: '/pipelines', label: 'Bolagsfakta Pipeline' }
+    case 'ARCHIVED':
+      return { href: '/kunder', label: 'Kunder' }
+    default:
+      return { href: '/kunder', label: 'Kunder' }
+  }
+}
+
 export default async function KundDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params
   const { tab = 'oversikt' } = await searchParams
 
-  const company = await prisma.company.findUnique({
+  const customer = await prisma.customer.findUnique({
     where: { id },
     include: {
+      bolagsfaktaData: true,
+      bolagsfaktaForetag: {
+        where: { url: { not: null } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
       contacts: true,
       quotes: { include: { lineItems: true }, orderBy: { createdAt: 'desc' } },
       contracts: { orderBy: { createdAt: 'desc' } },
@@ -70,16 +96,43 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
         orderBy: { createdAt: 'desc' },
         take: 20,
       },
+      prospectStage: { include: { currentStage: true } },
     },
   })
 
-  if (!company) notFound()
+  if (!customer) notFound()
 
-  const tabs = [
+  const showFinanceTabs = customer.stage === 'CUSTOMER'
+  const bc = listBreadcrumb(customer.stage)
+
+  const bf = customer.bolagsfaktaData
+  const canFetchBolagsfaktaWithoutStoredData = Boolean(customer.bolagsfaktaForetag[0]?.url?.trim())
+  const bfLoc = bolagsfaktaStadPostnummerLand(bf)
+  const overviewOrgNr =
+    formatSwedishOrgNumber(bf?.orgNumberFormatted?.trim()) ||
+    formatSwedishOrgNumber(customer.orgNumber) ||
+    customer.orgNumber
+  const overviewPhone = bf?.phone?.trim() || customer.phone
+  const overviewAddress = bf?.gatuadress?.trim() || customer.address
+  const overviewCity = bfLoc.city ?? customer.city
+  const overviewZip = bfLoc.zip ?? customer.zip
+  const overviewCountry = bfLoc.country ?? customer.country
+  const discoveredWebsite = bf?.discoveredWebsite?.trim() || ""
+
+  const stageBadge: Record<string, { label: string; variant: 'success' | 'info' | 'gray' | 'warning' }> = {
+    CUSTOMER: { label: 'Kund', variant: 'success' },
+    PROSPECT: { label: 'Prospekt', variant: 'info' },
+    SCRAPED: { label: 'Pipeline', variant: 'gray' },
+    ARCHIVED: { label: 'Arkiverad', variant: 'warning' },
+  }
+  const sb = stageBadge[customer.stage] ?? { label: customer.stage, variant: 'gray' as const }
+
+  const baseTabs = [
     { key: 'oversikt', label: 'Översikt' },
+    { key: 'bolagsfakta', label: 'Bolagsfakta' },
     { key: 'kontakter', label: 'Kontakter' },
     { key: 'offerter', label: 'Offerter' },
-    { key: 'fakturor', label: 'Fakturor' },
+    ...(showFinanceTabs ? ([{ key: 'fakturor', label: 'Fakturor' }] as const) : []),
     { key: 'aktivitet', label: 'Aktivitet' },
   ]
 
@@ -90,22 +143,31 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
       {/* Header */}
       <div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <Link href="/kunder" className="hover:text-gray-600 transition-colors">Kunder</Link>
+          <Link href={bc.href} className="hover:text-gray-600 transition-colors">{bc.label}</Link>
           <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-600">{company.name}</span>
+          <span className="text-gray-600">{customer.name}</span>
         </div>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{company.name}</h1>
-            {company.industry && <p className="text-sm text-gray-500 mt-0.5">{company.industry}</p>}
+            <h1 className="text-2xl font-bold text-gray-900">{customer.name}</h1>
+            {(bf?.sniBenamningPrimary?.trim() || customer.industry) && (
+              <p className="text-sm text-gray-500 mt-0.5">
+                {bf?.sniBenamningPrimary?.trim() || customer.industry}
+              </p>
+            )}
           </div>
-          <Badge variant="success">Kund</Badge>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {customer.stage === 'PROSPECT' && customer.prospectStage?.currentStage && (
+              <Badge variant="info">{customer.prospectStage.currentStage.name}</Badge>
+            )}
+            <Badge variant={sb.variant}>{sb.label}</Badge>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
-        {tabs.map((t) => (
+      <div className="flex gap-1 border-b border-gray-200 flex-wrap">
+        {baseTabs.map((t) => (
           <Link
             key={t.key}
             href={`/kunder/${id}?tab=${t.key}`}
@@ -129,18 +191,40 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
             </div>
             <div className="p-6 space-y-3">
               {[
-                { label: 'Webbplats', value: company.website },
-                { label: 'Telefon', value: company.phone },
-                { label: 'E-post', value: company.email },
-                { label: 'Adress', value: company.address },
-                { label: 'Stad', value: company.city },
-                { label: 'Postnummer', value: company.zip },
-                { label: 'Land', value: company.country },
-                { label: 'Skapad', value: formatDate(company.createdAt) },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between text-sm">
-                  <span className="text-gray-500">{label}</span>
-                  <span className="text-gray-900 font-medium">{value ?? '–'}</span>
+                { label: 'Organisationsnummer', value: overviewOrgNr },
+                ...(discoveredWebsite
+                  ? ([
+                      {
+                        label: 'Hemsida',
+                        value: discoveredWebsite,
+                        href: discoveredWebsite,
+                      },
+                    ] as const)
+                  : []),
+                { label: 'Telefon', value: overviewPhone },
+                { label: 'E-post', value: customer.email },
+                { label: 'Adress', value: overviewAddress },
+                { label: 'Stad', value: overviewCity },
+                { label: 'Postnummer', value: overviewZip },
+                { label: 'Land', value: overviewCountry },
+                { label: 'Skapad', value: formatDate(customer.createdAt) },
+              ].map((row) => (
+                <div key={row.label} className="flex justify-between text-sm gap-4">
+                  <span className="text-gray-500 shrink-0">{row.label}</span>
+                  <span className="text-gray-900 font-medium text-right min-w-0 break-all">
+                    {'href' in row && row.href ? (
+                      <a
+                        href={row.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-zinc-800 hover:underline"
+                      >
+                        {row.value}
+                      </a>
+                    ) : (
+                      (row.value ?? '–') as ReactNode
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
@@ -153,9 +237,9 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
               </div>
               <div className="p-6 space-y-3">
                 {[
-                  { label: 'Kontakter', value: company.contacts.length },
-                  { label: 'Offerter', value: company.quotes.length },
-                  { label: 'Fakturor', value: company.invoices.length },
+                  { label: 'Kontakter', value: customer.contacts.length },
+                  { label: 'Offerter', value: customer.quotes.length },
+                  ...(showFinanceTabs ? [{ label: 'Fakturor', value: customer.invoices.length }] : []),
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between text-sm">
                     <span className="text-gray-500">{label}</span>
@@ -165,13 +249,13 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
               </div>
             </div>
 
-            {company.notes && (
+            {customer.notes && (
               <div className="panel-surface">
                 <div className="px-6 py-4 border-b border-gray-100">
                   <h2 className="text-sm font-semibold text-gray-900">Anteckningar</h2>
                 </div>
                 <div className="p-6">
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{company.notes}</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{customer.notes}</p>
                 </div>
               </div>
             )}
@@ -179,12 +263,44 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
         </div>
       )}
 
+      {tab === 'bolagsfakta' && (
+        <div>
+          {customer.bolagsfaktaData ? (
+            <BolagsfaktaKundView
+              customerId={customer.id}
+              data={customer.bolagsfaktaData}
+              contacts={customer.contacts}
+            />
+          ) : (
+            <div className="panel-surface p-8 text-center text-sm text-gray-500">
+              <p>Ingen Bolagsfakta-data är hämtad för det här bolaget ännu.</p>
+              {canFetchBolagsfaktaWithoutStoredData ? (
+                <div className="mt-6 flex flex-col items-center gap-3">
+                  <BolagsfaktaRefreshButton
+                    customerId={customer.id}
+                    label="Hämta från Bolagsfakta"
+                  />
+                  <p className="max-w-md text-xs text-gray-400">
+                    Vi kan hämta data från Bolagsfakta med hjälp av URL:en som sparades när bolaget låg i en pipeline — även om inget har hämtats tidigare.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-gray-400">
+                  Gå till en Bolagsfakta-pipeline, öppna företagsraden och välj{" "}
+                  <strong>Åtgärder → Hämta all Bolagsfakta-data</strong>.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {tab === 'kontakter' && (
         <div className="panel-surface">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Kontakter ({company.contacts.length})</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Kontakter ({customer.contacts.length})</h2>
           </div>
-          {company.contacts.length === 0 ? (
+          {customer.contacts.length === 0 ? (
             <p className="p-6 text-sm text-gray-400">Inga kontakter registrerade</p>
           ) : (
             <table className="w-full text-sm">
@@ -197,7 +313,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {company.contacts.map((c) => (
+                {customer.contacts.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <Link href={`/kontakter/${c.id}`} className="font-medium text-gray-900 hover:text-zinc-600 transition-colors">
@@ -218,9 +334,9 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
       {tab === 'offerter' && (
         <div className="panel-surface">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Offerter ({company.quotes.length})</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Offerter ({customer.quotes.length})</h2>
           </div>
-          {company.quotes.length === 0 ? (
+          {customer.quotes.length === 0 ? (
             <p className="p-6 text-sm text-gray-400">Inga offerter</p>
           ) : (
             <table className="w-full text-sm">
@@ -234,7 +350,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {company.quotes.map((q) => (
+                {customer.quotes.map((q) => (
                   <tr key={q.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <Link href={`/offerter/${q.id}`} className="font-medium text-gray-900 hover:text-zinc-600 transition-colors">
@@ -260,9 +376,13 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
       {tab === 'fakturor' && (
         <div className="panel-surface">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Fakturor ({company.invoices.length})</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Fakturor ({customer.invoices.length})</h2>
           </div>
-          {company.invoices.length === 0 ? (
+          {!showFinanceTabs ? (
+            <p className="p-6 text-sm text-gray-500">
+              Fakturor visas när kunden är i stadiet <strong>Kund</strong> (inte pipeline eller prospekt).
+            </p>
+          ) : customer.invoices.length === 0 ? (
             <p className="p-6 text-sm text-gray-400">Inga fakturor</p>
           ) : (
             <table className="w-full text-sm">
@@ -276,7 +396,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {company.invoices.map((inv) => (
+                {customer.invoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <Link href={`/fakturor/${inv.id}`} className="font-medium text-gray-900 hover:text-zinc-600 transition-colors">
@@ -305,11 +425,11 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
             <h2 className="text-sm font-semibold text-gray-900">Aktivitetslogg</h2>
           </div>
           <div className="p-6">
-            {company.activities.length === 0 ? (
+            {customer.activities.length === 0 ? (
               <p className="text-sm text-gray-400">Ingen aktivitet</p>
             ) : (
               <div className="space-y-4">
-                {company.activities.map((a) => (
+                {customer.activities.map((a) => (
                   <div key={a.id} className="flex items-start gap-3">
                     <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center shrink-0">
                       <span className="text-xs font-semibold text-zinc-700">

@@ -11,9 +11,9 @@ interface PageProps {
 export default async function KunderPage({ searchParams }: PageProps) {
   const { q } = await searchParams
 
-  const customers = await prisma.company.findMany({
+  const customers = await prisma.customer.findMany({
     where: {
-      type: 'CUSTOMER',
+      stage: 'CUSTOMER',
       ...(q ? { name: { contains: q } } : {}),
     },
     orderBy: { name: 'asc' },

@@ -1,0 +1,359 @@
+- generic "Google Maps" [ref=e9]:
+  - generic [ref=e3]:
+    - application "Karta·Använd piltangenterna för att panorera kartan.·Se information om en plats genom att trycka på motsvarande siffertangent." [ref=e10]
+    - generic [ref=e8]:
+      - search [ref=e15]:
+        - generic [ref=e16]:
+          - combobox [ref=e18]: Restauranger in Lund
+          - button "Sök" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+          - button "Stäng" [ref=e23] [cursor=pointer]:
+            - generic [ref=e24]: 
+      - generic [ref=e27]:
+        - generic:
+          - button [ref=e28] [cursor=pointer]
+          - button "Show the Input Tools menu" [ref=e30] [cursor=pointer]
+    - region "Tillgängliga filter för den här sökningen" [ref=e38]:
+      - generic [ref=e41]:
+        - button "Pris" [ref=e43] [cursor=pointer]:
+          - generic [ref=e44]:
+            - generic [ref=e45]: 
+            - generic [ref=e46]: Pris
+            - generic [ref=e47]: 
+        - button "Betyg" [ref=e49] [cursor=pointer]:
+          - generic [ref=e50]:
+            - generic [ref=e51]: 
+            - generic [ref=e52]: Betyg
+            - generic [ref=e53]: 
+        - button "Timmar" [ref=e55] [cursor=pointer]:
+          - generic [ref=e56]:
+            - generic [ref=e57]: 
+            - generic [ref=e58]: Timmar
+            - generic [ref=e59]: 
+        - button "Alla filter" [ref=e61] [cursor=pointer]:
+          - generic [ref=e62]:
+            - generic [ref=e63]: 
+            - generic [ref=e64]: Alla filter
+    - generic [ref=e65]:
+      - generic [ref=e66]:
+        - list [ref=e68]:
+          - listitem [ref=e69]:
+            - button "Meny" [ref=e70] [cursor=pointer]:
+              - generic [ref=e72]: 
+          - listitem [ref=e73]:
+            - button "Sparad" [ref=e74] [cursor=pointer]:
+              - generic [ref=e76]: 
+              - generic [ref=e78]: Sparad
+          - listitem [ref=e79]:
+            - button "Senaste" [disabled] [ref=e80]:
+              - generic [ref=e82]: 
+              - generic [ref=e84]: Senaste
+          - listitem [ref=e86]:
+            - button "Hämta appen" [ref=e87] [cursor=pointer]:
+              - generic [ref=e89]: 
+              - generic [ref=e91]: Hämta appen
+        - main [ref=e96]:
+          - generic [ref=e97]:
+            - feed "Resultat för Restauranger in Lund" [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e101]:
+                  - heading "Resultat" [level=1] [ref=e102]
+                  - button "Läs mer om rättsligt yppande gällande offentliga recensioner på Google Maps" [ref=e106]:
+                    - generic [ref=e110]: 
+                - button "Dela" [ref=e114]:
+                  - generic [ref=e115] [cursor=pointer]:
+                    - generic [ref=e116]: 
+                    - generic [ref=e117]: Dela
+              - article "Dagens lunch 60" [ref=e119]:
+                - link "Dagens lunch 60" [ref=e120] [cursor=pointer]:
+                  - /url: https://www.google.com/maps/place/Dagens+lunch+60/data=!4m7!3m6!1s0x465397eb2c1816f1:0x1db4ba316acd813a!8m2!3d55.7233328!4d13.230936!16s%2Fg%2F11lr5yw2x6!19sChIJ8RYYLOuXU0YROoHNajG6tB0?authuser=0&hl=sv&rclk=1
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Dagens lunch 60
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img "4,7 stjärnor 22 recensioner":
+                                    - text: 4,7
+                                    - text: (22)
+                                    - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps"
+                                - generic: · 1–100 kr
+                            - generic:
+                              - generic:
+                                - generic: Restaurang
+                                - generic: · Odarslövsvägen 50
+                              - generic:
+                                - generic:
+                                  - generic: Öppet · Stänger kl. 14 på
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: "\"Stora goda portioner och bra pris, trevligt bemötande och bra service.\""
+              - article "Troppo" [ref=e123]:
+                - link "Troppo" [ref=e124] [cursor=pointer]:
+                  - /url: https://www.google.com/maps/place/Troppo/data=!4m7!3m6!1s0x465397ed04c4e511:0xf0c57ae92606b810!8m2!3d55.7194644!4d13.2343701!16s%2Fg%2F11xh601pr_!19sChIJEeXEBO2XU0YRELgGJul6xfA?authuser=0&hl=sv&rclk=1
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Troppo
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img "4,8 stjärnor 94 recensioner":
+                                    - text: 4,8
+                                    - text: (94)
+                                    - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps"
+                            - generic:
+                              - generic:
+                                - generic: Sydostasiatisk mat
+                                - generic:
+                                  - text: ·
+                                  - img "Rullstolstillgänglig ingång" [ref=e125] [cursor=pointer]:
+                                    - generic [ref=e126]: 
+                                - generic: · Brunnshögsgatan 34
+                              - generic:
+                                - generic:
+                                  - generic: Öppet · Stänger kl. 14 på · Öppnar igen kl. 17
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: "\"Väldigt god autentisk fried rice och mycket bra service!\""
+              - article "Eatery Lund" [ref=e129]:
+                - link "Eatery Lund" [ref=e130] [cursor=pointer]:
+                  - /url: https://www.google.com/maps/place/Eatery+Lund/data=!4m7!3m6!1s0x465397f5e95a1ea5:0x94e0bc297d03d2b1!8m2!3d55.7182006!4d13.2268972!16s%2Fg%2F11p0_bbdr1!19sChIJpR5a6fWXU0YRsdIDfSm84JQ?authuser=0&hl=sv&rclk=1
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Eatery Lund
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img "4,4 stjärnor 178 recensioner":
+                                    - text: 4,4
+                                    - text: (178)
+                                    - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps"
+                                - generic: · 100–200 kr
+                            - generic:
+                              - generic:
+                                - generic: Restaurang
+                                - generic:
+                                  - text: ·
+                                  - img "Rullstolstillgänglig ingång" [ref=e131] [cursor=pointer]:
+                                    - generic [ref=e132]: 
+                                - generic: · Mobilvägen 4-6
+                              - generic:
+                                - generic:
+                                  - generic: Öppet · Stänger kl. 15:30 på
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: "\"Trevlig, mycket stor rymlig restaurang med god mat.\""
+              - article "Kantin" [ref=e135]:
+                - link "Kantin" [ref=e136] [cursor=pointer]:
+                  - /url: https://www.google.com/maps/place/Kantin/data=!4m7!3m6!1s0x46539797f741cfcf:0x585e4f0f81c50c3d!8m2!3d55.7164485!4d13.2319738!16s%2Fg%2F11s18d2mh4!19sChIJz89B95eXU0YRPQzFgQ9PXlg?authuser=0&hl=sv&rclk=1
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Kantin
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img "4,6 stjärnor 144 recensioner":
+                                    - text: 4,6
+                                    - text: (144)
+                                    - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps"
+                                - generic: · 100–200 kr
+                            - generic:
+                              - generic:
+                                - generic: Lunch
+                                - generic:
+                                  - text: ·
+                                  - img "Rullstolstillgänglig ingång" [ref=e137] [cursor=pointer]:
+                                    - generic [ref=e138]: 
+                                - generic: · Brunnshögsgatan 14
+                              - generic:
+                                - generic:
+                                  - generic: Öppet · Stänger kl. 15 på
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: "\"Fantastiskt bra restaurang med lyxig lunch och underbar personal.\""
+              - article "Kämnärsrätten Restaurang" [ref=e141]:
+                - link "Kämnärsrätten Restaurang" [ref=e142] [cursor=pointer]:
+                  - /url: https://www.google.com/maps/place/K%C3%A4mn%C3%A4rsr%C3%A4tten+Restaurang/data=!4m7!3m6!1s0x465397006bdc00e5:0xae8e1b0b163ded5a!8m2!3d55.7221586!4d13.220278!16s%2Fg%2F11y_4j44gz!19sChIJ5QDcawCXU0YRWu09Fgsbjq4?authuser=0&hl=sv&rclk=1
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Kämnärsrätten Restaurang
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img "5,0 stjärnor 1 recensioner":
+                                    - text: 5,0
+                                    - text: (1)
+                                    - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps"
+                            - generic:
+                              - generic:
+                                - generic: Barnvänligt
+                                - generic: · Kämnärsvägen 55C
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: "\"En mycket personlig upplevelse där mycket kuriosa om maten ingick.\""
+              - article "Brunnshög Pizzeria" [ref=e145]:
+                - link "Brunnshög Pizzeria" [ref=e146] [cursor=pointer]:
+                  - /url: https://www.google.com/maps/place/Brunnsh%C3%B6g+Pizzeria/data=!4m7!3m6!1s0x46539782e033d4b5:0xb7431eefd04019bd!8m2!3d55.7175876!4d13.2326469!16s%2Fg%2F11swtc6p93!19sChIJtdQz4IKXU0YRvRlA0O8eQ7c?authuser=0&hl=sv&rclk=1
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Brunnshög Pizzeria
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img "4,4 stjärnor 248 recensioner":
+                                    - text: 4,4
+                                    - text: (248)
+                                    - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps"
+                                - generic: · 100–200 kr
+                            - generic:
+                              - generic:
+                                - generic: Pizza
+                                - generic:
+                                  - text: ·
+                                  - img "Rullstolstillgänglig ingång" [ref=e147] [cursor=pointer]:
+                                    - generic [ref=e148]: 
+                                - generic: · Solbjerstorget 1
+                              - generic:
+                                - generic:
+                                  - generic: Öppet · Stänger kl. 21 på
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: "\"Min nya favorit restaurang, liten mysig med supertrevlig personal ❤️\""
+              - article "Linnea & Basilika Lund" [ref=e151]:
+                - link "Linnea & Basilika Lund" [ref=e152] [cursor=pointer]:
+                  - /url: https://www.google.com/maps/place/Linnea+%26+Basilika+Lund/data=!4m7!3m6!1s0x465397402f2ce4e9:0xc34487d1304175ca!8m2!3d55.7210592!4d13.2313933!16s%2Fg%2F11z2g3r2x6!19sChIJ6eQsL0CXU0YRynVBMNGHRMM?authuser=0&hl=sv&rclk=1
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Linnea & Basilika Lund
+                            - generic:
+                              - generic: Det finns inga recensioner
+                            - generic:
+                              - generic:
+                                - generic: Restaurang
+                                - generic:
+                                  - text: ·
+                                  - img "Rullstolstillgänglig ingång" [ref=e153] [cursor=pointer]:
+                                    - generic [ref=e154]: 
+                                - generic: · Brunnshögsgatan 1
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: Servering
+                          - generic: ·
+                        - generic:
+                          - generic: Avhämtning
+                          - generic: ·
+                        - generic:
+                          - generic: Ingen hemleverans
+            - heading "Få ut mesta möjliga av Google Maps Logga in" [level=2] [ref=e191]:
+              - generic [ref=e192]: Få ut mesta möjliga av Google Maps
+              - button "Logga in" [ref=e195] [cursor=pointer]:
+                - generic [ref=e197]: Logga in
+            - checkbox "Uppdatera resultat när kartan flyttas" [ref=e199] [cursor=pointer]:
+              - generic [ref=e201]: 
+              - text: Uppdatera resultat när kartan flyttas
+      - button "Dölj sidopanelen" [ref=e203] [cursor=pointer]:
+        - generic [ref=e204]: 
+    - generic [ref=e208]:
+      - button "Googles appar" [ref=e212] [cursor=pointer]:
+        - img [ref=e213]
+      - link "Logga in" [ref=e216] [cursor=pointer]:
+        - /url: https://accounts.google.com/ServiceLogin?hl=sv&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fmaps%2Fsearch%2FRestauranger%2Bin%2BLund&service=local&ec=GAZAcQ
+    - generic:
+      - generic:
+        - button "Visa din plats" [ref=e219] [cursor=pointer]:
+          - generic [ref=e221]: 
+        - generic [ref=e223] [cursor=pointer]:
+          - button "Zooma in" [ref=e224]
+          - button "Zooma ut" [ref=e227]
+      - button "Bläddra i Street View-bilderna" [ref=e235]
+      - generic [ref=e237]:
+        - generic "Interaktiv karta" [ref=e238]
+        - generic [ref=e242] [cursor=pointer]:
+          - generic [ref=e243]: 
+          - generic [ref=e244]: Lager
+        - button "Lager" [ref=e245] [cursor=pointer]
+    - generic [ref=e247]:
+      - contentinfo [ref=e250]:
+        - text: Bilder ©2026 , Kartdata ©2026 Google
+        - button "Sverige" [ref=e251] [cursor=pointer]
+        - button "Villkor" [ref=e252] [cursor=pointer]
+        - button "Integritet" [ref=e253] [cursor=pointer]
+        - button "Skicka feedback om produkten" [ref=e254] [cursor=pointer]
+      - button "500 m" [ref=e256] [cursor=pointer]: 500 m

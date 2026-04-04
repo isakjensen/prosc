@@ -36,7 +36,7 @@ const navGroups = [
       { href: '/kunder', label: 'Kunder', icon: Building2 },
       { href: '/prospekts', label: 'Prospekts', icon: Filter },
       { href: '/kontakter', label: 'Kontakter', icon: UserCircle2 },
-      { href: '/pipelines', label: 'Pipelines', icon: Users },
+      { href: '/pipelines', label: 'Bolagsfakta Pipeline', icon: Users },
     ],
   },
   {

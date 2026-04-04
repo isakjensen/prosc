@@ -30,7 +30,7 @@ export default async function AvtalDetailPage({ params }: PageProps) {
 
   const contract = await prisma.contract.findUnique({
     where: { id },
-    include: { company: true, template: true, quote: true },
+    include: { customer: true, template: true, quote: true },
   })
 
   if (!contract) notFound()
@@ -61,7 +61,7 @@ export default async function AvtalDetailPage({ params }: PageProps) {
           </div>
           <div className="p-6 space-y-3">
             {[
-              { label: 'Kund', value: contract.company.name },
+              { label: 'Kund', value: contract.customer.name },
               { label: 'Status', value: statusLabel[contract.status] ?? contract.status },
               { label: 'Mall', value: contract.template?.name ?? '–' },
               { label: 'Kopplad offert', value: contract.quote?.number ?? '–' },

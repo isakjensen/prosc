@@ -16,18 +16,18 @@ interface Customer {
 interface Props {
   projektId: string
   linkedCustomers: Customer[]
-  allCompanies: Customer[]
-  linkedCompanyIds: string[]
+  allCustomers: Customer[]
+  linkedCustomerIds: string[]
 }
 
-export default function KunderTab({ projektId, linkedCustomers, allCompanies, linkedCompanyIds }: Props) {
+export default function KunderTab({ projektId, linkedCustomers, allCustomers, linkedCustomerIds }: Props) {
   const router = useRouter()
   const [linked, setLinked] = useState<Customer[]>(linkedCustomers)
-  const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set(linkedCompanyIds))
+  const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set(linkedCustomerIds))
   const [selectedId, setSelectedId] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const unlinkedCompanies = allCompanies.filter((c) => !linkedIds.has(c.id))
+  const unlinkedCustomers = allCustomers.filter((c) => !linkedIds.has(c.id))
 
   const thClass = 'px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400'
 
@@ -39,13 +39,13 @@ export default function KunderTab({ projektId, linkedCustomers, allCompanies, li
       const res = await fetch(`/api/projekt/${projektId}/kunder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId: selectedId }),
+        body: JSON.stringify({ customerId: selectedId }),
       })
 
       if (!res.ok) throw new Error()
-      const company = allCompanies.find((c) => c.id === selectedId)
-      if (company) {
-        setLinked((prev) => [...prev, company])
+      const customer = allCustomers.find((c) => c.id === selectedId)
+      if (customer) {
+        setLinked((prev) => [...prev, customer])
         setLinkedIds((prev) => new Set([...prev, selectedId]))
       }
       setSelectedId('')
@@ -57,17 +57,17 @@ export default function KunderTab({ projektId, linkedCustomers, allCompanies, li
     }
   }
 
-  async function handleUnlink(companyId: string) {
+  async function handleUnlink(customerId: string) {
     try {
-      const res = await fetch(`/api/projekt/${projektId}/kunder/${companyId}`, {
+      const res = await fetch(`/api/projekt/${projektId}/kunder/${customerId}`, {
         method: 'DELETE',
       })
 
       if (!res.ok) throw new Error()
-      setLinked((prev) => prev.filter((c) => c.id !== companyId))
+      setLinked((prev) => prev.filter((c) => c.id !== customerId))
       setLinkedIds((prev) => {
         const next = new Set(prev)
-        next.delete(companyId)
+        next.delete(customerId)
         return next
       })
       router.refresh()
@@ -123,7 +123,7 @@ export default function KunderTab({ projektId, linkedCustomers, allCompanies, li
         )}
       </div>
 
-      {unlinkedCompanies.length > 0 && (
+      {unlinkedCustomers.length > 0 && (
         <div className="panel-surface">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-900">Lägg till kund</h2>
@@ -136,7 +136,7 @@ export default function KunderTab({ projektId, linkedCustomers, allCompanies, li
                 className="flex-1"
               >
                 <option value="">Välj kund…</option>
-                {unlinkedCompanies.map((c) => (
+                {unlinkedCustomers.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}{c.city ? ` – ${c.city}` : ''}
                   </option>

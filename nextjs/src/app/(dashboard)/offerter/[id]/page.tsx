@@ -31,7 +31,7 @@ export default async function OffertDetailPage({ params }: PageProps) {
 
   const quote = await prisma.quote.findUnique({
     where: { id },
-    include: { company: true, lineItems: true },
+    include: { customer: true, lineItems: true },
   })
 
   if (!quote) notFound()
@@ -65,7 +65,7 @@ export default async function OffertDetailPage({ params }: PageProps) {
           </div>
           <div className="p-6 space-y-3">
             {[
-              { label: 'Kund', value: quote.company.name },
+              { label: 'Kund', value: quote.customer.name },
               { label: 'Status', value: statusLabel[quote.status] ?? quote.status },
               { label: 'Giltig till', value: formatDate(quote.validUntil) },
               { label: 'Skapad', value: formatDate(quote.createdAt) },

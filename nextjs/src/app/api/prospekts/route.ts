@@ -5,9 +5,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const q = searchParams.get('q') ?? ''
 
-  const prospects = await prisma.company.findMany({
+  const prospects = await prisma.customer.findMany({
     where: {
-      type: 'PROSPECT',
+      stage: 'PROSPECT',
       ...(q ? { name: { contains: q } } : {}),
     },
     include: {
@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json()
 
-  const company = await prisma.company.create({
+  const customer = await prisma.customer.create({
     data: {
       name: body.name,
-      type: 'PROSPECT',
+      stage: 'PROSPECT',
       industry: body.industry || null,
       website: body.website || null,
       address: body.address || null,
@@ -40,5 +40,5 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  return NextResponse.json(company, { status: 201 })
+  return NextResponse.json(customer, { status: 201 })
 }

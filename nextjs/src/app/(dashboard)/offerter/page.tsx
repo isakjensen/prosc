@@ -30,7 +30,7 @@ export default async function OfferterPage({ searchParams }: PageProps) {
 
   const quotes = await prisma.quote.findMany({
     where: status ? { status: status as never } : {},
-    include: { company: true },
+    include: { customer: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -102,7 +102,7 @@ export default async function OfferterPage({ searchParams }: PageProps) {
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-gray-900">{quote.title}</td>
-                    <td className="px-6 py-4 text-gray-600">{quote.company.name}</td>
+                    <td className="px-6 py-4 text-gray-600">{quote.customer.name}</td>
                     <td className="px-6 py-4">
                       <Badge variant={statusVariant[quote.status] ?? 'gray'}>
                         {statusLabel[quote.status] ?? quote.status}

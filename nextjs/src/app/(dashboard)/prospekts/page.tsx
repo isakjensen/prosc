@@ -7,8 +7,8 @@ import Link from 'next/link'
 export default async function ProspektsPage() {
   const [stages, companies] = await Promise.all([
     prisma.prospectStage.findMany({ orderBy: { order: 'asc' } }),
-    prisma.company.findMany({
-      where: { type: 'PROSPECT' },
+    prisma.customer.findMany({
+      where: { stage: 'PROSPECT' },
       include: {
         prospectStage: { include: { currentStage: true } },
         contacts: true,
@@ -79,7 +79,7 @@ export default async function ProspektsPage() {
               ) : (
                 col.companies.map((company) => (
                   <div key={company.id} className="panel-surface p-4">
-                    <Link href={`/prospekts/${company.id}`}>
+                    <Link href={`/kunder/${company.id}`}>
                       <h3 className="font-medium text-gray-900 hover:text-zinc-700 text-sm">
                         {company.name}
                       </h3>

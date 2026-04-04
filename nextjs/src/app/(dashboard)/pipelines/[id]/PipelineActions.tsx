@@ -17,13 +17,15 @@ export default function PipelineActions({ pipelineId, status }: Props) {
   async function handleScrape() {
     setLoading('scrape')
     setError('')
-
     try {
       const res = await fetch(`/api/pipelines/${pipelineId}/scrape`, { method: 'POST' })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? `HTTP ${res.status}`)
+      }
       router.refresh()
-    } catch {
-      setError('Kunde inte starta scraping. Försök igen.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Kunde inte starta scraping.')
     } finally {
       setLoading(null)
     }
@@ -32,7 +34,6 @@ export default function PipelineActions({ pipelineId, status }: Props) {
   async function handleStop() {
     setLoading('stop')
     setError('')
-
     try {
       const res = await fetch(`/api/pipelines/${pipelineId}/stop`, { method: 'POST' })
       if (!res.ok) throw new Error()

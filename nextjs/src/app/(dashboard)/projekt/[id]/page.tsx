@@ -48,7 +48,7 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
     include: {
       customers: {
         include: {
-          company: true,
+          customer: true,
         },
       },
       features: {
@@ -71,8 +71,8 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
 
   if (!project) notFound()
 
-  const allCompanies = await prisma.company.findMany({
-    where: { type: 'CUSTOMER' },
+  const allCustomers = await prisma.customer.findMany({
+    where: { stage: 'CUSTOMER' },
     orderBy: { name: 'asc' },
   })
 
@@ -93,7 +93,7 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
   const totalIncomeVat = incomeEntries.reduce((sum, e) => sum + e.amount * e.vatRate, 0)
   const totalExpenseVat = expenseEntries.reduce((sum, e) => sum + e.amount * e.vatRate, 0)
 
-  const linkedCompanyIds = new Set(project.customers.map((c) => c.companyId))
+  const linkedCustomerIds = new Set(project.customers.map((c) => c.customerId))
 
   const thClass = 'px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400'
 
@@ -162,9 +162,9 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
       {tab === 'kunder' && (
         <KunderTab
           projektId={id}
-          linkedCustomers={project.customers.map((c) => ({ id: c.companyId, name: c.company.name, city: c.company.city }))}
-          allCompanies={allCompanies.map((c) => ({ id: c.id, name: c.name, city: c.city }))}
-          linkedCompanyIds={Array.from(linkedCompanyIds)}
+          linkedCustomers={project.customers.map((c) => ({ id: c.customerId, name: c.customer.name, city: c.customer.city }))}
+          allCustomers={allCustomers.map((c) => ({ id: c.id, name: c.name, city: c.city }))}
+          linkedCustomerIds={Array.from(linkedCustomerIds)}
         />
       )}
 

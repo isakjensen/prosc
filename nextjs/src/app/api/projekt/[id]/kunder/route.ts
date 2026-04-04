@@ -9,14 +9,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const body = await request.json()
 
-  if (!body.companyId) {
-    return NextResponse.json({ error: 'companyId krävs' }, { status: 400 })
+  if (!body.customerId) {
+    return NextResponse.json({ error: 'customerId krävs' }, { status: 400 })
   }
 
   const link = await prisma.projectCustomer.create({
     data: {
       projektId: id,
-      companyId: body.companyId,
+      customerId: body.customerId,
     },
   })
 

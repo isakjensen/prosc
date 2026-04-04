@@ -21,8 +21,8 @@ async function getDashboardStats() {
     openTickets,
     pendingTasks,
   ] = await Promise.all([
-    prisma.company.count({ where: { type: 'CUSTOMER' } }),
-    prisma.company.count({ where: { type: 'PROSPECT' } }),
+    prisma.customer.count({ where: { stage: 'CUSTOMER' } }),
+    prisma.customer.count({ where: { stage: 'PROSPECT' } }),
     prisma.invoice.aggregate({
       where: { status: { in: ['SENT', 'OVERDUE'] } },
       _sum: { total: true },
@@ -31,7 +31,7 @@ async function getDashboardStats() {
     prisma.activity.findMany({
       take: 8,
       orderBy: { createdAt: 'desc' },
-      include: { user: true, company: true },
+      include: { user: true, customer: true },
     }),
     prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
     prisma.task.count({ where: { status: { in: ['TODO', 'IN_PROGRESS'] } } }),
@@ -153,10 +153,10 @@ export default async function DashboardPage() {
                     <p className="text-sm text-gray-700 dark:text-zinc-300">
                       <span className="font-medium">{activity.user?.name ?? 'System'}</span>{' '}
                       {activityLabels[activity.type] ?? activity.type}{' '}
-                      {activity.company && (
-                        <span className="font-medium">{activity.company.name}</span>
+                      {activity.customer && (
+                        <span className="font-medium">{activity.customer.name}</span>
                       )}
-                      {!activity.company && (
+                      {!activity.customer && (
                         <span className="font-medium">{activity.title}</span>
                       )}
                     </p>

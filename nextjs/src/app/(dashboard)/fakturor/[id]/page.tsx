@@ -30,7 +30,7 @@ export default async function FakturaDetailPage({ params }: PageProps) {
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { company: true, lineItems: true, payments: true },
+    include: { customer: true, lineItems: true, payments: true },
   })
 
   if (!invoice) notFound()
@@ -61,7 +61,7 @@ export default async function FakturaDetailPage({ params }: PageProps) {
           </div>
           <div className="p-6 space-y-3">
             {[
-              { label: 'Kund', value: invoice.company.name },
+              { label: 'Kund', value: invoice.customer.name },
               { label: 'Status', value: statusLabel[invoice.status] ?? invoice.status },
               { label: 'Utfärdad', value: formatDate(invoice.issueDate) },
               { label: 'Förfallodatum', value: formatDate(invoice.dueDate) },

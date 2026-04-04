@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { DatePicker } from '@/components/ui/date-picker'
 
-interface Company {
+interface CustomerOption {
   id: string
   name: string
 }
@@ -30,7 +30,7 @@ function formatSEK(n: number) {
 export default function NyFakturaPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [companies, setCompanies] = useState<Company[]>([])
+  const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { description: '', quantity: 1, unitPrice: 0, total: 0 },
   ])
@@ -38,7 +38,7 @@ export default function NyFakturaPage() {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
 
   useEffect(() => {
-    fetch('/api/kunder').then((r) => r.json()).then(setCompanies)
+    fetch('/api/kunder').then((r) => r.json()).then(setCustomers)
   }, [])
 
   function updateLineItem(index: number, field: keyof LineItem, value: string | number) {
@@ -77,7 +77,7 @@ export default function NyFakturaPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          companyId: formData.get('companyId'),
+          customerId: formData.get('customerId'),
           title: formData.get('title'),
           issueDate: issueDate ? issueDate.toISOString().split('T')[0] : null,
           dueDate: dueDate ? dueDate.toISOString().split('T')[0] : null,
@@ -118,9 +118,9 @@ export default function NyFakturaPage() {
               <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
                 Kund <span className="text-red-500">*</span>
               </label>
-              <Select name="companyId" required>
+              <Select name="customerId" required>
                 <option value="">Välj kund...</option>
-                {companies.map((c) => (
+                {customers.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </Select>

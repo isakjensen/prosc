@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
           ],
         }
       : {},
-    include: { company: true },
+    include: { customer: true },
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   })
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   const contact = await prisma.contact.create({
     data: {
-      companyId: body.companyId,
+      customerId: body.customerId,
       firstName: body.firstName,
       lastName: body.lastName,
       email: body.email || null,

@@ -49,10 +49,13 @@ enum UserRole {
   MEMBER
 }
 
-model Company {
-  id          String        @id @default(cuid())
+model Customer {
+  id          String         @id @default(cuid())
   name        String
-  type        CompanyType   @default(PROSPECT)
+  /// Livscykel: SCRAPED = bara pipeline-lista, PROSPECT = säljprospekt, CUSTOMER = kund, ARCHIVED
+  stage       CustomerStage  @default(PROSPECT)
+  /// Svenskt org.nr (10 siffror), unikt om satt
+  orgNumber   String?        @unique
   industry    String?
   website     String?
   address     String?
@@ -62,9 +65,9 @@ model Company {
   country     String?
   phone       String?
   email       String?
-  notes       String?       @db.Text
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  notes       String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   // Relations
   contacts        Contact[]
@@ -79,11 +82,15 @@ model Company {
   documents       Document[]
   prospectStage   ProspectStageHistory?
   systemRequirement SystemRequirement?
+  bolagsfaktaData   BolagsfaktaData?
+  bolagsfaktaForetag BolagsfaktaForetag[]
 
-  @@map("companies")
+  @@map("customers")
 }
 
-enum CompanyType {
+enum CustomerStage {
+  /// Skapad via Bolagsfakta-pipeline; syns i pipeline-listan tills den lyfts till prospekt
+  SCRAPED
   PROSPECT
   CUSTOMER
   ARCHIVED
@@ -91,18 +98,20 @@ enum CompanyType {
 
 model Contact {
   id          String   @id @default(cuid())
-  companyId   String
+  customerId  String
   firstName   String
   lastName    String
   email       String?
   phone       String?
   title       String?
+  /// Befattning/roll från Bolagsfakta (t.ex. Styrelseledamot, Extern VD)
+  role        String?
   notes       String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   activities    Activity[]
   meetings      MeetingAttendee[]
   emailContacts EmailContact[]
@@ -126,13 +135,13 @@ model ProspectStage {
 
 model ProspectStageHistory {
   id              String        @id @default(cuid())
-  companyId       String        @unique
+  customerId      String        @unique
   currentStageId  String
   enteredAt       DateTime      @default(now())
   notes           String?       @db.Text
 
   // Relations
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   currentStage ProspectStage @relation(fields: [currentStageId], references: [id])
 
   @@map("prospect_stage_history")
@@ -144,7 +153,7 @@ model Activity {
   title       String
   description String?      @db.Text
   userId      String?
-  companyId   String?
+  customerId  String?
   contactId   String?
   quoteId     String?
   contractId  String?
@@ -155,7 +164,7 @@ model Activity {
 
   // Relations
   user     User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
-  company  Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  customer Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
   contact  Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
   quote    Quote?         @relation(fields: [quoteId], references: [id], onDelete: SetNull)
   contract Contract?      @relation(fields: [contractId], references: [id], onDelete: SetNull)
@@ -204,7 +213,7 @@ model SystemLog {
 
 model Quote {
   id          String      @id @default(cuid())
-  companyId   String
+  customerId  String
   number      String      @unique
   title       String
   status      QuoteStatus @default(DRAFT)
@@ -217,7 +226,7 @@ model Quote {
   updatedAt   DateTime    @updatedAt
 
   // Relations
-  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   lineItems     QuoteLineItem[]
   contracts     Contract[]
   activities    Activity[]    @relation
@@ -265,7 +274,7 @@ model ContractTemplate {
 
 model Contract {
   id          String         @id @default(cuid())
-  companyId   String
+  customerId  String
   templateId  String?
   quoteId     String?
   number      String         @unique
@@ -278,7 +287,7 @@ model Contract {
   updatedAt   DateTime       @updatedAt
 
   // Relations
-  company      Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer     Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
   template     ContractTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   quote        Quote?          @relation(fields: [quoteId], references: [id], onDelete: SetNull)
   activities   Activity[]      @relation
@@ -300,7 +309,7 @@ enum ContractStatus {
 
 model File {
   id          String   @id @default(cuid())
-  companyId   String?
+  customerId  String?
   name        String
   path        String
   mimeType    String
@@ -311,7 +320,7 @@ model File {
   createdAt   DateTime @default(now())
 
   // Relations
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@map("files")
 }
@@ -432,7 +441,7 @@ model TaskComment {
 
 model Invoice {
   id          String        @id @default(cuid())
-  companyId   String
+  customerId  String
   number      String        @unique
   title       String
   status      InvoiceStatus @default(DRAFT)
@@ -447,7 +456,7 @@ model Invoice {
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer    Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   lineItems   InvoiceLineItem[]
   payments    Payment[]
   activities  Activity[]    @relation
@@ -510,7 +519,7 @@ enum PaymentMethod {
 
 model SupportTicket {
   id          String           @id @default(cuid())
-  companyId   String
+  customerId  String
   title       String
   description String           @db.Text
   status      TicketStatus     @default(OPEN)
@@ -522,7 +531,7 @@ model SupportTicket {
   updatedAt   DateTime         @updatedAt
 
   // Relations
-  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer    Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
   creator     User             @relation("CreatedTickets", fields: [createdById], references: [id], onDelete: Cascade)
   assignee    User?            @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
   comments    TicketComment[]
@@ -633,7 +642,7 @@ enum AttendeeStatus {
 
 model Document {
   id          String   @id @default(cuid())
-  companyId   String?
+  customerId  String?
   createdById String
   title       String
   content     String?  @db.LongText
@@ -644,7 +653,7 @@ model Document {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   creator   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@map("documents")
@@ -803,7 +812,7 @@ enum ExpenseStatus {
 
 model Campaign {
   id          String   @id @default(cuid())
-  companyId   String?
+  customerId  String?
   name        String
   type        String
   startDate   DateTime
@@ -816,7 +825,7 @@ model Campaign {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@map("campaigns")
 }
@@ -853,7 +862,7 @@ model KnowledgeBase {
 
 model SystemRequirement {
   id                String   @id @default(cuid())
-  companyId          String   @unique
+  customerId        String   @unique
   designNotes        String?  @db.Text // General design notes / AI context
   colorTheme         String?  @db.Text // JSON: primary, secondary, accent etc.
   typography         String?  @db.Text // JSON: font families, sizes
@@ -862,7 +871,7 @@ model SystemRequirement {
   updatedAt          DateTime @updatedAt
 
   // Relations
-  company  Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
   features SystemFeature[]
   updates  SystemUpdate[]
 
@@ -937,74 +946,140 @@ model SystemUpdate {
 }
 
 // ============================================
-// Pipeline (Google Maps Scraping)
+// Bolagsfakta Pipeline
 // ============================================
 
-model Pipeline {
-  id          String         @id @default(cuid())
-  name        String
-  description String         @db.Text // Fri text som beskriver målkunden
-  status      PipelineStatus @default(IDLE)
-  areaConfig  String?        @db.Text // JSON: { north, south, east, west, cityName? } bounds från kartval
-  categories  String?        @db.Text // JSON array: AI-genererade kategorier att söka efter
-  enrichStopped  Boolean   @default(false)
-  lastScrapedAt  DateTime?
-  lastEnrichedAt DateTime?
-  lastAnalyzedAt DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+// Cache för branscher per kommun (hämtas från bolagsfakta.se)
+model BolagsfaktaBransch {
+  id          String   @id @default(cuid())
+  kommunSlug  String   // decoded slug, t.ex. "stockholms-kommun"
+  kommunNamn  String
+  branschNamn String
+  branschSlug String   // decoded slug, t.ex. "livsmedelsframställning"
+  branschKod  String   // SNI-kod, t.ex. "10"
+  /// Antal företag i branschen i kommunen (från Bolagsfakta, t.ex. "(598)" efter länken)
+  foretagCount Int?
+  cachedAt    DateTime @default(now())
 
-  // Relations
-  results PipelineResult[]
-
-  @@map("pipelines")
+  @@unique([kommunSlug, branschKod])
+  @@map("bolagsfakta_branscher")
 }
 
-enum PipelineStatus {
+model BolagsfaktaPipeline {
+  id            String                    @id @default(cuid())
+  namn          String
+  kommunSlug    String
+  kommunNamn    String
+  branschSlug   String
+  branschNamn   String
+  branschKod    String
+  /// Antal företag enligt Bolagsfakta vid skapande (samma siffra som i bransch-dropdown)
+  bolagsfaktaForetagCount Int?
+  status        BolagsfaktaPipelineStatus @default(IDLE)
+  lastScrapedAt DateTime?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  // Relations
+  foretag BolagsfaktaForetag[]
+
+  @@map("bolagsfakta_pipelines")
+}
+
+enum BolagsfaktaPipelineStatus {
   IDLE
   RUNNING
   COMPLETED
   STOPPED
 }
 
-model PipelineResult {
-  id              String               @id @default(cuid())
-  pipelineId      String
-  businessName    String
-  address         String?
-  phone           String?
-  category        String?
-  website         String?              // null = ingen hemsida funnen på Maps
-  hasWebsite      Boolean              @default(false)
-  logoUrl         String?
-  googleMapsUrl   String?
-  rating          Float?
-  reviewCount     Int?
-  enrichmentData  String?              @db.LongText // JSON: all insamlad rådata (Allabolag, sökning, scraping)
-  aiAnalysis      String?              @db.LongText // JSON: djupare AI-analys (steg 2)
-  aiWebsiteFound  String?              // Hemsida hittad av AI i steg 2
-  status          PipelineResultStatus @default(FOUND)
-  createdAt       DateTime             @default(now())
-
-  // Allabolag.se-berikningsdata
-  orgNumber     String?              // Organisationsnummer
-  email         String?              // E-post från Allabolag
-  employeeCount Int?                 // Antal anställda
-  revenueKSEK   Int?                 // Omsättning i tkr
-  allabolagUrl  String?              // Länk till allabolag.se
+model BolagsfaktaForetag {
+  id         String   @id @default(cuid())
+  pipelineId String
+  /// Kopplad CRM-kund (samma Customer genom hela livscykeln)
+  customerId String?
+  /// Flagga om företaget är redlistat (ska kunna synas i pipeline-tabellen)
+  isRedlisted Boolean @default(false)
+  namn       String
+  adress     String?
+  orgNummer  String?
+  bolagsform String?
+  url        String?
+  createdAt  DateTime @default(now())
 
   // Relations
-  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipeline BolagsfaktaPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  customer Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
-  @@map("pipeline_results")
+  @@index([pipelineId, url])
+  @@index([customerId])
+  @@map("bolagsfakta_foretag")
 }
 
-enum PipelineResultStatus {
-  FOUND
-  ENRICHING
-  ENRICHED
-  ANALYZING
-  ANALYZED
+/// Global block-/referenslista för företag som inte ska tas vidare via pipeline
+model BolagsfaktaRedlistEntry {
+  id                  String   @id @default(cuid())
+  /// Snapshot av namnet vid redlistning (för UI)
+  namn                String
+  /// Normaliserat org.nr (10 siffror) om känt
+  orgNummerNormalized  String?
+  /// Bolagsfakta företags-URL om känt
+  url                 String?
+  createdAt           DateTime @default(now())
+
+  @@index([orgNummerNormalized])
+  @@unique([url])
+  @@map("bolagsfakta_redlist")
+}
+
+/// Utökad Bolagsfakta-data per kund (en post per Customer)
+model BolagsfaktaData {
+  id        String   @id @default(cuid())
+  customerId String  @unique
+  sourceUrl String?
+  scrapedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgNumberFormatted String?
+  phone              String?
+  sniKodPrimary      String?
+  sniBenamningPrimary String?
+  verkligHuvudman    String? @db.Text
+  koncernModerNamn   String?
+  antalAnstalldaText String?
+
+  /// Strukturerade fält för UI (ej rå JSON)
+  firmaNamn              String?
+  bolagsformDetail       String?
+  registreringsStatus    String?
+  gatuadress             String?
+  postadress             String?
+  seatLocation           String?
+  bolagetBildatText      String?
+  bolagetRegistreratText String?
+  momsregnr              String?
+  verksamhetsbeskrivning String? @db.Text
+  omsattningSenaste      String?
+  aretsResultatSenaste   String?
+  ebitdaSenaste          String?
+  utdelningSenaste       String?
+  /// Lista SNI: [{ "kod": "10112", "benamning": "..." }]
+  sniPoster              Json?
+
+  overviewJson    Json?
+  ansvarigaJson   Json?
+  ekonomiJson     Json?
+  omForetagetJson Json?
+  fordonJson      Json?
+  arbetsstallenJson Json?
+  ovrigtJson      Json?
+
+  /// Hemsida från Google+Ollama-discovery (visas på kundöversikt när satt)
+  discoveredWebsite String?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("bolagsfakta_data")
 }
 
 // ============================================
@@ -1031,13 +1106,13 @@ model Project {
 model ProjectCustomer {
   id        String   @id @default(cuid())
   projektId String
-  companyId String
+  customerId String
   createdAt DateTime @default(now())
 
   project Project @relation(fields: [projektId], references: [id], onDelete: Cascade)
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  @@unique([projektId, companyId])
+  @@unique([projektId, customerId])
   @@map("project_customers")
 }
 

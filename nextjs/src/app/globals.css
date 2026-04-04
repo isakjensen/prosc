@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark, .dark *));
 
 @theme inline {
-  --font-sans: "Inter", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-sans: var(--font-ubuntu), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-ubuntu-mono), ui-monospace, monospace;
 
   /* Remap gray → zinc (neutral, no blue tint) — same as vaktmastartjanst */
   --color-gray-50: var(--color-zinc-50);

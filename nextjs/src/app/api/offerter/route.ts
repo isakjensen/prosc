@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 
 export async function GET() {
   const quotes = await prisma.quote.findMany({
-    include: { company: true, lineItems: true },
+    include: { customer: true, lineItems: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const quote = await prisma.quote.create({
     data: {
-      companyId: body.companyId,
+      customerId: body.customerId,
       number,
       title: body.title,
       status: 'DRAFT',

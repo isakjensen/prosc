@@ -1,0 +1,33 @@
+- generic "Google Maps" [ref=e2]:
+  - generic [ref=e3]:
+    - application "Karta·Använd piltangenterna för att panorera kartan.·Se information om en plats genom att trycka på motsvarande siffertangent." [ref=e8]
+    - generic [ref=e11]:
+      - search [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - generic [ref=e17]: Sök i Google Maps
+            - combobox "Sök i Google Maps" [active] [ref=e18]
+          - button "Sök" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+          - button "Vägbeskrivning" [ref=e23] [cursor=pointer]:
+            - generic [ref=e24]: 
+      - generic [ref=e27]:
+        - generic:
+          - button [ref=e28] [cursor=pointer]
+          - button "Show the Input Tools menu" [ref=e30] [cursor=pointer]
+    - list [ref=e35]:
+      - listitem [ref=e36]:
+        - button "Meny" [ref=e37] [cursor=pointer]:
+          - generic [ref=e39]: 
+      - listitem [ref=e40]:
+        - button "Sparad" [ref=e41] [cursor=pointer]:
+          - generic [ref=e43]: 
+          - generic [ref=e45]: Sparad
+      - listitem [ref=e46]:
+        - button "Senaste" [disabled] [ref=e47]:
+          - generic [ref=e49]: 
+          - generic [ref=e51]: Senaste
+      - listitem [ref=e53]:
+        - button "Hämta appen" [ref=e54] [cursor=pointer]:
+          - generic [ref=e56]: 
+          - generic [ref=e58]: Hämta appen

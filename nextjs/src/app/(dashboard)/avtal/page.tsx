@@ -21,7 +21,7 @@ const statusVariant: Record<string, 'gray' | 'info' | 'success' | 'warning' | 'd
 
 export default async function AvtalPage() {
   const contracts = await prisma.contract.findMany({
-    include: { company: true },
+    include: { customer: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -63,7 +63,7 @@ export default async function AvtalPage() {
                     </Link>
                   </td>
                   <td className="px-6 py-4 text-gray-900">{contract.title}</td>
-                  <td className="px-6 py-4 text-gray-600">{contract.company.name}</td>
+                  <td className="px-6 py-4 text-gray-600">{contract.customer.name}</td>
                   <td className="px-6 py-4">
                     <Badge variant={statusVariant[contract.status] ?? 'gray'}>
                       {statusLabel[contract.status] ?? contract.status}

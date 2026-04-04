@@ -8,16 +8,11 @@ interface RouteParams {
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params
 
-  const pipeline = await prisma.pipeline.findUnique({
+  const pipeline = await prisma.bolagsfaktaPipeline.findUnique({
     where: { id },
     include: {
-      results: {
-        orderBy: { createdAt: 'desc' },
-        take: 50,
-      },
-      _count: {
-        select: { results: true },
-      },
+      foretag: { orderBy: { createdAt: 'desc' }, take: 100 },
+      _count: { select: { foretag: true } },
     },
   })
 
@@ -32,13 +27,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const body = await request.json()
 
-  const pipeline = await prisma.pipeline.update({
+  const pipeline = await prisma.bolagsfaktaPipeline.update({
     where: { id },
     data: {
-      ...(body.name !== undefined && { name: body.name }),
-      ...(body.description !== undefined && { description: body.description }),
+      ...(body.namn !== undefined && { namn: body.namn }),
       ...(body.status !== undefined && { status: body.status }),
-      ...(body.enrichStopped !== undefined && { enrichStopped: body.enrichStopped }),
     },
   })
 

@@ -1,0 +1,441 @@
+- generic "Google Maps" [ref=e9]:
+  - generic [ref=e3]:
+    - application "Karta·Använd piltangenterna för att panorera kartan.·Se information om en plats genom att trycka på motsvarande siffertangent." [ref=e10]
+    - generic [ref=e8]:
+      - search [ref=e15]:
+        - generic [ref=e16]:
+          - combobox [ref=e18]: Dagens lunch 60
+          - button "Sök" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+          - button "Stäng" [ref=e23] [cursor=pointer]:
+            - generic [ref=e24]: 
+      - generic [ref=e27]:
+        - generic:
+          - button [ref=e28] [cursor=pointer]
+          - button "Show the Input Tools menu" [ref=e30] [cursor=pointer]
+    - region "Tillgängliga sökalternativ för det här området" [ref=e38]:
+      - generic [ref=e41]:
+        - button "Restauranger i närheten" [ref=e43] [cursor=pointer]:
+          - generic [ref=e44]:
+            - generic [ref=e46]: 
+            - generic [ref=e47]: Restauranger i närheten
+        - button "Hotell" [ref=e49] [cursor=pointer]:
+          - generic [ref=e50]:
+            - generic [ref=e52]: 
+            - generic [ref=e53]: Hotell
+        - button "Saker du kan göra" [ref=e55] [cursor=pointer]:
+          - generic [ref=e56]:
+            - generic [ref=e58]: 
+            - generic [ref=e59]: Saker du kan göra
+        - button "Barer" [ref=e61] [cursor=pointer]:
+          - generic [ref=e62]:
+            - generic [ref=e64]: 
+            - generic [ref=e65]: Barer
+        - button "Kaffe" [ref=e67] [cursor=pointer]:
+          - generic [ref=e68]:
+            - generic [ref=e70]: 
+            - generic [ref=e71]: Kaffe
+        - button "Avhämtning" [ref=e73] [cursor=pointer]:
+          - generic [ref=e74]:
+            - generic [ref=e76]: 
+            - generic [ref=e77]: Avhämtning
+        - button "Livsmedelsbutiker" [ref=e79] [cursor=pointer]:
+          - generic [ref=e80]:
+            - generic [ref=e82]: 
+            - generic [ref=e83]: Livsmedelsbutiker
+    - generic [ref=e84]:
+      - generic [ref=e85]:
+        - list [ref=e87]:
+          - listitem [ref=e88]:
+            - button "Meny" [ref=e89] [cursor=pointer]:
+              - generic [ref=e91]: 
+          - listitem [ref=e92]:
+            - button "Sparad" [ref=e93] [cursor=pointer]:
+              - generic [ref=e95]: 
+              - generic [ref=e97]: Sparad
+          - listitem [ref=e98]:
+            - button "Senaste" [ref=e99] [cursor=pointer]:
+              - generic [ref=e101]: 
+              - generic [ref=e103]: Senaste
+          - listitem [ref=e105]:
+            - button "Dagens lunch 60" [ref=e106] [cursor=pointer]:
+              - generic [ref=e112]: Dagens lunch 60
+          - listitem [ref=e114]:
+            - button "Hämta appen" [ref=e115] [cursor=pointer]:
+              - generic [ref=e117]: 
+              - generic [ref=e119]: Hämta appen
+        - main "Dagens lunch 60" [ref=e124]:
+          - generic [ref=e125]:
+            - button "Foto på Dagens lunch 60" [active] [ref=e127] [cursor=pointer]:
+              - img [ref=e128]
+            - button "Se foton" [ref=e129] [cursor=pointer]:
+              - generic [ref=e130]: 
+              - generic [ref=e131]: Se foton
+          - generic [ref=e134]:
+            - heading "Dagens lunch 60" [level=1] [ref=e136]: Dagens lunch 60
+            - generic [ref=e138]:
+              - generic [ref=e139]:
+                - generic [ref=e140]:
+                  - generic [ref=e141]:
+                    - text: 4,7
+                    - img "4,7 stjärnor" [ref=e142]
+                  - img "22 recensioner" [ref=e150]: (22)
+                - button "Läs mer om rättsligt yppande gällande offentliga recensioner på Google Maps" [ref=e156]:
+                  - generic [ref=e160]: 
+                - generic [ref=e163]:
+                  - text: ·
+                  - generic [ref=e165]: 1–100 kr
+              - button "Restaurang" [ref=e169]
+          - tablist [ref=e172]:
+            - tab "Översikt över Dagens lunch 60" [selected] [ref=e173]:
+              - generic [ref=e175]: Översikt
+            - tab "Meny" [ref=e177]:
+              - generic [ref=e179]: Meny
+            - tab "Recensioner av Dagens lunch 60" [ref=e181]:
+              - generic [ref=e183]: Recensioner
+            - tab "Om Dagens lunch 60" [ref=e185]:
+              - generic [ref=e187]: Om
+          - region "Åtgärder för Dagens lunch 60" [ref=e189]:
+            - button "Vägbeskr." [ref=e191] [cursor=pointer]:
+              - generic [ref=e193]: 
+              - generic [ref=e194]: Vägbeskr.
+            - button "Spara" [ref=e196] [cursor=pointer]:
+              - generic [ref=e198]: 
+              - generic [ref=e199]: Spara
+            - button "I närheten" [ref=e201] [cursor=pointer]:
+              - generic [ref=e203]: 
+              - generic [ref=e204]: I närheten
+            - button "Skicka till telefon" [ref=e206] [cursor=pointer]:
+              - generic [ref=e208]: 
+              - generic [ref=e209]: Skicka till telefon
+            - button "Dela" [ref=e211] [cursor=pointer]:
+              - generic [ref=e213]: 
+              - generic [ref=e214]: Dela
+          - region "Om Dagens lunch 60" [ref=e216]:
+            - button "Har servering Avhämtning" [ref=e217] [cursor=pointer]:
+              - generic [ref=e219]:
+                - generic [ref=e221]:
+                  - group "Har servering" [ref=e222]:
+                    - text: ·
+                    - generic [ref=e223]: 
+                    - generic [ref=e224]: Servering
+                  - group "Avhämtning" [ref=e225]:
+                    - text: ·
+                    - generic [ref=e226]: 
+                    - generic [ref=e227]: Avhämtning
+                - generic [ref=e228]: 
+          - region "Information för Dagens lunch 60" [ref=e231]:
+            - generic [ref=e232]:
+              - 'button "Adress: Odarslövsvägen 50, 224 82 Lund" [ref=e233] [cursor=pointer]':
+                - generic [ref=e234]:
+                  - generic [ref=e236]: 
+                  - generic [ref=e238]: Odarslövsvägen 50, 224 82 Lund
+              - button "Kopiera adressen" [ref=e241] [cursor=pointer]:
+                - generic [ref=e243]: 
+            - button "Öppettider Öppet · Stänger kl. 14 på Visa veckans öppettider" [ref=e245] [cursor=pointer]:
+              - img "Öppettider" [ref=e246]: 
+              - generic [ref=e248]:
+                - generic [ref=e250]: Öppet · Stänger kl. 14 på
+                - img "Visa veckans öppettider" [ref=e251]: 
+            - button "1–100 kr per person Rapporterat av 11 personer" [ref=e254]:
+              - img [ref=e256]
+              - generic [ref=e259]:
+                - text: 1–100 kr per person
+                - generic [ref=e260]: Rapporterat av 11 personer
+              - img [ref=e262]
+            - generic [ref=e264]:
+              - 'button "Telefon: 070-478 40 68" [ref=e265] [cursor=pointer]':
+                - generic [ref=e266]:
+                  - generic [ref=e268]: 
+                  - generic [ref=e270]: 070-478 40 68
+              - generic [ref=e271]:
+                - button "Kopiera telefonnumret" [ref=e273] [cursor=pointer]:
+                  - generic [ref=e275]: 
+                - link "Ring telefonnumret" [ref=e277] [cursor=pointer]:
+                  - /url: tel:0704784068
+                  - generic [ref=e279]: 
+            - generic [ref=e280]:
+              - 'button "Plus Code: P6FJ+89 Lund" [ref=e281] [cursor=pointer]':
+                - generic [ref=e282]:
+                  - generic [ref=e284]: 
+                  - generic [ref=e286]: P6FJ+89 Lund
+              - generic [ref=e287]:
+                - button "Kopiera Plus Code" [ref=e289] [cursor=pointer]:
+                  - generic [ref=e291]: 
+                - button "Läs mer om pluskoder" [ref=e293] [cursor=pointer]:
+                  - generic [ref=e295]: 
+            - generic [ref=e296]:
+              - link "Gör anspråk på företaget" [ref=e297] [cursor=pointer]:
+                - /url: https://business.google.com/create?fp=2140540444315844922&hl=sv&authuser=0&gmbsrc=se-sv-et-ip-z-gmb-s-z-l~mrc%7Cclaimbz%7Cu&ppsrc=GMBMI&utm_campaign=se-sv-et-ip-z-gmb-s-z-l~mrc%7Cclaimbz%7Cu&utm_source=gmb_mrc81&utm_medium=et&getstarted&lis=0
+                - generic [ref=e298]:
+                  - generic [ref=e300]: 
+                  - generic [ref=e302]: Gör anspråk på företaget
+              - link "Gör anspråk på företaget" [ref=e305] [cursor=pointer]:
+                - /url: https://business.google.com/create?fp=2140540444315844922&hl=sv&authuser=0&gmbsrc=se-sv-et-ip-z-gmb-s-z-l~mrc%7Cclaimbz%7Cu&ppsrc=GMBMI&utm_campaign=se-sv-et-ip-z-gmb-s-z-l~mrc%7Cclaimbz%7Cu&utm_source=gmb_mrc81&utm_medium=et&getstarted&lis=0
+                - generic [ref=e307]: 
+          - button "Föreslå en ändring" [ref=e311] [cursor=pointer]:
+            - generic [ref=e312]:
+              - generic [ref=e313]: 
+              - generic [ref=e314]: Föreslå en ändring
+          - generic [ref=e317]:
+            - heading "Lägg till uppgifter som saknas" [level=2] [ref=e318]
+            - button "Mer information" [ref=e319] [cursor=pointer]:
+              - generic [ref=e320]: 
+          - button "Lägg till webbplats" [ref=e322]:
+            - generic [ref=e323]:
+              - generic [ref=e324]: 
+              - generic [ref=e325]: Lägg till webbplats
+          - heading "Uppdateringar från kunder" [level=2] [ref=e329]
+          - button "This is what you get for 50 sek.Very delicious,lot of french fries and meet of course. för 3 år sedan" [ref=e331] [cursor=pointer]:
+            - generic [ref=e333]:
+              - generic [ref=e334]: This is what you get for 50 sek.Very delicious,lot of french fries and meet of course.
+              - generic [ref=e335]: för 3 år sedan
+          - heading "Meny och höjdpunkter" [level=2] [ref=e341]:
+            - generic [ref=e342]: Meny och höjdpunkter
+          - generic [ref=e346]:
+            - generic [ref=e347] [cursor=pointer]:
+              - button "Foto 1 av 5" [ref=e348]
+              - generic:
+                - generic:
+                  - generic: 
+                  - text: Meny
+            - generic [ref=e349] [cursor=pointer]:
+              - button "Foto 2 av 5" [ref=e350]
+              - generic:
+                - generic: Kycklingtallrik
+            - generic [ref=e351] [cursor=pointer]:
+              - button "Foto 3 av 5" [ref=e352]
+              - generic:
+                - generic: Kycklingsallad
+          - button "Visa mer" [ref=e357]:
+            - generic [ref=e359] [cursor=pointer]: Visa mer
+          - generic [ref=e362]:
+            - heading "Foton och videor" [level=2] [ref=e364]
+            - region "Foton av Dagens lunch 60" [ref=e365]:
+              - generic [ref=e368]:
+                - generic [ref=e369] [cursor=pointer]:
+                  - button "Alla" [ref=e370]
+                  - generic:
+                    - generic: Alla
+                - generic [ref=e371] [cursor=pointer]:
+                  - button "Meny" [ref=e372]
+                  - generic:
+                    - generic: Meny
+                - generic [ref=e373] [cursor=pointer]:
+                  - button "Videor" [ref=e374]
+                  - generic:
+                    - generic: Videor
+                - generic [ref=e375] [cursor=pointer]:
+                  - button "Mat och dryck" [ref=e376]
+                  - generic:
+                    - generic: Mat och dryck
+                - generic [ref=e377] [cursor=pointer]:
+                  - button "Pommes frites" [ref=e378]
+                  - generic:
+                    - generic: Pommes frites
+                - generic [ref=e379] [cursor=pointer]:
+                  - button "Street View och 360°" [ref=e380]
+                  - generic:
+                    - generic: Street View och 360°
+          - button "Lägg till foton och videor" [ref=e385] [cursor=pointer]:
+            - generic [ref=e386]:
+              - generic [ref=e387]: 
+              - generic [ref=e388]: Lägg till foton och videor
+          - heading "Sammanfattning av recensioner" [level=2] [ref=e392]
+          - generic [ref=e394] [cursor=pointer]:
+            - table [ref=e396]:
+              - rowgroup [ref=e397]:
+                - img "5 stjärnor, 19 recensioner" [ref=e398]: "5"
+                - img "4 stjärnor, 1 recension" [ref=e401]: "4"
+                - img "3 stjärnor, 1 recension" [ref=e404]: "3"
+                - img "2 stjärnor, 1 recension" [ref=e407]: "2"
+                - img "1 stjärnor, 0 recensioner" [ref=e410]: "1"
+            - generic [ref=e413]:
+              - generic [ref=e414]: 4,7
+              - img "4,7 stjärnor" [ref=e415]
+              - button "22 recensioner" [ref=e421]:
+                - generic [ref=e423]: 22 recensioner
+          - generic [ref=e425]:
+            - generic [ref=e426]: Recensioner verifieras inte
+            - button "Läs mer om rättsligt yppande gällande offentliga recensioner på Google Maps" [ref=e430]:
+              - generic [ref=e434]: 
+          - button "Skriv en recension" [ref=e438] [cursor=pointer]:
+            - generic [ref=e439]:
+              - generic [ref=e440]: 
+              - generic [ref=e441]: Skriv en recension
+          - generic [ref=e444]:
+            - heading "Alla recensioner" [level=2] [ref=e446]
+            - button "Sök efter recensioner" [ref=e448] [cursor=pointer]:
+              - generic [ref=e450]: 
+          - generic "Edvin Paul" [ref=e451]:
+            - generic [ref=e453]:
+              - button "Foto på Edvin Paul" [ref=e454]
+              - generic [ref=e456]:
+                - button "Edvin Paul Local Guide · 177 recensioner · 1 411 foton" [ref=e458]:
+                  - generic [ref=e459]: Edvin Paul
+                  - generic [ref=e460]: Local Guide · 177 recensioner · 1 411 foton
+                - button "Åtgärder för recensionen från Edvin Paul" [ref=e461] [cursor=pointer]:
+                  - generic [ref=e463]: 
+              - generic [ref=e464]:
+                - generic [ref=e465]:
+                  - img "5 stjärnor" [ref=e466]:
+                    - generic [ref=e467]: 
+                    - generic [ref=e468]: 
+                    - generic [ref=e469]: 
+                    - generic [ref=e470]: 
+                    - generic [ref=e471]: 
+                  - generic [ref=e472]: Redigerat för 4 år sedan
+                - generic [ref=e474]: Helt klart en väldigt bra upplevelse. 50 kr ger dig en riktigt god lunch! Vid besöket fanns det kebabrätter, kycklingrätter och falafelrätter, samt en dagsaktuell lunch att välja mellan. Absolut värt det om man befinner sig i närheten. Trevlig personal!
+                - button "Foto 1 i recensionen från Edvin Paul" [ref=e476] [cursor=pointer]
+                - generic [ref=e477]:
+                  - button "4 gilla-markeringar" [ref=e478]:
+                    - generic [ref=e479] [cursor=pointer]:
+                      - generic [ref=e480]: 
+                      - generic [ref=e482]: "4"
+                  - button "Dela recensionen från Edvin Paul." [ref=e483]:
+                    - generic [ref=e484] [cursor=pointer]:
+                      - generic [ref=e485]: 
+                      - generic [ref=e486]: Dela
+          - generic "Fredrik Regedal" [ref=e490]:
+            - generic [ref=e492]:
+              - button "Foto på Fredrik Regedal" [ref=e493]
+              - generic [ref=e495]:
+                - button "Fredrik Regedal Local Guide · 77 recensioner · 102 foton" [ref=e497]:
+                  - generic [ref=e498]: Fredrik Regedal
+                  - generic [ref=e499]: Local Guide · 77 recensioner · 102 foton
+                - button "Åtgärder för recensionen från Fredrik Regedal" [ref=e500] [cursor=pointer]:
+                  - generic [ref=e502]: 
+              - generic [ref=e503]:
+                - generic [ref=e504]:
+                  - img "2 stjärnor" [ref=e505]:
+                    - generic [ref=e506]: 
+                    - generic [ref=e507]: 
+                    - generic [ref=e508]: 
+                    - generic [ref=e509]: 
+                    - generic [ref=e510]: 
+                  - generic [ref=e511]: för 2 år sedan
+                - generic [ref=e513]: Borde byta namn på restaurangen. Inte i synk med den faktiska kostnaden för en dagens längre.
+                - button "Foto 1 i recensionen från Fredrik Regedal" [ref=e515] [cursor=pointer]
+                - generic [ref=e516]:
+                  - button "Gilla" [ref=e517]:
+                    - generic [ref=e518] [cursor=pointer]:
+                      - generic [ref=e519]: 
+                      - generic [ref=e521]: Gilla
+                  - button "Dela recensionen från Fredrik Regedal." [ref=e522]:
+                    - generic [ref=e523] [cursor=pointer]:
+                      - generic [ref=e524]: 
+                      - generic [ref=e525]: Dela
+          - generic "Alejandro Garcia Sosa" [ref=e529]:
+            - generic [ref=e531]:
+              - button "Foto på Alejandro Garcia Sosa" [ref=e532]
+              - generic [ref=e534]:
+                - button "Alejandro Garcia Sosa Local Guide · 32 recensioner · 12 foton" [ref=e536]:
+                  - generic [ref=e537]: Alejandro Garcia Sosa
+                  - generic [ref=e538]: Local Guide · 32 recensioner · 12 foton
+                - button "Åtgärder för recensionen från Alejandro Garcia Sosa" [ref=e539] [cursor=pointer]:
+                  - generic [ref=e541]: 
+              - generic [ref=e542]:
+                - generic [ref=e543]:
+                  - img "5 stjärnor" [ref=e544]:
+                    - generic [ref=e545]: 
+                    - generic [ref=e546]: 
+                    - generic [ref=e547]: 
+                    - generic [ref=e548]: 
+                    - generic [ref=e549]: 
+                  - generic [ref=e550]: för 2 år sedan
+                - generic [ref=e552]:
+                  - text: Tillfredsställande mat, bra service, bra priser! Bra alternativ för take away. Killen kan bli överväldigad om många dyker upp samtidigt. Bäst är att beställa i förväg och gå och hämta. …
+                  - button "Se mer" [ref=e554] [cursor=pointer]: Mer
+                - generic [ref=e555]:
+                  - button "Gilla" [ref=e556]:
+                    - generic [ref=e557] [cursor=pointer]:
+                      - generic [ref=e558]: 
+                      - generic [ref=e560]: Gilla
+                  - button "Dela recensionen från Alejandro Garcia Sosa." [ref=e561]:
+                    - generic [ref=e562] [cursor=pointer]:
+                      - generic [ref=e563]: 
+                      - generic [ref=e564]: Dela
+          - button "Fler recensioner (19)" [ref=e568]:
+            - generic [ref=e570] [cursor=pointer]: Fler recensioner (19)
+          - heading "Andra söker även efter" [level=2] [ref=e574]
+          - generic [ref=e578]:
+            - link "Eatery Lund·4,4 stjärnor·177 recensioner·Restaurang" [ref=e579] [cursor=pointer]:
+              - generic [ref=e582]:
+                - generic [ref=e584]: Eatery Lund
+                - img "4,4 stjärnor 177 recensioner" [ref=e587]:
+                  - text: 4,4
+                  - text: (177)
+                  - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps" [ref=e589]
+                - generic [ref=e590]: Restaurang
+            - link "Kantin·4,6 stjärnor·144 recensioner·Lunch" [ref=e591] [cursor=pointer]:
+              - generic [ref=e594]:
+                - generic [ref=e596]: Kantin
+                - img "4,6 stjärnor 144 recensioner" [ref=e599]:
+                  - text: 4,6
+                  - text: (144)
+                  - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps" [ref=e601]
+                - generic [ref=e602]: Lunch
+            - link "Lokal 4·4,7 stjärnor·10 recensioner·Buffé" [ref=e603] [cursor=pointer]:
+              - generic [ref=e606]:
+                - generic [ref=e608]: Lokal 4
+                - img "4,7 stjärnor 10 recensioner" [ref=e611]:
+                  - text: 4,7
+                  - text: (10)
+                  - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps" [ref=e613]
+                - generic [ref=e614]: Buffé
+            - link "Restaurang Sol·3,2 stjärnor·23 recensioner·Lunch" [ref=e615] [cursor=pointer]:
+              - generic [ref=e618]:
+                - generic [ref=e620]: Restaurang Sol
+                - img "3,2 stjärnor 23 recensioner" [ref=e623]:
+                  - text: 3,2
+                  - text: (23)
+                  - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps" [ref=e625]
+                - generic [ref=e626]: Lunch
+            - link "Bricks Eatery·4,0 stjärnor·322 recensioner·Lunch" [ref=e627] [cursor=pointer]:
+              - generic [ref=e630]:
+                - generic [ref=e632]: Bricks Eatery
+                - img "4,0 stjärnor 322 recensioner" [ref=e635]:
+                  - text: 4,0
+                  - text: (322)
+                  - img "Läs mer om rättsliga upplysningar som gäller offentliga recensioner på Google Maps" [ref=e637]
+                - generic [ref=e638]: Lunch
+          - heading "Webbresultat" [level=2] [ref=e643]
+          - region [ref=e646]
+          - link "Om denna data" [ref=e685] [cursor=pointer]:
+            - /url: https://support.google.com/local-listings?p=how_google_sources&authuser=0&hl=sv
+            - generic [ref=e687]: Om denna data
+          - heading "Få ut mesta möjliga av Google Maps Logga in" [level=2] [ref=e691]:
+            - generic [ref=e692]: Få ut mesta möjliga av Google Maps
+            - button "Logga in" [ref=e695] [cursor=pointer]:
+              - generic [ref=e697]: Logga in
+      - button "Dölj sidopanelen" [ref=e699] [cursor=pointer]:
+        - generic [ref=e700]: 
+    - generic [ref=e704]:
+      - button "Googles appar" [ref=e708] [cursor=pointer]:
+        - img [ref=e709]
+      - link "Logga in" [ref=e712] [cursor=pointer]:
+        - /url: https://accounts.google.com/ServiceLogin?hl=sv&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fmaps%2Fplace%2FDagens%2Blunch%2B60%2Fdata%3D!4m7!3m6!1s0x465397eb2c1816f1%3A0x1db4ba316acd813a!8m2!3d55.7233328!4d13.230936!16s%252Fg%252F11lr5yw2x6!19sChIJ8RYYLOuXU0YROoHNajG6tB0%3Fauthuser%3D0%26hl%3Dsv%26rclk%3D1&service=local&ec=GAZAcQ
+    - generic:
+      - generic:
+        - button "Visa din plats" [ref=e715] [cursor=pointer]:
+          - generic [ref=e717]: 
+        - generic [ref=e719] [cursor=pointer]:
+          - button "Zooma in" [ref=e720]
+          - button "Zooma ut" [ref=e723]
+      - generic [ref=e729]:
+        - button "Bläddra i Street View-bilderna" [ref=e731]
+        - button "Street View" [ref=e733] [cursor=pointer]
+      - generic [ref=e737]:
+        - generic "Interaktiv karta" [ref=e738]
+        - generic [ref=e742] [cursor=pointer]:
+          - generic [ref=e743]: 
+          - generic [ref=e744]: Lager
+        - button "Lager" [ref=e745] [cursor=pointer]
+    - generic [ref=e747]:
+      - contentinfo [ref=e750]:
+        - text: Bilder ©2026 , Kartdata ©2026 Google
+        - button "Sverige" [ref=e751] [cursor=pointer]
+        - button "Villkor" [ref=e752] [cursor=pointer]
+        - button "Integritet" [ref=e753] [cursor=pointer]
+        - button "Skicka feedback om produkten" [ref=e754] [cursor=pointer]
+      - button "50 m" [ref=e756] [cursor=pointer]: 50 m

@@ -41,7 +41,7 @@ export default async function SupportPage({ searchParams }: PageProps) {
 
   const tickets = await prisma.supportTicket.findMany({
     where: status ? { status: status as never } : {},
-    include: { company: true, creator: true, assignee: true },
+    include: { customer: true, creator: true, assignee: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -108,7 +108,7 @@ export default async function SupportPage({ searchParams }: PageProps) {
                         {ticket.title}
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{ticket.company.name}</td>
+                    <td className="px-6 py-4 text-gray-600">{ticket.customer.name}</td>
                     <td className="px-6 py-4">
                       <Badge variant={statusVariant[ticket.status] ?? 'gray'}>
                         {statusLabel[ticket.status] ?? ticket.status}

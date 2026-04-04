@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 
 export async function GET() {
   const tickets = await prisma.supportTicket.findMany({
-    include: { company: true, creator: true, assignee: true },
+    include: { customer: true, creator: true, assignee: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   const ticket = await prisma.supportTicket.create({
     data: {
-      companyId: body.companyId,
+      customerId: body.customerId,
       title: body.title,
       description: body.description,
       status: 'OPEN',

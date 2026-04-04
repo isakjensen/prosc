@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/db'
-import { formatDate } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { PipelineForetagCountComparison } from '@/components/bolagsfakta/PipelineForetagCountComparison'
 import Link from 'next/link'
 
 const statusLabel: Record<string, string> = {
@@ -19,26 +20,38 @@ const statusVariant: Record<string, 'gray' | 'info' | 'success' | 'danger'> = {
 }
 
 export default async function PipelinesPage() {
-  const pipelines = await prisma.pipeline.findMany({
+  const pipelines = await prisma.bolagsfaktaPipeline.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
-      _count: {
-        select: { results: true },
-      },
+      _count: { select: { foretag: true } },
     },
   })
 
   return (
     <div className="space-y-6">
       <div className="page-hero pb-5 flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="page-kicker">CRM</p>
-          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Pipelines</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Bolagsfakta Pipeline</h1>
           <p className="text-sm text-gray-500 mt-0.5">{pipelines.length} pipelines totalt</p>
         </div>
-        <Link href="/pipelines/ny">
-          <Button>+ Ny pipeline</Button>
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link href="/pipelines/redlist">
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                "border-l-4 border-l-red-600 bg-red-50 text-red-950 hover:bg-red-100 hover:text-red-950",
+                "dark:border-red-700 dark:bg-red-950/40 dark:text-red-100 dark:hover:bg-red-950/60",
+              )}
+            >
+              Redlistade företag
+            </Button>
+          </Link>
+          <Link href="/pipelines/ny">
+            <Button>+ Ny pipeline</Button>
+          </Link>
+        </div>
       </div>
 
       <div className="panel-surface">
@@ -51,9 +64,12 @@ export default async function PipelinesPage() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Namn</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Beskrivning</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Kommun</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Bransch</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Resultat</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[14rem]">
+                  Bolagsfakta / scrapeade
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Senast skrapad</th>
               </tr>
             </thead>
@@ -65,11 +81,12 @@ export default async function PipelinesPage() {
                       href={`/pipelines/${pipeline.id}`}
                       className="font-medium text-gray-900 hover:text-zinc-600 transition-colors"
                     >
-                      {pipeline.name}
+                      {pipeline.namn}
                     </Link>
                   </td>
+                  <td className="px-6 py-4 text-gray-600">{pipeline.kommunNamn}</td>
                   <td className="px-6 py-4 text-gray-600 max-w-xs">
-                    <span className="line-clamp-1">{pipeline.description}</span>
+                    <span className="line-clamp-1">{pipeline.branschNamn}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -81,7 +98,13 @@ export default async function PipelinesPage() {
                       </Badge>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{pipeline._count.results}</td>
+                  <td className="px-6 py-4">
+                    <PipelineForetagCountComparison
+                      bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
+                      scrapedCount={pipeline._count.foretag}
+                      compact
+                    />
+                  </td>
                   <td className="px-6 py-4 text-gray-500">{formatDate(pipeline.lastScrapedAt)}</td>
                 </tr>
               ))}

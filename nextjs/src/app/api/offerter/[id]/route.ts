@@ -8,7 +8,7 @@ export async function GET(
   const { id } = await params
   const quote = await prisma.quote.findUnique({
     where: { id },
-    include: { company: true, lineItems: true },
+    include: { customer: true, lineItems: true },
   })
 
   if (!quote) {
@@ -30,7 +30,7 @@ export async function PATCH(
     data: {
       status: body.status,
     },
-    include: { company: true, lineItems: true },
+    include: { customer: true, lineItems: true },
   })
 
   return NextResponse.json(quote)

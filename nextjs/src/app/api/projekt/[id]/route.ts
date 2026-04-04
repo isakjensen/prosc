@@ -12,7 +12,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     where: { id },
     include: {
       customers: {
-        include: { company: true },
+        include: { customer: true },
       },
       features: {
         orderBy: { order: 'asc' },

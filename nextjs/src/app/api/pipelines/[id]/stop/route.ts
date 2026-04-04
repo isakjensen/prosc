@@ -8,12 +8,12 @@ interface RouteParams {
 export async function POST(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params
 
-  const pipeline = await prisma.pipeline.findUnique({ where: { id } })
+  const pipeline = await prisma.bolagsfaktaPipeline.findUnique({ where: { id } })
   if (!pipeline) {
     return NextResponse.json({ error: 'Pipeline hittades inte' }, { status: 404 })
   }
 
-  await prisma.pipeline.update({
+  await prisma.bolagsfaktaPipeline.update({
     where: { id },
     data: { status: 'STOPPED' },
   })

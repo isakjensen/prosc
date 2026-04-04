@@ -14,7 +14,7 @@ export default async function KontaktDetailPage({ params }: PageProps) {
   const contact = await prisma.contact.findUnique({
     where: { id },
     include: {
-      company: true,
+      customer: true,
       activities: {
         include: { user: true },
         orderBy: { createdAt: 'desc' },
@@ -25,10 +25,7 @@ export default async function KontaktDetailPage({ params }: PageProps) {
 
   if (!contact) notFound()
 
-  const companyHref =
-    contact.company.type === 'CUSTOMER'
-      ? `/kunder/${contact.companyId}`
-      : `/prospekts/${contact.companyId}`
+  const customerHref = `/kunder/${contact.customerId}`
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -54,8 +51,8 @@ export default async function KontaktDetailPage({ params }: PageProps) {
               {
                 label: 'Företag',
                 value: (
-                  <Link href={companyHref} className="font-medium text-gray-900 hover:text-zinc-600 transition-colors">
-                    {contact.company.name}
+                  <Link href={customerHref} className="font-medium text-gray-900 hover:text-zinc-600 transition-colors">
+                    {contact.customer.name}
                   </Link>
                 ),
               },

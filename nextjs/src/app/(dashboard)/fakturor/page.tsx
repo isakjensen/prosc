@@ -30,7 +30,7 @@ export default async function FakturorPage({ searchParams }: PageProps) {
 
   const invoices = await prisma.invoice.findMany({
     where: status ? { status: status as never } : {},
-    include: { company: true },
+    include: { customer: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -102,7 +102,7 @@ export default async function FakturorPage({ searchParams }: PageProps) {
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-gray-900">{invoice.title}</td>
-                    <td className="px-6 py-4 text-gray-600">{invoice.company.name}</td>
+                    <td className="px-6 py-4 text-gray-600">{invoice.customer.name}</td>
                     <td className="px-6 py-4">
                       <Badge variant={statusVariant[invoice.status] ?? 'gray'}>
                         {statusLabel[invoice.status] ?? invoice.status}

@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { DatePicker } from '@/components/ui/date-picker'
 
-interface Company { id: string; name: string }
+interface CustomerOption { id: string; name: string }
 interface LineItem { description: string; quantity: number; unitPrice: number; total: number }
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -29,7 +29,7 @@ function formatSEK(n: number) {
 export default function NyOffertPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [companies, setCompanies] = useState<Company[]>([])
+  const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [validUntil, setValidUntil] = useState<Date | undefined>(undefined)
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { description: '', quantity: 1, unitPrice: 0, total: 0 },
@@ -39,8 +39,8 @@ export default function NyOffertPage() {
     Promise.all([
       fetch('/api/kunder').then((r) => r.json()),
       fetch('/api/prospekts').then((r) => r.json()),
-    ]).then(([customers, prospects]) => {
-      setCompanies([...customers, ...prospects].sort((a: Company, b: Company) => a.name.localeCompare(b.name)))
+    ]).then(([kunder, prospects]) => {
+      setCustomers([...kunder, ...prospects].sort((a: CustomerOption, b: CustomerOption) => a.name.localeCompare(b.name)))
     })
   }, [])
 
@@ -72,7 +72,7 @@ export default function NyOffertPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          companyId: formData.get('companyId'),
+          customerId: formData.get('customerId'),
           title: formData.get('title'),
           validUntil: validUntil ? validUntil.toISOString() : null,
           notes: formData.get('notes'),
@@ -111,9 +111,9 @@ export default function NyOffertPage() {
           <div className="p-6 space-y-4">
             <div>
               <FieldLabel required>Kund / Prospekt</FieldLabel>
-              <Select name="companyId" required>
+              <Select name="customerId" required>
                 <option value="">Välj företag…</option>
-                {companies.map((c) => (
+                {customers.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </Select>

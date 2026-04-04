@@ -43,7 +43,7 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
   const ticket = await prisma.supportTicket.findUnique({
     where: { id },
     include: {
-      company: true,
+      customer: true,
       creator: true,
       assignee: true,
       comments: {
@@ -83,7 +83,7 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
           </div>
           <div className="p-6 space-y-3">
             {[
-              { label: 'Kund', value: ticket.company.name },
+              { label: 'Kund', value: ticket.customer.name },
               { label: 'Skapad av', value: ticket.creator.name },
               { label: 'Ansvarig', value: ticket.assignee?.name ?? '–' },
               { label: 'Status', value: statusLabel[ticket.status] ?? ticket.status },

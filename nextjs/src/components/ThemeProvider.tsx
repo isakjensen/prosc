@@ -10,12 +10,11 @@ const ThemeContext = createContext<{
 }>({ theme: 'light', setTheme: () => {} })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
-
-  useEffect(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'light'
     const stored = localStorage.getItem('prosc-theme') as Theme | null
-    if (stored) setThemeState(stored)
-  }, [])
+    return stored ?? 'light'
+  })
 
   useEffect(() => {
     const root = document.documentElement
