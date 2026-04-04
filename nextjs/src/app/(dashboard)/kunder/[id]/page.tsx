@@ -109,7 +109,9 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
   const bc = listBreadcrumb(customer.stage)
 
   const bf = customer.bolagsfaktaData
-  const canFetchBolagsfaktaWithoutStoredData = Boolean(customer.bolagsfaktaForetag[0]?.url?.trim())
+  const canFetchBolagsfaktaWithoutStoredData =
+    Boolean(customer.bolagsfaktaForetag[0]?.url?.trim()) ||
+    Boolean(customer.orgNumber?.trim())
   const bfLoc = bolagsfaktaStadPostnummerLand(bf)
   const overviewOrgNr =
     formatSwedishOrgNumber(bf?.orgNumberFormatted?.trim()) ||
@@ -295,13 +297,12 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                     label="Hämta från Bolagsfakta"
                   />
                   <p className="max-w-md text-xs text-gray-400">
-                    Vi kan hämta data från Bolagsfakta med hjälp av URL:en som sparades när bolaget låg i en pipeline — även om inget har hämtats tidigare.
+                    Vi söker på Bolagsfakta med hjälp av organisationsnummer eller sparad URL och hämtar företagsdata.
                   </p>
                 </div>
               ) : (
                 <p className="mt-2 text-xs text-gray-400">
-                  Gå till en Bolagsfakta-pipeline, öppna företagsraden och välj{" "}
-                  <strong>Åtgärder → Hämta all Bolagsfakta-data</strong>.
+                  Lägg till ett organisationsnummer på bolaget för att kunna hämta data från Bolagsfakta.
                 </p>
               )}
             </div>
