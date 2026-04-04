@@ -1,7 +1,13 @@
 import type { BolagsfaktaDisplayFields } from "@/lib/bolagsfakta-display-fields"
 import type { BolagsfaktaDebugLogger } from "@/lib/bolagsfakta-debug-logger"
 import { formatSwedishOrgNumber, locationFromPostadressAndSeat } from "@/lib/bolagsfakta-overview"
-import { getOllamaModel, ollamaChatJson } from "@/lib/ollama-client"
+import {
+  getOllamaBaseUrl,
+  getOllamaModel,
+  isOllamaReachable,
+  OllamaConnectionError,
+  ollamaChatJson,
+} from "@/lib/ollama-client"
 import type { Page } from "playwright"
 import type { CompanyEnrichmentFromOllama, WebsiteDiscoveryResult } from "@/lib/website-discovery-types"
 import {
@@ -460,61 +466,71 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
     })
     const model = getOllamaModel()
 
-    console.log("\n========== BOLAGSFAKTA → GOOGLE DISCOVERY (prompt → Ollama) ==========\n")
-    console.log(prompt)
-    console.log("\n========== END PROMPT ==========\n")
-
-    await logger?.info("google_discovery_ollama_request", {
-      model,
-      serpLength: trimmedSerp.length,
-      promptLength: prompt.length,
-    })
-
     let ollamaError: string | null = null
     let enrichment: CompanyEnrichmentFromOllama | null = null
 
-    try {
-      let raw: string
-      let parsed: unknown
-      try {
-        const out = await ollamaChatJson({
-          model,
-          userPrompt: prompt,
-          format: OLLAMA_JSON_SCHEMA,
-          timeoutMs: 180_000,
-        })
-        raw = out.raw
-        parsed = out.parsed
-      } catch (schemaErr) {
-        console.warn(
-          "[bolagsfakta-google-discovery] Ollama structured format failed, retrying with format=json:",
-          schemaErr instanceof Error ? schemaErr.message : schemaErr,
-        )
-        const out = await ollamaChatJson({
-          model,
-          userPrompt: prompt,
-          format: "json",
-          timeoutMs: 180_000,
-        })
-        raw = out.raw
-        parsed = out.parsed
-      }
-      enrichment = normalizeOllamaCompanyJson(parsed)
+    const ollamaBase = getOllamaBaseUrl()
+    const ollamaUp = await isOllamaReachable(5000)
+    if (!ollamaUp) {
+      ollamaError = `Ollama svarar inte på ${ollamaBase}. Starta Ollama eller sätt OLLAMA_BASE_URL.`
+      await logger?.warn("google_discovery_ollama_unreachable", { base: ollamaBase })
+    } else {
+      console.log("\n========== BOLAGSFAKTA → GOOGLE DISCOVERY (prompt → Ollama) ==========\n")
+      console.log(prompt)
+      console.log("\n========== END PROMPT ==========\n")
 
-      console.log("\n========== OLLAMA JSON (raw message.content) ==========\n")
-      console.log(raw)
-      console.log("\n========== OLLAMA PARSED ==========\n")
-      console.log(JSON.stringify(enrichment ?? parsed, null, 2))
-      console.log("\n========== END OLLAMA ==========\n")
-
-      await logger?.info("google_discovery_ollama_ok", {
+      await logger?.info("google_discovery_ollama_request", {
         model,
-        enrichment: enrichment ?? parsed,
+        serpLength: trimmedSerp.length,
+        promptLength: prompt.length,
       })
-    } catch (ollamaErr) {
-      ollamaError = ollamaErr instanceof Error ? ollamaErr.message : String(ollamaErr)
-      console.error("[bolagsfakta-google-discovery] Ollama failed:", ollamaError)
-      await logger?.error("google_discovery_ollama_failed", { message: ollamaError })
+
+      try {
+        let raw: string
+        let parsed: unknown
+        try {
+          const out = await ollamaChatJson({
+            model,
+            userPrompt: prompt,
+            format: OLLAMA_JSON_SCHEMA,
+            timeoutMs: 180_000,
+          })
+          raw = out.raw
+          parsed = out.parsed
+        } catch (schemaErr) {
+          if (schemaErr instanceof OllamaConnectionError) {
+            throw schemaErr
+          }
+          console.warn(
+            "[bolagsfakta-google-discovery] Ollama structured format failed, retrying with format=json:",
+            schemaErr instanceof Error ? schemaErr.message : schemaErr,
+          )
+          const out = await ollamaChatJson({
+            model,
+            userPrompt: prompt,
+            format: "json",
+            timeoutMs: 180_000,
+          })
+          raw = out.raw
+          parsed = out.parsed
+        }
+        enrichment = normalizeOllamaCompanyJson(parsed)
+
+        console.log("\n========== OLLAMA JSON (raw message.content) ==========\n")
+        console.log(raw)
+        console.log("\n========== OLLAMA PARSED ==========\n")
+        console.log(JSON.stringify(enrichment ?? parsed, null, 2))
+        console.log("\n========== END OLLAMA ==========\n")
+
+        await logger?.info("google_discovery_ollama_ok", {
+          model,
+          enrichment: enrichment ?? parsed,
+        })
+      } catch (ollamaErr) {
+        ollamaError = ollamaErr instanceof Error ? ollamaErr.message : String(ollamaErr)
+        console.error("[bolagsfakta-google-discovery] Ollama failed:", ollamaError)
+        await logger?.error("google_discovery_ollama_failed", { message: ollamaError })
+      }
     }
 
     await logger?.info("google_discovery_logged", {

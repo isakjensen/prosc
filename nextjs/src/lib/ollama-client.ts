@@ -13,6 +13,39 @@ export function getOllamaModel(): string {
   return process.env.OLLAMA_MODEL ?? "llama3.2:3b"
 }
 
+/** Nätverks-/timeout-fel — används så anropare inte försöker om med annat format i onödan. */
+export class OllamaConnectionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "OllamaConnectionError"
+  }
+}
+
+function isAbortError(e: unknown): boolean {
+  if (e instanceof Error && e.name === "AbortError") return true
+  if (typeof DOMException !== "undefined" && e instanceof DOMException && e.name === "AbortError") return true
+  return false
+}
+
+/**
+ * Snabb kontroll om Ollama HTTP-API svarar (GET /api/tags).
+ * Anropa innan chat om du vill undvika tunga anrop när servern är nere.
+ */
+export async function isOllamaReachable(timeoutMs = 4000): Promise<boolean> {
+  const base = getOllamaBaseUrl()
+  const url = `${base}/api/tags`
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { method: "GET", signal: ctrl.signal })
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(t)
+  }
+}
+
 export type OllamaChatResponse = {
   message?: { role: string; content: string }
   done?: boolean
@@ -36,21 +69,37 @@ export async function ollamaChatJson(args: {
     body.format = args.format
   }
 
+  const timeoutMs = args.timeoutMs ?? 180_000
   const ctrl = new AbortController()
-  const t = setTimeout(() => ctrl.abort(), args.timeoutMs ?? 180_000)
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
 
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: ctrl.signal,
-    })
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+      })
+    } catch (e) {
+      if (isAbortError(e)) {
+        throw new OllamaConnectionError(`Ollama svarade inte inom ${timeoutMs} ms (timeout).`)
+      }
+      const detail = e instanceof Error ? e.message : String(e)
+      throw new OllamaConnectionError(`Ollama är inte tillgänglig på ${base}: ${detail}`)
+    }
     if (!res.ok) {
       const errText = await res.text().catch(() => "")
-      throw new Error(`Ollama HTTP ${res.status}: ${errText.slice(0, 500)}`)
+      throw new OllamaConnectionError(`Ollama HTTP ${res.status}: ${errText.slice(0, 500)}`)
     }
-    const data = (await res.json()) as OllamaChatResponse
+    let data: OllamaChatResponse
+    try {
+      data = (await res.json()) as OllamaChatResponse
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e)
+      throw new Error(`Ollama returnerade ogiltig JSON: ${detail}`)
+    }
     let raw = data.message?.content?.trim() ?? ""
     raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
     if (!raw) throw new Error("Ollama returned empty message.content")
