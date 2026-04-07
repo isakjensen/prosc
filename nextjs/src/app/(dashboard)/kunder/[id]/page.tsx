@@ -6,6 +6,7 @@ import BolagsfaktaKundView from "@/components/bolagsfakta/BolagsfaktaKundView"
 import BolagsfaktaRefreshButton from "@/components/bolagsfakta/BolagsfaktaRefreshButton"
 import KundProjektTab from "./KundProjektTab"
 import KundFlodeTab from "./KundFlodeTab"
+import { EditCustomerButton, EditContactButton } from "./KundEditActions"
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -163,6 +164,20 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <EditCustomerButton customer={{
+              id: customer.id,
+              name: customer.name,
+              orgNumber: customer.orgNumber,
+              industry: customer.industry,
+              website: customer.website,
+              address: customer.address,
+              city: customer.city,
+              zip: customer.zip,
+              country: customer.country,
+              phone: customer.phone,
+              email: customer.email,
+              notes: customer.notes,
+            }} />
             {customer.stage === 'PROSPECT' && customer.prospectStage?.currentStage && (
               <Badge variant="info">{customer.prospectStage.currentStage.name}</Badge>
             )}
@@ -323,8 +338,9 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className={thClass}>Namn</th>
                   <th className={thClass}>Titel</th>
-                  <th className={thClass}>E-post</th>
-                  <th className={thClass}>Telefon</th>
+                  <th className={`${thClass} hidden sm:table-cell`}>E-post</th>
+                  <th className={`${thClass} hidden sm:table-cell`}>Telefon</th>
+                  <th className={thClass}><span className="sr-only">Åtgärder</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -336,8 +352,20 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{c.title ?? '–'}</td>
-                    <td className="px-6 py-4 text-gray-600">{c.email ?? '–'}</td>
-                    <td className="px-6 py-4 text-gray-600">{c.phone ?? '–'}</td>
+                    <td className="px-6 py-4 text-gray-600 hidden sm:table-cell">{c.email ?? '–'}</td>
+                    <td className="px-6 py-4 text-gray-600 hidden sm:table-cell">{c.phone ?? '–'}</td>
+                    <td className="px-6 py-4 text-right">
+                      <EditContactButton contact={{
+                        id: c.id,
+                        firstName: c.firstName,
+                        lastName: c.lastName,
+                        email: c.email,
+                        phone: c.phone,
+                        title: c.title,
+                        role: c.role,
+                        notes: c.notes,
+                      }} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
