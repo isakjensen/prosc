@@ -29,7 +29,7 @@ model User {
   tasks             Task[]
   assignedTickets   SupportTicket[] @relation("AssignedTickets")
   createdTickets    SupportTicket[] @relation("CreatedTickets")
-  timeEntries       TimeEntry[]
+
   meetings          MeetingAttendee[]
   notifications     Notification[]
   teamMember        TeamMember?
@@ -449,7 +449,6 @@ model Task {
   // Relations
   assignee   User?    @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
   comments   TaskComment[]
-  timeEntries TimeEntry[]
 
   @@map("tasks")
 }
@@ -614,28 +613,6 @@ model TicketComment {
   user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ticket_comments")
-}
-
-// ============================================
-// Time Tracking
-// ============================================
-
-model TimeEntry {
-  id          String   @id @default(cuid())
-  userId      String
-  taskId      String?
-  description String   @db.Text
-  hours       Float
-  date        DateTime @default(now())
-  billable    Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task    Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
-
-  @@map("time_entries")
 }
 
 // ============================================
