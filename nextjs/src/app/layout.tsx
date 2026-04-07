@@ -1,7 +1,8 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Ubuntu, Ubuntu_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
+import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar'
 
 const ubuntu = Ubuntu({
   subsets: ['latin'],
@@ -20,6 +21,16 @@ const ubuntuMono = Ubuntu_Mono({
 export const metadata: Metadata = {
   title: 'Fullstack',
   description: 'Fullstack – Affärssystem',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Fullstack',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#18181b',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -30,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       data-scroll-behavior="smooth"
     >
       <body className="h-full font-sans antialiased">
+        <ServiceWorkerRegistrar />
         <Providers>{children}</Providers>
       </body>
     </html>

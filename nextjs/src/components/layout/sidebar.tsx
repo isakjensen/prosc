@@ -15,7 +15,7 @@ import {
   CheckSquare,
   Calendar,
   LifeBuoy,
-  Clock,
+
   BarChart3,
   Settings,
   Filter,
@@ -54,7 +54,7 @@ const navGroups = [
       { href: '/uppgifter', label: 'Uppgifter', icon: CheckSquare },
       { href: '/moten', label: 'Möten', icon: Calendar },
       { href: '/support', label: 'Support', icon: LifeBuoy },
-      { href: '/tidrapportering', label: 'Tidrapportering', icon: Clock },
+
     ],
   },
   {
