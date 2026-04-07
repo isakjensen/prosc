@@ -288,10 +288,10 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
       title={title}
       description="Planera en kontakt — mejl, samtal, SMS eller fysisk kontakt."
       size="lg"
-      panelClassName="rounded-2xl shadow-zinc-950/20"
+      panelClassName="sm:rounded-2xl shadow-zinc-950/20"
     >
       <form onSubmit={onSubmit}>
-        <ModalBody className="space-y-5 pb-2">
+        <ModalBody className="space-y-5 pb-2 overflow-x-hidden">
           <div className="space-y-2">
             <label
               htmlFor="outreach-title"
@@ -470,7 +470,7 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
             Planerade och genomförda kontakter
           </p>
         </div>
-        <Button type="button" onClick={openCreate} className="gap-2">
+        <Button type="button" onClick={openCreate} className="gap-2 whitespace-nowrap">
           <Plus className="h-4 w-4" />
           Ny outreach
         </Button>
@@ -697,7 +697,7 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
         onClose={() => setDetailItem(null)}
         title={detailItem?.title ?? ""}
         size="lg"
-        panelClassName="rounded-2xl shadow-zinc-950/20"
+        panelClassName="sm:rounded-2xl shadow-zinc-950/20"
       >
         {detailItem && (
           <>
