@@ -7,6 +7,7 @@ import BolagsfaktaRefreshButton from "@/components/bolagsfakta/BolagsfaktaRefres
 import KundProjektTab from "./KundProjektTab"
 import KundFlodeTab from "./KundFlodeTab"
 import { EditCustomerButton, EditContactButton } from "./KundEditActions"
+import KundOutreachTab from "./KundOutreachTab"
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -133,11 +134,14 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
   }
   const sb = stageBadge[customer.stage] ?? { label: customer.stage, variant: 'gray' as const }
 
+  const showOutreach = customer.stage === 'PROSPECT' || customer.stage === 'CUSTOMER'
+
   const baseTabs = [
     { key: 'oversikt', label: 'Översikt' },
     { key: 'bolagsfakta', label: 'Bolagsfakta' },
     { key: 'projekt', label: 'Projekt' },
     { key: 'kontakter', label: 'Kontakter' },
+    ...(showOutreach ? ([{ key: 'outreach', label: 'Outreach' }] as const) : []),
     { key: 'offerter', label: 'Offerter' },
     ...(showFinanceTabs ? ([{ key: 'fakturor', label: 'Fakturor' }] as const) : []),
     { key: 'flode', label: 'Flöde' },
@@ -459,6 +463,17 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {tab === "outreach" && showOutreach && (
+        <div className="panel-surface">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900">Outreach</h2>
+          </div>
+          <div className="p-6">
+            <KundOutreachTab customerId={id} />
+          </div>
         </div>
       )}
 

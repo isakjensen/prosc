@@ -55,8 +55,8 @@ export function Modal({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] overflow-y-auto no-scrollbar overscroll-contain">
-          <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] overflow-x-hidden overflow-y-auto no-scrollbar overscroll-contain">
+          <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -66,12 +66,13 @@ export function Modal({
               className="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97, y: 8 }}
-              transition={{ type: 'spring', duration: 0.38, bounce: 0.18 }}
+              initial={{ opacity: 0, y: '100%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', duration: 0.38, bounce: 0.12 }}
               className={cn(
-                'relative z-10 w-full bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-zinc-200/90 dark:border-zinc-700/60 overflow-hidden',
+                'relative z-10 w-full bg-white dark:bg-zinc-900 shadow-2xl border border-zinc-200/90 dark:border-zinc-700/60 overflow-hidden',
+                'rounded-t-2xl sm:rounded-xl max-h-[95dvh] sm:max-h-none overflow-y-auto no-scrollbar overscroll-contain',
                 maxWidth,
                 panelClassName,
               )}
