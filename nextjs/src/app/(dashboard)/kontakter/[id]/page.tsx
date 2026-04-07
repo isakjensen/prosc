@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
+import { EditContactButton } from '@/app/(dashboard)/kunder/[id]/KundEditActions'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
@@ -35,10 +36,24 @@ export default async function KontaktDetailPage({ params }: PageProps) {
           <ChevronRight className="h-3 w-3" />
           <span className="text-gray-600">{contact.firstName} {contact.lastName}</span>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {contact.firstName} {contact.lastName}
-        </h1>
-        {contact.title && <p className="text-sm text-gray-500 mt-0.5">{contact.title}</p>}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {contact.firstName} {contact.lastName}
+            </h1>
+            {contact.title && <p className="text-sm text-gray-500 mt-0.5">{contact.title}</p>}
+          </div>
+          <EditContactButton contact={{
+            id: contact.id,
+            firstName: contact.firstName,
+            lastName: contact.lastName,
+            email: contact.email,
+            phone: contact.phone,
+            title: contact.title,
+            role: contact.role,
+            notes: contact.notes,
+          }} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

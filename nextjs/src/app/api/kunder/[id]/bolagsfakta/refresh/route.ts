@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { BolagsfaktaDebugLogger, getBolagsfaktaLogFilePath } from '@/lib/bolagsfakta-debug-logger'
 import { persistBolagsfaktaDetail, scrapeBolagsfaktaCompanyPage } from '@/lib/bolagsfakta-detail-scraper'
+import { searchBolagsfaktaByOrgNumber } from '@/lib/bolagsfakta-search'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -27,14 +28,18 @@ export async function POST(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Kunden hittades inte' }, { status: 404 })
   }
 
-  const url =
+  let url =
     customer.bolagsfaktaData?.sourceUrl?.trim() ||
     customer.bolagsfaktaForetag[0]?.url?.trim() ||
     null
 
+  if (!url && customer.orgNumber) {
+    url = await searchBolagsfaktaByOrgNumber(customer.orgNumber)
+  }
+
   if (!url) {
     return NextResponse.json(
-      { error: 'Saknar Bolagsfakta-URL — hämta data från pipelinen först' },
+      { error: 'Saknar Bolagsfakta-URL och organisationsnummer — kan inte söka på Bolagsfakta' },
       { status: 400 },
     )
   }

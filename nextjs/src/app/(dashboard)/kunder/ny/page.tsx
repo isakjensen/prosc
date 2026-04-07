@@ -70,6 +70,10 @@ export default function NyKundPage() {
                 <Input name="name" required placeholder="Exempelbolaget AB" />
               </div>
               <div>
+                <FieldLabel>Organisationsnummer</FieldLabel>
+                <Input name="orgNumber" placeholder="XXXXXX-XXXX" />
+              </div>
+              <div>
                 <FieldLabel>Bransch</FieldLabel>
                 <Input name="industry" placeholder="T.ex. IT, Bygg, Handel" />
               </div>

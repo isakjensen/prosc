@@ -64,6 +64,11 @@ export default function NyttProspektPage() {
               </div>
 
               <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5">Organisationsnummer</label>
+                <Input name="orgNumber" placeholder="XXXXXX-XXXX" />
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5">Bransch</label>
                 <Input name="industry" placeholder="T.ex. IT, Bygg, Handel" />
               </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { normalizeOrgNumber } from '@/lib/bolagsfakta-scraper'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
     data: {
       name: body.name,
       stage: 'CUSTOMER',
+      orgNumber: normalizeOrgNumber(body.orgNumber) || null,
       industry: body.industry || null,
       website: body.website || null,
       address: body.address || null,
