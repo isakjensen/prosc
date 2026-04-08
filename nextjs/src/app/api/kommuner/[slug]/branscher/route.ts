@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { fetchAndCacheBranscher } from '@/lib/bolagsfakta-scraper'
+import { SCRAPER_TROUBLE_MESSAGE, syncBranscherViaScrapingApi } from '@/lib/scraping-api-client'
 import { KOMMUNER } from '@/lib/kommuner'
 
 function sortByBranschKodNumerisk<T extends { branschKod: string }>(rows: T[]): T[] {
@@ -20,12 +20,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const kommunSlug = decodeURIComponent(slug)
   const forceRefresh = request.nextUrl.searchParams.get('refresh') === '1'
 
-  const kommun = KOMMUNER.find(k => k.slug === kommunSlug)
+  const kommun = KOMMUNER.find((k) => k.slug === kommunSlug)
   if (!kommun) {
     return NextResponse.json({ error: 'Kommunen hittades inte' }, { status: 404 })
   }
 
-  // Kolla cache – hämta på nytt om äldre än 7 dagar
   const cached = await prisma.bolagsfaktaBransch.findMany({
     where: { kommunSlug },
     orderBy: { branschKod: 'asc' },
@@ -39,18 +38,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(sortByBranschKodNumerisk(cached))
   }
 
-  // Hämta från bolagsfakta och casha
-  try {
-    await fetchAndCacheBranscher(kommunSlug, kommun.namn)
-    const fresh = await prisma.bolagsfaktaBransch.findMany({
-      where: { kommunSlug },
-      orderBy: { branschKod: 'asc' },
-    })
-    return NextResponse.json(sortByBranschKodNumerisk(fresh))
-  } catch (err) {
-    console.error('[branscher] Fel vid hämtning:', err)
-    // Returnera gammal cache om vi har den
-    if (cached.length > 0) return NextResponse.json(sortByBranschKodNumerisk(cached))
-    return NextResponse.json({ error: 'Kunde inte hämta branscher' }, { status: 500 })
+  const sync = await syncBranscherViaScrapingApi(kommunSlug, forceRefresh)
+  if (!sync.ok) {
+    if (cached.length > 0 && !forceRefresh) {
+      return NextResponse.json(sortByBranschKodNumerisk(cached))
+    }
+    return sync.response
   }
+
+  const fresh = await prisma.bolagsfaktaBransch.findMany({
+    where: { kommunSlug },
+    orderBy: { branschKod: 'asc' },
+  })
+
+  if (fresh.length === 0) {
+    return NextResponse.json(
+      { error: SCRAPER_TROUBLE_MESSAGE, detail: 'Inga branscher returnerades efter synk.' },
+      { status: 502 },
+    )
+  }
+
+  return NextResponse.json(sortByBranschKodNumerisk(fresh))
 }

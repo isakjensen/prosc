@@ -14,6 +14,8 @@ interface CustomerData {
   orgNumber?: string | null
   industry?: string | null
   website?: string | null
+  /** Manuell Bolagsfakta-sida (används vid "Hämta/Uppdatera från Bolagsfakta") */
+  bolagsfaktaSourceUrl?: string | null
   address?: string | null
   city?: string | null
   zip?: string | null
@@ -94,6 +96,21 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
             <div>
               <FieldLabel>Webbplats</FieldLabel>
               <Input name="website" defaultValue={customer.website ?? ''} placeholder="https://" />
+            </div>
+
+            <div className="sm:col-span-2">
+              <FieldLabel>Bolagsfakta-URL</FieldLabel>
+              <Input
+                name="bolagsfaktaSourceUrl"
+                defaultValue={customer.bolagsfaktaSourceUrl ?? ''}
+                placeholder="https://www.bolagsfakta.se/…"
+                type="text"
+                inputMode="url"
+                autoComplete="off"
+              />
+              <p className="mt-1 text-xs text-gray-400">
+                Spara länken till företagets sida på Bolagsfakta om du saknar organisationsnummer eller vill låsa till en viss URL.
+              </p>
             </div>
 
             <div>

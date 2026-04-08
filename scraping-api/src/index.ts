@@ -6,6 +6,7 @@ import { healthRoutes } from './routes/health.js'
 import { kommunerRoutes } from './routes/kommuner.js'
 import { pipelineRoutes } from './routes/pipelines.js'
 import { companyRoutes } from './routes/companies.js'
+import { kunderBolagsfaktaRoutes } from './routes/kunder-bolagsfakta.js'
 import { startScrapePipelineWorker } from './workers/scrape-pipeline.js'
 import { startFetchDetailWorker } from './workers/fetch-detail.js'
 
@@ -29,6 +30,7 @@ await app.register(healthRoutes)
 await app.register(kommunerRoutes)
 await app.register(pipelineRoutes)
 await app.register(companyRoutes)
+await app.register(kunderBolagsfaktaRoutes)
 
 // Start BullMQ workers
 startScrapePipelineWorker()

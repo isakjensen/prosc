@@ -9,9 +9,12 @@ export async function kommunerRoutes(app: FastifyInstance) {
     return { kommuner: KOMMUNER }
   })
 
-  // Hämta branscher för en kommun (cachad 7 dagar)
-  app.get<{ Params: { slug: string } }>('/api/kommuner/:slug/branscher', async (request, reply) => {
+  // Hämta branscher för en kommun (cachad 7 dagar). ?refresh=1 tvingar ny hämtning från Bolagsfakta.
+  app.get<{ Params: { slug: string }; Querystring: { refresh?: string } }>(
+    '/api/kommuner/:slug/branscher',
+    async (request, reply) => {
     const { slug } = request.params
+    const forceRefresh = request.query.refresh === '1' || request.query.refresh === 'true'
     const kommun = KOMMUNER.find(k => k.slug === slug)
     if (!kommun) {
       return reply.status(404).send({ error: 'Kommun hittades inte' })
@@ -23,7 +26,7 @@ export async function kommunerRoutes(app: FastifyInstance) {
       orderBy: { branschKod: 'asc' },
     })
 
-    if (cached.length > 0) {
+    if (cached.length > 0 && !forceRefresh) {
       const age = Date.now() - cached[0].cachedAt.getTime()
       const sevenDays = 7 * 24 * 60 * 60 * 1000
       if (age < sevenDays) {
@@ -41,7 +44,7 @@ export async function kommunerRoutes(app: FastifyInstance) {
       }
     }
 
-    // Fetch fresh
+    // Fetch fresh (cache saknas, är gammal, eller refresh=1)
     try {
       const branscher = await fetchAndCacheBranscher(slug, kommun.namn)
       return {

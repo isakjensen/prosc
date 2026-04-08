@@ -11,6 +11,7 @@ interface CustomerData {
   orgNumber?: string | null
   industry?: string | null
   website?: string | null
+  bolagsfaktaSourceUrl?: string | null
   address?: string | null
   city?: string | null
   zip?: string | null

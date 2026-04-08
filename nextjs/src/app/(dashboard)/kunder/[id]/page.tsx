@@ -112,6 +112,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
 
   const bf = customer.bolagsfaktaData
   const canFetchBolagsfaktaWithoutStoredData =
+    Boolean(customer.bolagsfaktaData?.sourceUrl?.trim()) ||
     Boolean(customer.bolagsfaktaForetag[0]?.url?.trim()) ||
     Boolean(customer.orgNumber?.trim())
   const bfLoc = bolagsfaktaStadPostnummerLand(bf)
@@ -174,6 +175,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
               orgNumber: customer.orgNumber,
               industry: customer.industry,
               website: customer.website,
+              bolagsfaktaSourceUrl: customer.bolagsfaktaData?.sourceUrl ?? null,
               address: customer.address,
               city: customer.city,
               zip: customer.zip,
@@ -316,12 +318,12 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                     label="Hämta från Bolagsfakta"
                   />
                   <p className="max-w-md text-xs text-gray-400">
-                    Vi söker på Bolagsfakta med hjälp av organisationsnummer eller sparad URL och hämtar företagsdata.
+                    Vi använder organisationsnummer, Bolagsfakta-URL (Redigera företag) eller pipeline-länk och hämtar företagsdata.
                   </p>
                 </div>
               ) : (
                 <p className="mt-2 text-xs text-gray-400">
-                  Lägg till ett organisationsnummer på bolaget för att kunna hämta data från Bolagsfakta.
+                  Lägg till organisationsnummer eller Bolagsfakta-URL under <span className="font-medium text-gray-500">Redigera</span> för att kunna hämta data.
                 </p>
               )}
             </div>
