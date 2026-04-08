@@ -1,32 +1,25 @@
-import type { BolagsfaktaDisplayFields } from "@/lib/bolagsfakta-display-fields"
-import type { BolagsfaktaDebugLogger } from "@/lib/bolagsfakta-debug-logger"
-import { formatSwedishOrgNumber, locationFromPostadressAndSeat } from "@/lib/bolagsfakta-overview"
-import {
-  getOllamaBaseUrl,
-  getOllamaModel,
-  isOllamaReachable,
-  OllamaConnectionError,
-  ollamaChatJson,
-} from "@/lib/ollama-client"
-import type { Page } from "playwright"
-import type { CompanyEnrichmentFromOllama, WebsiteDiscoveryResult } from "@/lib/website-discovery-types"
+import type { BolagsfaktaDisplayFields } from './bolagsfakta-display-fields.js'
+import type { BolagsfaktaDebugLogger } from './bolagsfakta-debug-logger.js'
+import { formatSwedishOrgNumber, locationFromPostadressAndSeat } from './bolagsfakta-overview.js'
+import { cursorCliJson, CursorCliError } from './cursor-cli-client.js'
+import type { Page } from 'playwright'
+import type { CompanyEnrichmentFromAI, WebsiteDiscoveryResult } from './website-discovery-types.js'
 import {
   delay,
   launchStealthBrowser,
   newStealthPage,
   type StealthPageGeolocation,
-} from "@/lib/bolagsfakta-scraper"
+} from './bolagsfakta-scraper.js'
 
-export type { CompanyEnrichmentFromOllama, WebsiteDiscoveryResult } from "@/lib/website-discovery-types"
+export type { CompanyEnrichmentFromAI, WebsiteDiscoveryResult } from './website-discovery-types.js'
 
-/** Minimalt underlag för söksträng (undviker cirkulär import mot detail-scraper). */
+/** Minimalt underlag för söksträng. */
 export type DiscoveryFlatInput = {
   orgNumberFormatted?: string
   sniKodPrimary?: string
   sniBenamningPrimary?: string
 }
 
-/** Grova koordinater för geolocation i Playwright (samma land, ungefär samma stad). */
 const SWEDISH_CITY_COORDS: Record<string, { latitude: number; longitude: number }> = {
   stockholm: { latitude: 59.3293, longitude: 18.0686 },
   göteborg: { latitude: 57.7089, longitude: 11.9746 },
@@ -100,9 +93,6 @@ function trimSerpText(raw: string, maxLen: number): string {
   return `${collapsed.slice(0, maxLen)}… [truncated ${maxLen} chars]`
 }
 
-/**
- * Extrahera bara organiska träffar från Google (#rso), inte hela #search (som innehåller inbäddad JS-text i DOM).
- */
 async function extractOrganicSerpFromPage(page: Page): Promise<string> {
   const text = await page.evaluate(() => {
     function skipGoogleOrInternal(u: string): boolean {
@@ -175,13 +165,12 @@ async function extractOrganicSerpFromPage(page: Page): Promise<string> {
   return typeof text === "string" ? text : ""
 }
 
-/** Remove minified JS/CSS-like noise, long tokens, and common junk from SERP text. */
+/** Remove minified JS/CSS-like noise from SERP text. */
 export function stripNoiseFromSerpText(raw: string): string {
   let s = raw
   s = s.replace(/<script[\s\S]*?<\/script>/gi, " ")
   s = s.replace(/<style[\s\S]*?<\/style>/gi, " ")
   s = s.replace(/<[^>]{1,400}>/g, " ")
-  // Minified IIFE blobs (non-greedy chunks)
   for (let i = 0; i < 8; i++) {
     s = s.replace(/\(function\s*\([^)]*\)\s*\{[\s\S]{0,12000}?\}\)\s*\(\s*\)/g, " ")
   }
@@ -218,7 +207,6 @@ export function stripNoiseFromSerpText(raw: string): string {
   return s.replace(/\s+/g, " ").trim()
 }
 
-/** Katalog-/registerdomäner — får aldrig bli "företagets hemsida". */
 function isDirectoryListingHost(hostname: string): boolean {
   const h = hostname.replace(/^www\./i, "").toLowerCase()
   const blocked = [
@@ -252,7 +240,6 @@ function sanitizeWebsiteFromModel(raw: string): string {
   }
 }
 
-/** Kort företagsunderlag till modellen (inte hela Bolagsfakta-texten). */
 function buildCompanyContextForDiscovery(
   display: BolagsfaktaDisplayFields,
   flat: DiscoveryFlatInput,
@@ -273,7 +260,6 @@ function buildCompanyContextForDiscovery(
   return rows.length ? rows.join("\n") : "(no extra fields)"
 }
 
-/** En numrerad lista med unika URL:er från strukturerad SERP (snabb överblick). */
 function buildDedupedUrlListFromSerp(serp: string): string {
   const seen = new Set<string>()
   const lines: string[] = []
@@ -326,7 +312,7 @@ Reply with ONLY one JSON object, no markdown, exactly:
 `
 }
 
-function normalizeOllamaCompanyJson(parsed: unknown): CompanyEnrichmentFromOllama | null {
+function normalizeAICompanyJson(parsed: unknown): CompanyEnrichmentFromAI | null {
   if (!parsed || typeof parsed !== "object") return null
   const o = parsed as Record<string, unknown>
   const str = (k: string) => (typeof o[k] === "string" ? (o[k] as string) : "")
@@ -350,34 +336,17 @@ function normalizeOllamaCompanyJson(parsed: unknown): CompanyEnrichmentFromOllam
   }
 }
 
-/** JSON Schema för Ollama `format` (undvik för strikta enum som vissa versioner klarar dåligt). */
-const OLLAMA_JSON_SCHEMA: Record<string, unknown> = {
-  type: "object",
-  properties: {
-    website: {
-      type: "string",
-      description:
-        "The one best company-owned https URL, or empty. Not directories (hitta, eniro, allabolag, bolagsfakta, ratsit, etc.).",
-    },
-    email: { type: "string", description: "Public email or empty string" },
-    phone: { type: "string", description: "Phone with country/area code if visible, or empty string" },
-    confidence: { type: "string", description: "One of: high, medium, low" },
-    notes: { type: "string", description: "Brief English notes or empty string" },
-  },
-  required: ["website", "email", "phone", "confidence", "notes"],
-}
-
 const emptyResult = (partial: Partial<WebsiteDiscoveryResult>): WebsiteDiscoveryResult => ({
   skipped: false,
   googleError: null,
-  ollamaError: null,
+  aiError: null,
   enrichment: null,
   ...partial,
 })
 
 /**
- * Efter full Bolagsfakta-hämtning: Google-sök, brusfilter, sedan Ollama (llama3.2:3b) med JSON-svar.
- * Kastar inte — returnerar status för UI (toasts).
+ * Google-sök, brusfilter, sedan Cursor CLI med JSON-svar.
+ * Kastar inte — returnerar status.
  */
 export async function logGoogleDiscoveryWebsiteSearchHint(
   display: BolagsfaktaDisplayFields,
@@ -392,7 +361,7 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
         skipped: true,
         skipReason: "För lite data för Google-sök (saknar firmanamn/adress/orgnr eller för kort sträng).",
         googleError: null,
-        ollamaError: null,
+        aiError: null,
         enrichment: null,
       }
     }
@@ -461,73 +430,39 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
       urlList,
       trimmedSerp,
     })
-    const model = getOllamaModel()
 
-    let ollamaError: string | null = null
-    let enrichment: CompanyEnrichmentFromOllama | null = null
+    let aiError: string | null = null
+    let enrichment: CompanyEnrichmentFromAI | null = null
 
-    const ollamaBase = getOllamaBaseUrl()
-    const ollamaUp = await isOllamaReachable(5000)
-    if (!ollamaUp) {
-      ollamaError = `Ollama svarar inte på ${ollamaBase}. Starta Ollama eller sätt OLLAMA_BASE_URL.`
-      await logger?.warn("google_discovery_ollama_unreachable", { base: ollamaBase })
-    } else {
-      console.log("\n========== BOLAGSFAKTA → GOOGLE DISCOVERY (prompt → Ollama) ==========\n")
-      console.log(prompt)
-      console.log("\n========== END PROMPT ==========\n")
+    console.log("\n========== BOLAGSFAKTA → GOOGLE DISCOVERY (prompt → Cursor CLI) ==========\n")
+    console.log(prompt)
+    console.log("\n========== END PROMPT ==========\n")
 
-      await logger?.info("google_discovery_ollama_request", {
-        model,
-        serpLength: trimmedSerp.length,
-        promptLength: prompt.length,
+    await logger?.info("google_discovery_ai_request", {
+      serpLength: trimmedSerp.length,
+      promptLength: prompt.length,
+    })
+
+    try {
+      const { raw, parsed } = await cursorCliJson({
+        prompt,
+        timeoutMs: 180_000,
       })
+      enrichment = normalizeAICompanyJson(parsed)
 
-      try {
-        let raw: string
-        let parsed: unknown
-        try {
-          const out = await ollamaChatJson({
-            model,
-            userPrompt: prompt,
-            format: OLLAMA_JSON_SCHEMA,
-            timeoutMs: 180_000,
-          })
-          raw = out.raw
-          parsed = out.parsed
-        } catch (schemaErr) {
-          if (schemaErr instanceof OllamaConnectionError) {
-            throw schemaErr
-          }
-          console.warn(
-            "[bolagsfakta-google-discovery] Ollama structured format failed, retrying with format=json:",
-            schemaErr instanceof Error ? schemaErr.message : schemaErr,
-          )
-          const out = await ollamaChatJson({
-            model,
-            userPrompt: prompt,
-            format: "json",
-            timeoutMs: 180_000,
-          })
-          raw = out.raw
-          parsed = out.parsed
-        }
-        enrichment = normalizeOllamaCompanyJson(parsed)
+      console.log("\n========== CURSOR CLI JSON (raw stdout) ==========\n")
+      console.log(raw)
+      console.log("\n========== CURSOR CLI PARSED ==========\n")
+      console.log(JSON.stringify(enrichment ?? parsed, null, 2))
+      console.log("\n========== END CURSOR CLI ==========\n")
 
-        console.log("\n========== OLLAMA JSON (raw message.content) ==========\n")
-        console.log(raw)
-        console.log("\n========== OLLAMA PARSED ==========\n")
-        console.log(JSON.stringify(enrichment ?? parsed, null, 2))
-        console.log("\n========== END OLLAMA ==========\n")
-
-        await logger?.info("google_discovery_ollama_ok", {
-          model,
-          enrichment: enrichment ?? parsed,
-        })
-      } catch (ollamaErr) {
-        ollamaError = ollamaErr instanceof Error ? ollamaErr.message : String(ollamaErr)
-        console.error("[bolagsfakta-google-discovery] Ollama failed:", ollamaError)
-        await logger?.error("google_discovery_ollama_failed", { message: ollamaError })
-      }
+      await logger?.info("google_discovery_ai_ok", {
+        enrichment: enrichment ?? parsed,
+      })
+    } catch (cursorErr) {
+      aiError = cursorErr instanceof Error ? cursorErr.message : String(cursorErr)
+      console.error("[bolagsfakta-google-discovery] Cursor CLI failed:", aiError)
+      await logger?.error("google_discovery_ai_failed", { message: aiError })
     }
 
     await logger?.info("google_discovery_logged", {
@@ -536,11 +471,11 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
       promptLength: prompt.length,
     })
 
-    return emptyResult({ googleError, ollamaError, enrichment })
+    return emptyResult({ googleError, aiError, enrichment })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     console.error("[bolagsfakta-google-discovery] Oväntat fel:", message)
     await logger?.error("google_discovery_failed", { message })
-    return emptyResult({ ollamaError: message, enrichment: null })
+    return emptyResult({ aiError: message, enrichment: null })
   }
 }

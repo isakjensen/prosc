@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio'
 import type { Page } from 'playwright'
-import { prisma } from '@/lib/db'
-import { buildBolagsfaktaDisplayFields } from '@/lib/bolagsfakta-display-fields'
-import type { BolagsfaktaDebugLogger } from '@/lib/bolagsfakta-debug-logger'
-import { logGoogleDiscoveryWebsiteSearchHint } from '@/lib/bolagsfakta-google-discovery'
-import type { WebsiteDiscoveryResult } from '@/lib/website-discovery-types'
-import { delay, launchStealthBrowser, navigateAndGetHtml, newStealthPage } from '@/lib/bolagsfakta-scraper'
+import { prisma } from './db.js'
+import { buildBolagsfaktaDisplayFields } from './bolagsfakta-display-fields.js'
+import type { BolagsfaktaDebugLogger } from './bolagsfakta-debug-logger.js'
+import { logGoogleDiscoveryWebsiteSearchHint } from './bolagsfakta-google-discovery.js'
+import type { WebsiteDiscoveryResult } from './website-discovery-types.js'
+import { delay, launchStealthBrowser, navigateAndGetHtml, newStealthPage } from './bolagsfakta-scraper.js'
 
 export interface AnsvarigPerson {
   name: string
@@ -30,7 +30,6 @@ export interface BolagsfaktaParsedDetail {
   }
   fordon: unknown
   arbetsstallen: unknown
-  /** Google + Ollama (webb/e-post/telefon) — skickas till klient för toasts. */
   websiteDiscovery?: WebsiteDiscoveryResult
 }
 
@@ -46,7 +45,7 @@ function parsePersonName(raw: string): { firstName: string; lastName: string } {
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- cheerio root/context typing
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractTableKeyValues($: cheerio.CheerioAPI, $ctx: any): Record<string, string> {
   const out: Record<string, string> = {}
   $ctx.find('table').each((_i: number, table: any) => {
@@ -63,7 +62,6 @@ function extractTableKeyValues($: cheerio.CheerioAPI, $ctx: any): Record<string,
   return out
 }
 
-/** Bolagsfakta: roller som <p>, personer som <p><a> under "Insamlade uppgifter om ansvariga personer". */
 function extractAnsvarigaFromInsamladeBlock(html: string): AnsvarigPerson[] {
   const $ = cheerio.load(html)
   const persons: AnsvarigPerson[] = []

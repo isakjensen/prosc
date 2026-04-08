@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Customer & Contact (subset for scraping)
+// ============================================
+
+model Customer {
+  id          String        @id @default(cuid())
+  name        String
+  stage       CustomerStage @default(PROSPECT)
+  orgNumber   String?       @unique
+  industry    String?
+  website     String?
+  address     String?
+  city        String?
+  state       String?
+  zip         String?
+  country     String?
+  phone       String?
+  email       String?
+  notes       String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  promotedToProspectAt DateTime?
+
+  contacts           Contact[]
+  bolagsfaktaData    BolagsfaktaData?
+  bolagsfaktaForetag BolagsfaktaForetag[]
+
+  @@map("customers")
+}
+
+enum CustomerStage {
+  SCRAPED
+  PROSPECT
+  CUSTOMER
+  ARCHIVED
+}
+
+model Contact {
+  id         String   @id @default(cuid())
+  customerId String
+  firstName  String
+  lastName   String
+  email      String?
+  phone      String?
+  title      String?
+  role       String?
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+// ============================================
+// Bolagsfakta Pipeline
+// ============================================
+
+model BolagsfaktaBransch {
+  id           String   @id @default(cuid())
+  kommunSlug   String
+  kommunNamn   String
+  branschNamn  String
+  branschSlug  String
+  branschKod   String
+  foretagCount Int?
+  cachedAt     DateTime @default(now())
+
+  @@unique([kommunSlug, branschKod])
+  @@map("bolagsfakta_branscher")
+}
+
+model BolagsfaktaPipeline {
+  id                      String                    @id @default(cuid())
+  namn                    String
+  kommunSlug              String
+  kommunNamn              String
+  branschSlug             String
+  branschNamn             String
+  branschKod              String
+  bolagsfaktaForetagCount Int?
+  status                  BolagsfaktaPipelineStatus @default(IDLE)
+  lastScrapedAt           DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+
+  foretag BolagsfaktaForetag[]
+
+  @@map("bolagsfakta_pipelines")
+}
+
+enum BolagsfaktaPipelineStatus {
+  IDLE
+  RUNNING
+  COMPLETED
+  STOPPED
+}
+
+model BolagsfaktaForetag {
+  id          String   @id @default(cuid())
+  pipelineId  String
+  customerId  String?
+  isRedlisted Boolean  @default(false)
+  namn        String
+  adress      String?
+  orgNummer   String?
+  bolagsform  String?
+  url         String?
+  createdAt   DateTime @default(now())
+
+  pipeline BolagsfaktaPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  customer Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([pipelineId, url])
+  @@index([customerId])
+  @@map("bolagsfakta_foretag")
+}
+
+model BolagsfaktaRedlistEntry {
+  id                  String   @id @default(cuid())
+  namn                String
+  orgNummerNormalized String?
+  url                 String?
+  createdAt           DateTime @default(now())
+
+  @@index([orgNummerNormalized])
+  @@unique([url])
+  @@map("bolagsfakta_redlist")
+}
+
+model BolagsfaktaData {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  sourceUrl  String?
+  scrapedAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  orgNumberFormatted  String?
+  phone               String?
+  sniKodPrimary       String?
+  sniBenamningPrimary String?
+  verkligHuvudman     String? @db.Text
+  koncernModerNamn    String?
+  antalAnstalldaText  String?
+
+  firmaNamn              String?
+  bolagsformDetail       String?
+  registreringsStatus    String?
+  gatuadress             String?
+  postadress             String?
+  seatLocation           String?
+  bolagetBildatText      String?
+  bolagetRegistreratText String?
+  momsregnr              String?
+  verksamhetsbeskrivning String? @db.Text
+  omsattningSenaste      String?
+  aretsResultatSenaste   String?
+  ebitdaSenaste          String?
+  utdelningSenaste       String?
+
+  overviewJson      Json?
+  ansvarigaJson     Json?
+  ekonomiJson       Json?
+  omForetagetJson   Json?
+  fordonJson        Json?
+  arbetsstallenJson Json?
+  ovrigtJson        Json?
+
+  discoveredWebsite String?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("bolagsfakta_data")
+}

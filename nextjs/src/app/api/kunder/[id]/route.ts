@@ -32,5 +32,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     },
   })
 
+  if (body.bolagsfaktaSourceUrl !== undefined) {
+    const raw = typeof body.bolagsfaktaSourceUrl === 'string' ? body.bolagsfaktaSourceUrl.trim() : ''
+    const sourceUrl = raw === '' ? null : raw
+    await prisma.bolagsfaktaData.upsert({
+      where: { customerId: id },
+      create: { customerId: id, sourceUrl },
+      update: { sourceUrl },
+    })
+  }
+
   return NextResponse.json(updated)
 }

@@ -1,5 +1,6 @@
 import { mkdir, appendFile } from "fs/promises"
 import path from "path"
+import { fileURLToPath } from "url"
 
 export type BolagsfaktaDebugLevel = "info" | "warn" | "error" | "timing"
 
@@ -7,7 +8,8 @@ export interface BolagsfaktaDebugPayload {
   [key: string]: unknown
 }
 
-const LOG_DIR = path.join(process.cwd(), "logs", "bolagsfakta")
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const LOG_DIR = path.join(__dirname, "..", "..", "logs")
 const LOG_FILE = path.join(LOG_DIR, "fetch-debug.log")
 
 let dirEnsured = false
@@ -28,10 +30,6 @@ function formatLine(
   return body + "\n"
 }
 
-/**
- * Avancerad debug-logg till fil (nextjs/logs/bolagsfakta/fetch-debug.log).
- * På serverless utan skrivbar disk faller den tillbaka till console.
- */
 export class BolagsfaktaDebugLogger {
   readonly sessionId: string
   private readonly context: BolagsfaktaDebugPayload
@@ -64,7 +62,6 @@ export class BolagsfaktaDebugLogger {
     await this.log("error", phase, payload)
   }
 
-  /** Mät tid runt ett async block */
   async time<T>(phase: string, fn: () => Promise<T>, extra?: BolagsfaktaDebugPayload): Promise<T> {
     const t0 = Date.now()
     await this.log("timing", `${phase}_start`, extra ?? {})
@@ -86,8 +83,4 @@ export class BolagsfaktaDebugLogger {
       throw e
     }
   }
-}
-
-export function getBolagsfaktaLogFilePath() {
-  return LOG_FILE
 }
