@@ -198,6 +198,35 @@ export async function runFetchDetailViaApi(
   }
 }
 
+/** Pipeline-rad: queue fetch-detail (return immediately) */
+export async function queueFetchDetailViaApi(
+  pipelineId: string,
+  foretagId: string,
+  customerId: string,
+  bolagsfaktaUrl: string,
+): Promise<NextResponse> {
+  if (!getConfig()) return scrapingApiNotConfiguredResponse()
+
+  try {
+    const res = await scrapingApiFetch(
+      `/api/pipelines/${encodeURIComponent(pipelineId)}/foretag/${encodeURIComponent(foretagId)}/fetch-detail`,
+      {
+        method: "POST",
+        body: JSON.stringify({ customerId, bolagsfaktaUrl }),
+      },
+    )
+
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    if (res.ok && res.status >= 200 && res.status < 300) {
+      return NextResponse.json({ ok: true, ...body }, { status: res.status })
+    }
+    return scraperFailureResponse(res.status, body)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: SCRAPER_TROUBLE_MESSAGE, detail: msg }, { status: 503 })
+  }
+}
+
 /** Kund-sida: uppdatera Bolagsfakta utan pipeline */
 export async function runCustomerBolagsfaktaRefreshViaApi(
   customerId: string,

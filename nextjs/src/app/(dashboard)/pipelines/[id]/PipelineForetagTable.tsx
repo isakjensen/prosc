@@ -16,7 +16,14 @@ export type PipelineForetagRow = {
   customerId: string | null
   customerStage: string | null
   hasBolagsfakta: boolean
+  bolagsfaktaUpdatedAt: string | null
   isRedlisted: boolean
+  detailStatus: "IDLE" | "QUEUED" | "RUNNING" | "SUCCESS" | "ERROR"
+  detailJobId: string | null
+  detailQueuedAt: string | null
+  detailStartedAt: string | null
+  detailFinishedAt: string | null
+  detailError: string | null
 }
 
 export type BatchStatus = "pending" | "running" | "success" | "error"
@@ -91,6 +98,45 @@ function StatusIndicator({ status, error }: { status?: BatchStatus; error?: stri
   }
 }
 
+function DetailStatusIndicator({
+  status,
+  error,
+}: {
+  status?: PipelineForetagRow["detailStatus"]
+  error?: string | null
+}) {
+  if (!status || status === "IDLE") return null
+  switch (status) {
+    case "QUEUED":
+      return <Clock className="h-4 w-4 text-gray-400" aria-label="Köad" />
+    case "RUNNING":
+      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" aria-label="Skrapar..." />
+    case "SUCCESS":
+      return <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-label="Klar" />
+    case "ERROR":
+      return (
+        <span className="inline-flex items-center gap-1" title={error ?? undefined}>
+          <AlertCircle className="h-4 w-4 text-red-600" aria-label="Fel" />
+        </span>
+      )
+  }
+}
+
+function detailStatusLabel(status?: PipelineForetagRow["detailStatus"]) {
+  switch (status) {
+    case "QUEUED":
+      return "Köad"
+    case "RUNNING":
+      return "Skrapar…"
+    case "SUCCESS":
+      return "Klar"
+    case "ERROR":
+      return "Fel"
+    default:
+      return null
+  }
+}
+
 export default function PipelineForetagTable({
   pipelineId,
   rows,
@@ -102,6 +148,7 @@ export default function PipelineForetagTable({
   batchRunning,
 }: Props) {
   const hasSelection = selectedIds !== undefined
+  const showStatusColumns = Boolean(hasSelection && selectedIds && selectedIds.size > 0)
   const eligibleRows = rows.filter(isEligibleForBatch)
   const allEligibleSelected = eligibleRows.length > 0 && eligibleRows.every((r) => selectedIds?.has(r.id))
 
@@ -121,11 +168,24 @@ export default function PipelineForetagTable({
               />
             </th>
           )}
-          {hasSelection && (
-            <th className="px-2 py-3 align-middle text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-10">
-              Status
-            </th>
-          )}
+          <th
+            className={cn(
+              "px-2 py-3 align-middle text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-10",
+              !showStatusColumns && "hidden",
+            )}
+            suppressHydrationWarning
+          >
+            Status
+          </th>
+          <th
+            className={cn(
+              "px-2 py-3 align-middle text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-10",
+              !showStatusColumns && "hidden",
+            )}
+            suppressHydrationWarning
+          >
+            Detail
+          </th>
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[10rem]">
             Företag
           </th>
@@ -152,6 +212,7 @@ export default function PipelineForetagTable({
           const eligible = isEligibleForBatch(f)
           const rowStatus = statuses?.get(f.id)
           const rowError = errors?.get(f.id)
+          const detailLabel = detailStatusLabel(f.detailStatus)
           const nameClass = f.hasBolagsfakta
             ? "font-medium text-emerald-700 hover:text-emerald-800 transition-colors inline-block max-w-full break-words"
             : "font-medium text-gray-900 hover:text-zinc-600 transition-colors inline-block max-w-full break-words"
@@ -190,11 +251,22 @@ export default function PipelineForetagTable({
                   />
                 </td>
               )}
-              {hasSelection && (
-                <td className="px-2 py-3 align-middle text-center">
-                  <StatusIndicator status={rowStatus} error={rowError} />
-                </td>
-              )}
+              <td
+                className={cn(
+                  "px-2 py-3 align-middle text-center",
+                  !showStatusColumns && "hidden",
+                )}
+              >
+                <StatusIndicator status={rowStatus} error={rowError} />
+              </td>
+              <td
+                className={cn(
+                  "px-2 py-3 align-middle text-center",
+                  !showStatusColumns && "hidden",
+                )}
+              >
+                <DetailStatusIndicator status={f.detailStatus} error={f.detailError} />
+              </td>
               <td className="px-6 py-3 align-middle">
                 <div className="flex flex-col gap-0.5">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -213,6 +285,15 @@ export default function PipelineForetagTable({
                     <Badge variant={stage.variant} className="text-[10px] px-1.5 py-0 font-medium">
                       {stage.label}
                     </Badge>
+                    {detailLabel && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-600"
+                        title={f.detailStatus === "ERROR" ? (f.detailError ?? detailLabel) : detailLabel}
+                      >
+                        <DetailStatusIndicator status={f.detailStatus} error={f.detailError} />
+                        <span>{detailLabel}</span>
+                      </span>
+                    )}
                     {f.isRedlisted && (
                       <Badge variant="danger" className="text-[10px] px-1.5 py-0 font-medium">
                         Redlistad

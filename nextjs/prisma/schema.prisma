@@ -1018,6 +1018,14 @@ enum BolagsfaktaPipelineStatus {
   STOPPED
 }
 
+enum BolagsfaktaDetailStatus {
+  IDLE
+  QUEUED
+  RUNNING
+  SUCCESS
+  ERROR
+}
+
 model BolagsfaktaForetag {
   id         String   @id @default(cuid())
   pipelineId String
@@ -1032,12 +1040,20 @@ model BolagsfaktaForetag {
   url        String?
   createdAt  DateTime @default(now())
 
+  detailStatus     BolagsfaktaDetailStatus @default(IDLE)
+  detailJobId      String?
+  detailQueuedAt   DateTime?
+  detailStartedAt  DateTime?
+  detailFinishedAt DateTime?
+  detailError      String?                 @db.Text
+
   // Relations
   pipeline BolagsfaktaPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   customer Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@index([pipelineId, url])
   @@index([customerId])
+  @@index([detailJobId])
   @@map("bolagsfakta_foretag")
 }
 

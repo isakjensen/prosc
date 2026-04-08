@@ -61,12 +61,23 @@ export default async function PipelineDetailPage({ params }: PageProps) {
     customerId: f.customerId,
     customerStage: f.customer?.stage ?? null,
     hasBolagsfakta: f.customer?.bolagsfaktaData != null,
+    bolagsfaktaUpdatedAt: f.customer?.bolagsfaktaData?.updatedAt?.toISOString() ?? null,
     isRedlisted: f.isRedlisted,
+    detailStatus: f.detailStatus,
+    detailJobId: f.detailJobId,
+    detailQueuedAt: f.detailQueuedAt?.toISOString() ?? null,
+    detailStartedAt: f.detailStartedAt?.toISOString() ?? null,
+    detailFinishedAt: f.detailFinishedAt?.toISOString() ?? null,
+    detailError: f.detailError,
   }))
+
+  const hasActiveDetailJobs = pipeline.foretag.some(
+    (f) => f.detailStatus === "QUEUED" || f.detailStatus === "RUNNING",
+  )
 
   return (
     <div className="space-y-6">
-      <PipelineLiveRefresh status={pipeline.status} />
+      <PipelineLiveRefresh status={pipeline.status} hasActiveDetailJobs={hasActiveDetailJobs} />
       {/* Header */}
       <div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">

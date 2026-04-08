@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { runFetchDetailViaApi } from '@/lib/scraping-api-client'
+import { queueFetchDetailViaApi } from '@/lib/scraping-api-client'
 
 interface RouteParams {
   params: Promise<{ id: string; foretagId: string }>
@@ -31,11 +31,10 @@ export async function POST(_request: Request, { params }: RouteParams) {
     )
   }
 
-  return runFetchDetailViaApi(
+  return queueFetchDetailViaApi(
     pipelineId,
     foretagId,
     foretag.customerId,
     foretag.url,
-    { timeoutMs: 280_000, intervalMs: 1_500 },
   )
 }

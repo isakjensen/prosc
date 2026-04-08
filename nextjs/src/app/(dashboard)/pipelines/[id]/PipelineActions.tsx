@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { SlidersHorizontal } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface Props {
   pipelineId: string
@@ -11,8 +12,25 @@ interface Props {
 
 export default function PipelineActions({ pipelineId, status }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  const filtersOpen = mounted && searchParams.get("filters") === "1"
   const [loading, setLoading] = useState<'scrape' | 'stop' | null>(null)
   const [error, setError] = useState('')
+
+  function toggleFilters() {
+    const next = new URLSearchParams(searchParams.toString())
+    if (filtersOpen) {
+      next.delete("filters")
+    } else {
+      next.set("filters", "1")
+    }
+    const qs = next.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
 
   async function handleScrape() {
     setLoading('scrape')
@@ -48,6 +66,10 @@ export default function PipelineActions({ pipelineId, status }: Props) {
   return (
     <div className="flex flex-col items-end gap-2 shrink-0">
       <div className="flex gap-2">
+        <Button variant="outline" onClick={toggleFilters} disabled={loading !== null}>
+          <SlidersHorizontal className="h-4 w-4" />
+          {filtersOpen ? "Stäng filter" : "Filter"}
+        </Button>
         <Button
           onClick={handleScrape}
           disabled={status === 'RUNNING' || loading !== null}
