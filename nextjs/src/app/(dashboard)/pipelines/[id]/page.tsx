@@ -5,7 +5,8 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ChevronRight } from "lucide-react"
 import PipelineActions from "./PipelineActions"
-import PipelineForetagTable, { type PipelineForetagRow } from "./PipelineForetagTable"
+import { type PipelineForetagRow } from "./PipelineForetagTable"
+import PipelineForetagBatchPanel from "./PipelineForetagBatchPanel"
 import PipelineLiveRefresh from "./PipelineLiveRefresh"
 import { PipelineForetagCountComparison } from "@/components/bolagsfakta/PipelineForetagCountComparison"
 
@@ -123,7 +124,7 @@ export default async function PipelineDetailPage({ params }: PageProps) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <PipelineForetagTable pipelineId={id} rows={foretagRows} />
+            <PipelineForetagBatchPanel pipelineId={id} rows={foretagRows} />
           </div>
         )}
       </div>
