@@ -1,8 +1,7 @@
 import { prisma } from '@/lib/db'
-
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import ProspektViews from './ProspektViews'
 
 export default async function ProspektsPage() {
   const [stages, companies] = await Promise.all([
@@ -11,13 +10,13 @@ export default async function ProspektsPage() {
       where: { stage: 'PROSPECT' },
       include: {
         prospectStage: { include: { currentStage: true } },
-        contacts: true,
+        contacts: { select: { id: true } },
       },
       orderBy: { name: 'asc' },
     }),
   ])
 
-  // Group by stage
+  // Group by stage for board view
   const noStage = companies.filter((c) => !c.prospectStage)
   const byStage: Record<string, typeof companies> = {}
   for (const stage of stages) {
@@ -31,13 +30,13 @@ export default async function ProspektsPage() {
       id: 'ingen',
       name: 'Ingen fas',
       color: '#94a3b8',
-      companies: noStage,
+      companies: noStage.map(serialize),
     },
     ...stages.map((s) => ({
       id: s.id,
       name: s.name,
       color: s.color ?? '#3b82f6',
-      companies: byStage[s.id] ?? [],
+      companies: (byStage[s.id] ?? []).map(serialize),
     })),
   ]
 
@@ -56,54 +55,45 @@ export default async function ProspektsPage() {
         </Link>
       </div>
 
-      {/* Kanban board */}
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {allColumns.map((col) => (
-          <div key={col.id} className="flex-shrink-0 w-72">
-            <div className="flex items-center gap-2 mb-3">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: col.color }}
-              />
-              <span className="font-medium text-sm text-gray-700">{col.name}</span>
-              <span className="ml-auto text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
-                {col.companies.length}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {col.companies.length === 0 ? (
-                <div className="rounded-lg border-2 border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
-                  Inga prospekts
-                </div>
-              ) : (
-                col.companies.map((company) => (
-                  <div key={company.id} className="panel-surface p-4">
-                    <Link href={`/kunder/${company.id}`}>
-                      <h3 className="font-medium text-gray-900 hover:text-zinc-700 text-sm">
-                        {company.name}
-                      </h3>
-                    </Link>
-                    {company.industry && (
-                      <p className="text-xs text-gray-400 mt-0.5">{company.industry}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-2">
-                      {company.city && (
-                        <span className="text-xs text-gray-500">{company.city}</span>
-                      )}
-                      {company.contacts.length > 0 && (
-                        <Badge variant="gray">
-                          {company.contacts.length} kontakt{company.contacts.length !== 1 ? 'er' : ''}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      <ProspektViews
+        columns={allColumns}
+        companies={companies.map(serialize)}
+        stages={stages.map((s) => ({ id: s.id, name: s.name, color: s.color }))}
+      />
     </div>
   )
+}
+
+function serialize(c: {
+  id: string
+  name: string
+  industry: string | null
+  city: string | null
+  phone: string | null
+  email: string | null
+  contacts: { id: string }[]
+  prospectStage: {
+    currentStageId: string
+    currentStage: { id: string; name: string; color: string | null }
+  } | null
+}) {
+  return {
+    id: c.id,
+    name: c.name,
+    industry: c.industry,
+    city: c.city,
+    phone: c.phone,
+    email: c.email,
+    contacts: c.contacts,
+    prospectStage: c.prospectStage
+      ? {
+          currentStageId: c.prospectStage.currentStageId,
+          currentStage: {
+            id: c.prospectStage.currentStage.id,
+            name: c.prospectStage.currentStage.name,
+            color: c.prospectStage.currentStage.color,
+          },
+        }
+      : null,
+  }
 }

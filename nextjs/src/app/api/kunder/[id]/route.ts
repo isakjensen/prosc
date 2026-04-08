@@ -32,6 +32,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     },
   })
 
+  // Update prospect stage if provided
+  if (body.prospectStageId !== undefined) {
+    const stageId = typeof body.prospectStageId === 'string' ? body.prospectStageId.trim() : ''
+    if (stageId) {
+      await prisma.prospectStageHistory.upsert({
+        where: { customerId: id },
+        create: { customerId: id, currentStageId: stageId },
+        update: { currentStageId: stageId, enteredAt: new Date() },
+      })
+    } else {
+      // Empty string means remove phase
+      await prisma.prospectStageHistory.deleteMany({ where: { customerId: id } })
+    }
+  }
+
   if (body.bolagsfaktaSourceUrl !== undefined) {
     const raw = typeof body.bolagsfaktaSourceUrl === 'string' ? body.bolagsfaktaSourceUrl.trim() : ''
     const sourceUrl = raw === '' ? null : raw

@@ -22,10 +22,12 @@
 
 :root {
   color-scheme: light;
+  --scroll-tab-bg: #fafafa;
 }
 
 .dark {
   color-scheme: dark;
+  --scroll-tab-bg: #111111;
 }
 
 html {

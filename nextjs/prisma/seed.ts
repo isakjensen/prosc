@@ -18,23 +18,21 @@ async function main() {
   })
   console.log('Created user:', admin.email)
 
-  // Prospect stages
+  // Prospect stages — clear old stages and insert new ones
+  await prisma.prospectStageHistory.deleteMany()
+  await prisma.prospectStage.deleteMany()
+
   const stages = [
-    { name: 'Hittad/Lead', order: 1, color: '#6B7280' },
-    { name: 'Kvalificerad', order: 2, color: '#3B82F6' },
-    { name: 'Offert', order: 3, color: '#8B5CF6' },
-    { name: 'Förhandling', order: 4, color: '#F59E0B' },
-    { name: 'Vunnen', order: 5, color: '#10B981' },
-    { name: 'Implementering', order: 6, color: '#06B6D4' },
-    { name: 'Implementerad kund', order: 7, color: '#059669' },
+    { name: 'Tillagd', order: 1, color: '#6B7280' },
+    { name: 'Planerad', order: 2, color: '#3B82F6' },
+    { name: 'Kontakta', order: 3, color: '#8B5CF6' },
+    { name: 'Kontaktad - väntar svar', order: 4, color: '#F59E0B' },
+    { name: 'Komplettera', order: 5, color: '#F97316' },
+    { name: 'Invänta kontrakt/beslut', order: 6, color: '#10B981' },
   ]
 
   for (const stage of stages) {
-    await prisma.prospectStage.upsert({
-      where: { name: stage.name },
-      update: {},
-      create: stage,
-    })
+    await prisma.prospectStage.create({ data: stage })
   }
   console.log('Created prospect stages')
 
