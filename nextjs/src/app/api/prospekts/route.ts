@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json()
 
+  const firstStage = await prisma.prospectStage.findFirst({ orderBy: { order: 'asc' } })
+
   const customer = await prisma.customer.create({
     data: {
       name: body.name,
@@ -39,6 +41,9 @@ export async function POST(request: NextRequest) {
       phone: body.phone || null,
       email: body.email || null,
       notes: body.notes || null,
+      ...(firstStage
+        ? { prospectStage: { create: { currentStageId: firstStage.id } } }
+        : {}),
     },
   })
 

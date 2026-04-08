@@ -5,9 +5,16 @@ import { Pencil } from 'lucide-react'
 import EditCustomerModal from '@/components/EditCustomerModal'
 import EditContactModal from '@/components/EditContactModal'
 
+interface ProspectStageOption {
+  id: string
+  name: string
+  color?: string | null
+}
+
 interface CustomerData {
   id: string
   name: string
+  stage?: string
   orgNumber?: string | null
   industry?: string | null
   website?: string | null
@@ -19,6 +26,8 @@ interface CustomerData {
   phone?: string | null
   email?: string | null
   notes?: string | null
+  currentStageId?: string | null
+  prospectStages?: ProspectStageOption[]
 }
 
 interface ContactData {

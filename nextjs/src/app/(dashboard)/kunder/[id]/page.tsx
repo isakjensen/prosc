@@ -8,6 +8,7 @@ import KundProjektTab from "./KundProjektTab"
 import KundFlodeTab from "./KundFlodeTab"
 import { EditCustomerButton, EditContactButton } from "./KundEditActions"
 import KundOutreachTab from "./KundOutreachTab"
+import KundTabs from "./KundTabs"
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -97,6 +98,8 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
 
   if (!customer) notFound()
 
+  const allProspectStages = await prisma.prospectStage.findMany({ orderBy: { order: 'asc' } })
+
   const allProjects = await prisma.project.findMany({
     orderBy: { name: "asc" },
     select: { id: true, name: true, status: true },
@@ -172,6 +175,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
             <EditCustomerButton customer={{
               id: customer.id,
               name: customer.name,
+              stage: customer.stage,
               orgNumber: customer.orgNumber,
               industry: customer.industry,
               website: customer.website,
@@ -183,6 +187,8 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
               phone: customer.phone,
               email: customer.email,
               notes: customer.notes,
+              currentStageId: customer.prospectStage?.currentStageId ?? null,
+              prospectStages: allProspectStages.map((s) => ({ id: s.id, name: s.name, color: s.color })),
             }} />
             {customer.stage === 'PROSPECT' && customer.prospectStage?.currentStage && (
               <Badge variant="info">{customer.prospectStage.currentStage.name}</Badge>
@@ -193,21 +199,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 flex-wrap">
-        {baseTabs.map((t) => (
-          <Link
-            key={t.key}
-            href={`/kunder/${id}?tab=${t.key}`}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t.key
-                ? 'border-b-2 border-zinc-900 text-zinc-900'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {t.label}
-          </Link>
-        ))}
-      </div>
+      <KundTabs tabs={baseTabs} activeTab={tab} customerId={id} />
 
       {/* Tab content */}
       {tab === 'oversikt' && (

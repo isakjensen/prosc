@@ -8,9 +8,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
+interface ProspectStageOption {
+  id: string
+  name: string
+  color?: string | null
+}
+
 interface CustomerData {
   id: string
   name: string
+  stage?: string
   orgNumber?: string | null
   industry?: string | null
   website?: string | null
@@ -23,6 +30,8 @@ interface CustomerData {
   phone?: string | null
   email?: string | null
   notes?: string | null
+  currentStageId?: string | null
+  prospectStages?: ProspectStageOption[]
 }
 
 interface EditCustomerModalProps {
@@ -42,13 +51,17 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 export default function EditCustomerModal({ isOpen, onClose, customer }: EditCustomerModalProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [selectedStageId, setSelectedStageId] = useState(customer.currentStageId ?? '')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
 
     const form = e.currentTarget
-    const data = Object.fromEntries(new FormData(form))
+    const data: Record<string, unknown> = Object.fromEntries(new FormData(form))
+    if (customer.stage === 'PROSPECT' && customer.prospectStages) {
+      data.prospectStageId = selectedStageId
+    }
 
     try {
       const res = await fetch(`/api/kunder/${customer.id}`, {
@@ -82,6 +95,22 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
               <FieldLabel>Företagsnamn</FieldLabel>
               <Input name="name" required defaultValue={customer.name} />
             </div>
+
+            {customer.stage === 'PROSPECT' && customer.prospectStages && customer.prospectStages.length > 0 && (
+              <div className="sm:col-span-2">
+                <FieldLabel>Fas</FieldLabel>
+                <select
+                  value={selectedStageId}
+                  onChange={(e) => setSelectedStageId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 transition-all outline-none hover:border-zinc-300 hover:bg-white focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+                >
+                  <option value="">Ingen fas</option>
+                  {customer.prospectStages.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <FieldLabel>Organisationsnummer</FieldLabel>
