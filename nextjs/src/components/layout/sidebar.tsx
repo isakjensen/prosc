@@ -22,6 +22,7 @@ import {
   Filter,
   ScrollText,
   UserCircle2,
+  UsersRound,
 } from 'lucide-react'
 
 const navGroups = [
@@ -65,6 +66,7 @@ const navGroups = [
       { href: '/kunskapsbas', label: 'Kunskapsbas', icon: BookOpen },
       { href: '/systemloggar', label: 'Systemloggar', icon: ScrollText },
       { href: '/installningar', label: 'Inställningar', icon: Settings },
+      { href: '/anvandare', label: 'Användare', icon: UsersRound },
     ],
   },
 ]
