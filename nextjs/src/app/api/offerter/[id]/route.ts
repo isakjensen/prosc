@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { onQuoteAccepted } from '@/lib/workflows'
 
 export async function GET(
   _request: NextRequest,
@@ -32,6 +33,11 @@ export async function PATCH(
     },
     include: { customer: true, lineItems: true },
   })
+
+  // Trigger workflow: auto-create invoice draft when quote accepted
+  if (body.status === 'ACCEPTED') {
+    onQuoteAccepted(id).catch(() => {})
+  }
 
   return NextResponse.json(quote)
 }

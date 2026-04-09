@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { onInvoiceOverdue } from '@/lib/workflows'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -20,6 +21,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     data,
     include: { customer: true, lineItems: true, payments: true },
   })
+
+  // Trigger workflow: notify on overdue
+  if (body.status === 'OVERDUE') {
+    onInvoiceOverdue(id).catch(() => {})
+  }
 
   return NextResponse.json(invoice)
 }

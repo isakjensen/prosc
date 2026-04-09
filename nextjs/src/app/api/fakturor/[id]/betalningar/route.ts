@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { onPaymentReceived } from '@/lib/workflows'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -35,6 +36,11 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   await prisma.invoice.update({ where: { id }, data: updateData })
+
+  // Trigger workflow: notify on full payment
+  if (totalPaid >= invoice.total) {
+    onPaymentReceived(id).catch(() => {})
+  }
 
   return NextResponse.json(payment, { status: 201 })
 }

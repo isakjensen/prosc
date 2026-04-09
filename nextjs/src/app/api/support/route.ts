@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { onTicketCreated } from '@/lib/workflows'
 
 export async function GET() {
   const tickets = await prisma.supportTicket.findMany({
@@ -30,6 +31,11 @@ export async function POST(request: NextRequest) {
       assignedToId: body.assignedToId || null,
     },
   })
+
+  // Trigger workflow: notify assigned user
+  if (ticket.assignedToId) {
+    onTicketCreated(ticket.id).catch(() => {})
+  }
 
   return NextResponse.json(ticket, { status: 201 })
 }
