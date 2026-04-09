@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button'
 interface Props {
   quoteId: string
   currentStatus: string
+  hasInvoice?: boolean
 }
 
-export default function QuoteActions({ quoteId, currentStatus }: Props) {
+export default function QuoteActions({ quoteId, currentStatus, hasInvoice }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -22,6 +23,21 @@ export default function QuoteActions({ quoteId, currentStatus }: Props) {
         body: JSON.stringify({ status }),
       })
       router.refresh()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function createInvoice() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/offerter/${quoteId}/skapa-faktura`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        router.push(`/fakturor/${data.id}`)
+      } else if (res.status === 409 && data.invoiceId) {
+        router.push(`/fakturor/${data.invoiceId}`)
+      }
     } finally {
       setLoading(false)
     }
@@ -67,6 +83,16 @@ export default function QuoteActions({ quoteId, currentStatus }: Props) {
           onClick={() => changeStatus('EXPIRED')}
         >
           Markera utgången
+        </Button>
+      )}
+      {currentStatus === 'ACCEPTED' && !hasInvoice && (
+        <Button
+          variant="default"
+          size="sm"
+          disabled={loading}
+          onClick={createInvoice}
+        >
+          Skapa faktura från offert
         </Button>
       )}
     </div>

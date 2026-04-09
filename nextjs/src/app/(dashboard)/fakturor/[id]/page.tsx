@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
+import PaymentForm from './PaymentForm'
+import InvoiceActions from './InvoiceActions'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -30,7 +32,7 @@ export default async function FakturaDetailPage({ params }: PageProps) {
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { customer: true, lineItems: true, payments: true },
+    include: { customer: true, quote: true, lineItems: true, payments: true },
   })
 
   if (!invoice) notFound()
@@ -54,6 +56,18 @@ export default async function FakturaDetailPage({ params }: PageProps) {
         </div>
       </div>
 
+      <div className="flex items-center gap-3 flex-wrap">
+        <InvoiceActions invoiceId={invoice.id} currentStatus={invoice.status} />
+        <a
+          href={`/api/fakturor/${invoice.id}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors h-8 px-3 text-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+        >
+          Ladda ner PDF
+        </a>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="panel-surface">
           <div className="px-6 py-4 border-b border-gray-100">
@@ -72,6 +86,14 @@ export default async function FakturaDetailPage({ params }: PageProps) {
                 <span className="text-gray-900 font-medium">{value}</span>
               </div>
             ))}
+            {invoice.quote && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Kopplad offert</span>
+                <Link href={`/offerter/${invoice.quote.id}`} className="text-blue-600 hover:text-blue-800 font-medium">
+                  {invoice.quote.number}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -117,16 +139,20 @@ export default async function FakturaDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {invoice.payments.length > 0 && (
-        <div className="panel-surface">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Betalningar</h2>
-          </div>
+      <div className="panel-surface">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-900">Betalningar</h2>
+          <span className="text-xs text-gray-500">
+            {formatCurrency(invoice.paidAmount)} av {formatCurrency(invoice.total)} betalt
+          </span>
+        </div>
+        {invoice.payments.length > 0 && (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Datum</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Metod</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Referens</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Belopp</th>
               </tr>
             </thead>
@@ -135,13 +161,19 @@ export default async function FakturaDetailPage({ params }: PageProps) {
                 <tr key={p.id}>
                   <td className="px-6 py-4 text-gray-900">{formatDate(p.paidAt)}</td>
                   <td className="px-6 py-4 text-gray-600">{p.method}</td>
+                  <td className="px-6 py-4 text-gray-600">{p.reference ?? '–'}</td>
                   <td className="px-6 py-4 text-right text-gray-900 font-medium">{formatCurrency(p.amount)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+        {invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
+          <div className="border-t border-gray-100">
+            <PaymentForm invoiceId={invoice.id} remaining={invoice.total - invoice.paidAmount} />
+          </div>
+        )}
+      </div>
 
       {invoice.notes && (
         <div className="panel-surface">

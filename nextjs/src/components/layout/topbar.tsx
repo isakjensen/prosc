@@ -3,6 +3,8 @@
 import { signOut, useSession } from 'next-auth/react'
 import { Menu, Sun, Moon, Monitor, LogOut } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
+import { GlobalSearch } from './global-search'
+import { NotificationCenter } from './notification-center'
 import Link from 'next/link'
 
 interface TopbarProps {
@@ -31,6 +33,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </button>
 
       <div className="flex items-center gap-2 ml-auto">
+        <GlobalSearch />
+
+        <NotificationCenter />
+
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(nextTheme)}
