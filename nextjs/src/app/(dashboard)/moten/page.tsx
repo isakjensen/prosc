@@ -1,20 +1,32 @@
 import { prisma } from '@/lib/db'
 import { Badge } from '@/components/ui/badge'
+import Link from 'next/link'
+import CreateMeetingButton from './CreateMeetingButton'
 
 export default async function MotenPage() {
   const now = new Date()
 
-  const [upcoming, past] = await Promise.all([
+  const [upcoming, past, customers, projects] = await Promise.all([
     prisma.meeting.findMany({
       where: { startTime: { gte: now } },
-      include: { attendees: { include: { user: true, contact: true } } },
+      include: { customer: true, project: true, attendees: { include: { user: true, contact: true } } },
       orderBy: { startTime: 'asc' },
     }),
     prisma.meeting.findMany({
       where: { startTime: { lt: now } },
-      include: { attendees: { include: { user: true, contact: true } } },
+      include: { customer: true, project: true, attendees: { include: { user: true, contact: true } } },
       orderBy: { startTime: 'desc' },
       take: 20,
+    }),
+    prisma.customer.findMany({
+      where: { stage: { in: ['PROSPECT', 'CUSTOMER'] } },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.project.findMany({
+      where: { status: 'ACTIVE' },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
     }),
   ])
 
@@ -39,6 +51,26 @@ export default async function MotenPage() {
           {meeting.location && (
             <p className="text-xs text-gray-500 mt-0.5">{meeting.location}</p>
           )}
+          {(meeting.customer || meeting.project) && (
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {meeting.customer && (
+                <Link
+                  href={`/kunder/${meeting.customer.id}`}
+                  className="inline-flex text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
+                >
+                  {meeting.customer.name}
+                </Link>
+              )}
+              {meeting.project && (
+                <Link
+                  href={`/projekt/${meeting.project.id}`}
+                  className="inline-flex text-[10px] px-1.5 py-0.5 bg-cyan-50 text-cyan-700 rounded hover:bg-cyan-100 transition-colors"
+                >
+                  {meeting.project.name}
+                </Link>
+              )}
+            </div>
+          )}
           {attendeeNames && (
             <p className="text-xs text-gray-400 mt-0.5">{attendeeNames}</p>
           )}
@@ -61,6 +93,7 @@ export default async function MotenPage() {
           <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Möten</h1>
           <p className="text-sm text-gray-500 mt-0.5">{upcoming.length} kommande möten</p>
         </div>
+        <CreateMeetingButton customers={customers} projects={projects} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

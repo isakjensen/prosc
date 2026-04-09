@@ -14,8 +14,9 @@ import {
   Box,
   CheckSquare,
   Calendar,
+  CalendarDays,
   LifeBuoy,
-
+  BookOpen,
   BarChart3,
   Settings,
   Filter,
@@ -53,14 +54,15 @@ const navGroups = [
     items: [
       { href: '/uppgifter', label: 'Uppgifter', icon: CheckSquare },
       { href: '/moten', label: 'Möten', icon: Calendar },
+      { href: '/kalender', label: 'Kalender', icon: CalendarDays },
       { href: '/support', label: 'Support', icon: LifeBuoy },
-
     ],
   },
   {
     label: 'System',
     items: [
       { href: '/rapporter', label: 'Rapporter', icon: BarChart3 },
+      { href: '/kunskapsbas', label: 'Kunskapsbas', icon: BookOpen },
       { href: '/systemloggar', label: 'Systemloggar', icon: ScrollText },
       { href: '/installningar', label: 'Inställningar', icon: Settings },
     ],

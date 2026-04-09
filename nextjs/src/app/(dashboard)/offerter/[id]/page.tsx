@@ -31,7 +31,7 @@ export default async function OffertDetailPage({ params }: PageProps) {
 
   const quote = await prisma.quote.findUnique({
     where: { id },
-    include: { customer: true, lineItems: true },
+    include: { customer: true, lineItems: true, invoices: { select: { id: true } } },
   })
 
   if (!quote) notFound()
@@ -56,7 +56,17 @@ export default async function OffertDetailPage({ params }: PageProps) {
       </div>
 
       {/* Actions */}
-      <QuoteActions quoteId={quote.id} currentStatus={quote.status} />
+      <div className="flex items-center gap-3 flex-wrap">
+        <QuoteActions quoteId={quote.id} currentStatus={quote.status} hasInvoice={quote.invoices.length > 0} />
+        <a
+          href={`/api/offerter/${quote.id}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors h-8 px-3 text-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+        >
+          Ladda ner PDF
+        </a>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="panel-surface">

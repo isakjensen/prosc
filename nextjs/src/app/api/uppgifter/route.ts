@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 
 export async function GET() {
   const tasks = await prisma.task.findMany({
-    include: { assignee: true },
+    include: { assignee: true, customer: true, project: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -20,6 +20,8 @@ export async function POST(request: NextRequest) {
       status: body.status || 'TODO',
       priority: body.priority || 'MEDIUM',
       assignedTo: body.assignedTo || null,
+      customerId: body.customerId || null,
+      projectId: body.projectId || null,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
     },
   })

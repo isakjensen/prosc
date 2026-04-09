@@ -88,6 +88,8 @@ model Customer {
   systemRequirement SystemRequirement?
   bolagsfaktaData   BolagsfaktaData?
   bolagsfaktaForetag BolagsfaktaForetag[]
+  tasks                  Task[]
+  meetings               Meeting[]
   flowNotes              CustomerFlowNote[]
   flowOccurredAtOverrides CustomerFlowOccurredAtOverride[]
   outreaches             Outreach[]
@@ -277,6 +279,7 @@ model Quote {
   customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   lineItems     QuoteLineItem[]
   contracts     Contract[]
+  invoices      Invoice[]
   activities    Activity[]    @relation
 
   @@map("quotes")
@@ -386,6 +389,9 @@ model EmailTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Relations
+  outreaches Outreach[]
+
   @@map("email_templates")
 }
 
@@ -441,15 +447,21 @@ model Task {
   status      TaskStatus   @default(TODO)
   priority    TaskPriority @default(MEDIUM)
   assignedTo  String?
+  customerId  String?
+  projectId   String?
   dueDate     DateTime?
   completedAt DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  assignee   User?    @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+  assignee   User?     @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   comments   TaskComment[]
 
+  @@index([customerId])
+  @@index([projectId])
   @@map("tasks")
 }
 
@@ -489,6 +501,7 @@ model TaskComment {
 model Invoice {
   id          String        @id @default(cuid())
   customerId  String
+  quoteId     String?
   number      String        @unique
   title       String
   status      InvoiceStatus @default(DRAFT)
@@ -504,10 +517,12 @@ model Invoice {
 
   // Relations
   customer    Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  quote       Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
   lineItems   InvoiceLineItem[]
   payments    Payment[]
   activities  Activity[]    @relation
 
+  @@index([quoteId])
   @@map("invoices")
 }
 
@@ -567,6 +582,7 @@ enum PaymentMethod {
 model SupportTicket {
   id          String           @id @default(cuid())
   customerId  String
+  projectId   String?
   title       String
   description String           @db.Text
   status      TicketStatus     @default(OPEN)
@@ -579,11 +595,13 @@ model SupportTicket {
 
   // Relations
   customer    Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   creator     User             @relation("CreatedTickets", fields: [createdById], references: [id], onDelete: Cascade)
   assignee    User?            @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
   comments    TicketComment[]
   activities  Activity[]       @relation
 
+  @@index([projectId])
   @@map("support_tickets")
 }
 
@@ -628,12 +646,18 @@ model Meeting {
   location    String?
   videoLink   String?
   notes       String?  @db.Text
+  customerId  String?
+  projectId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
+  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   attendees MeetingAttendee[]
 
+  @@index([customerId])
+  @@index([projectId])
   @@map("meetings")
 }
 
@@ -821,6 +845,10 @@ model Expense {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
   @@map("expenses")
 }
 
@@ -1123,6 +1151,10 @@ model Project {
   features       ProjectFeature[]
   boardColumns   ProjectBoardColumn[]
   financeEntries ProjectFinanceEntry[]
+  tasks          Task[]
+  meetings       Meeting[]
+  expenses       Expense[]
+  supportTickets SupportTicket[]
 
   @@map("projects")
 }
@@ -1269,22 +1301,25 @@ enum OutreachStatus {
 }
 
 model Outreach {
-  id          String         @id @default(cuid())
-  customerId  String
-  userId      String?
-  title       String
-  type        OutreachType
-  scheduledAt DateTime
-  recipients  String?        @db.Text   // JSON array of recipient strings
-  body        String?        @db.LongText
-  attachments String?        @db.Text   // JSON array of attachment file names
-  status      OutreachStatus @default(PLANNED)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  customerId      String
+  userId          String?
+  emailTemplateId String?
+  title           String
+  type            OutreachType
+  scheduledAt     DateTime
+  recipients      String?        @db.Text   // JSON array of recipient strings
+  body            String?        @db.LongText
+  attachments     String?        @db.Text   // JSON array of attachment file names
+  status          OutreachStatus @default(PLANNED)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customer      Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  emailTemplate EmailTemplate? @relation(fields: [emailTemplateId], references: [id], onDelete: SetNull)
 
   @@index([customerId])
+  @@index([emailTemplateId])
   @@map("outreach")
 }

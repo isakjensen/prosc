@@ -28,7 +28,7 @@ const priorityLabel: Record<string, string> = {
 export default async function UppgifterPage() {
   const tasks = await prisma.task.findMany({
     where: { status: { not: 'CANCELLED' } },
-    include: { assignee: true },
+    include: { assignee: true, customer: true, project: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -72,6 +72,26 @@ export default async function UppgifterPage() {
                         {priorityLabel[task.priority] ?? task.priority}
                       </Badge>
                     </div>
+                    {(task.customer || task.project) && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {task.customer && (
+                          <Link
+                            href={`/kunder/${task.customer.id}`}
+                            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors dark:bg-blue-950/30 dark:text-blue-400"
+                          >
+                            {task.customer.name}
+                          </Link>
+                        )}
+                        {task.project && (
+                          <Link
+                            href={`/projekt/${task.project.id}`}
+                            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-cyan-50 text-cyan-700 rounded hover:bg-cyan-100 transition-colors dark:bg-cyan-950/30 dark:text-cyan-400"
+                          >
+                            {task.project.name}
+                          </Link>
+                        )}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between mt-2">
                       {task.dueDate ? (
                         <span className="text-xs text-gray-500">
