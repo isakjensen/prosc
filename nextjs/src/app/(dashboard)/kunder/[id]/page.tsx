@@ -85,7 +85,10 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
       contacts: true,
       quotes: { include: { lineItems: true }, orderBy: { createdAt: 'desc' } },
       contracts: { orderBy: { createdAt: 'desc' } },
-      invoices: { include: { lineItems: true }, orderBy: { createdAt: 'desc' } },
+      invoices: { include: { lineItems: true, payments: true }, orderBy: { createdAt: 'desc' } },
+      tasks: { include: { assignee: true }, orderBy: { createdAt: 'desc' } },
+      meetings: { orderBy: { startTime: 'desc' }, take: 10 },
+      supportTickets: { orderBy: { createdAt: 'desc' }, take: 10 },
       prospectStage: { include: { currentStage: true } },
       projects: {
         include: {
@@ -148,6 +151,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
     ...(showOutreach ? ([{ key: 'outreach', label: 'Outreach' }] as const) : []),
     { key: 'offerter', label: 'Offerter' },
     ...(showFinanceTabs ? ([{ key: 'fakturor', label: 'Fakturor' }] as const) : []),
+    { key: 'insikter', label: 'Insikter' },
     { key: 'flode', label: 'Flöde' },
   ]
 
@@ -470,6 +474,96 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
           </div>
         </div>
       )}
+
+      {tab === "insikter" && (() => {
+        const paidInvoices = customer.invoices.filter((i) => i.status === 'PAID')
+        const totalRevenue = paidInvoices.reduce((sum, i) => sum + i.total, 0)
+        const totalPaid = customer.invoices.reduce((sum, i) => sum + i.paidAmount, 0)
+        const openQuotes = customer.quotes.filter((q) => q.status === 'SENT' || q.status === 'DRAFT')
+        const openQuotesValue = openQuotes.reduce((sum, q) => sum + q.total, 0)
+        const overdueInvoices = customer.invoices.filter((i) => i.status === 'OVERDUE')
+        const overdueValue = overdueInvoices.reduce((sum, i) => sum + (i.total - i.paidAmount), 0)
+        const activeTasks = customer.tasks.filter((t) => t.status !== 'DONE' && t.status !== 'CANCELLED')
+        const upcomingMeetings = customer.meetings.filter((m) => new Date(m.startTime) > new Date())
+        const openTickets = customer.supportTickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS')
+
+        return (
+          <div className="space-y-4">
+            {/* KPI-chips */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {[
+                { label: 'Total intäkt', value: formatCurrency(totalRevenue), color: 'text-green-600' },
+                { label: 'Öppna offerter', value: formatCurrency(openQuotesValue), sub: `${openQuotes.length} st` },
+                { label: 'Förfallna fakturor', value: formatCurrency(overdueValue), color: overdueValue > 0 ? 'text-red-600' : undefined, sub: `${overdueInvoices.length} st` },
+                { label: 'Totalt betalt', value: formatCurrency(totalPaid) },
+              ].map(({ label, value, color, sub }) => (
+                <div key={label} className="panel-surface p-4">
+                  <p className="text-xs text-gray-500">{label}</p>
+                  <p className={`text-lg font-bold mt-0.5 ${color ?? 'text-gray-900'}`}>{value}</p>
+                  {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {/* Aktiva uppgifter */}
+              <div className="panel-surface">
+                <div className="px-5 py-3 border-b border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900">Aktiva uppgifter ({activeTasks.length})</h3>
+                </div>
+                <div className="p-5 space-y-2">
+                  {activeTasks.length === 0 ? (
+                    <p className="text-xs text-gray-400">Inga aktiva uppgifter</p>
+                  ) : activeTasks.slice(0, 5).map((t) => (
+                    <div key={t.id} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 truncate">{t.title}</span>
+                      <Badge variant={t.priority === 'URGENT' ? 'danger' : t.priority === 'HIGH' ? 'warning' : 'gray'}>
+                        {t.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Kommande möten */}
+              <div className="panel-surface">
+                <div className="px-5 py-3 border-b border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900">Kommande möten ({upcomingMeetings.length})</h3>
+                </div>
+                <div className="p-5 space-y-2">
+                  {upcomingMeetings.length === 0 ? (
+                    <p className="text-xs text-gray-400">Inga kommande möten</p>
+                  ) : upcomingMeetings.slice(0, 5).map((m) => (
+                    <div key={m.id} className="text-sm">
+                      <p className="text-gray-700">{m.title}</p>
+                      <p className="text-[10px] text-gray-400">{formatDate(m.startTime)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Öppna supportärenden */}
+              <div className="panel-surface">
+                <div className="px-5 py-3 border-b border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900">Öppna ärenden ({openTickets.length})</h3>
+                </div>
+                <div className="p-5 space-y-2">
+                  {openTickets.length === 0 ? (
+                    <p className="text-xs text-gray-400">Inga öppna ärenden</p>
+                  ) : openTickets.slice(0, 5).map((t) => (
+                    <div key={t.id} className="flex items-center justify-between text-sm">
+                      <Link href={`/support/${t.id}`} className="text-gray-700 hover:text-blue-600 truncate">{t.title}</Link>
+                      <Badge variant={t.priority === 'URGENT' ? 'danger' : t.priority === 'HIGH' ? 'warning' : 'gray'}>
+                        {t.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {tab === "flode" && (
         <div className="panel-surface">
