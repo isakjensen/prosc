@@ -1,8 +1,9 @@
 'use client'
 
 import { signOut, useSession } from 'next-auth/react'
-import { Menu, Sun, Moon, Monitor } from 'lucide-react'
+import { Menu, Sun, Moon, Monitor, LogOut } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
+import Link from 'next/link'
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -45,12 +46,19 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{session?.user?.name}</p>
           <p className="text-xs text-gray-500 dark:text-zinc-500">{session?.user?.role}</p>
         </div>
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          title="Logga ut"
+        <Link
+          href="/profil"
+          title="Min profil"
           className="h-8 w-8 rounded-full bg-zinc-800 dark:bg-zinc-700 text-white text-[11px] font-semibold flex items-center justify-center hover:bg-zinc-700 dark:hover:bg-zinc-600 transition-colors shrink-0"
         >
           {initials}
+        </Link>
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          title="Logga ut"
+          className="h-8 w-8 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
         </button>
       </div>
     </header>
