@@ -64,7 +64,7 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
     }
 
     try {
-      const res = await fetch(`/api/kunder/${customer.id}`, {
+      const res = await fetch(`/api/customers/${customer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

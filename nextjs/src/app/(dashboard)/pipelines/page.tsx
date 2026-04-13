@@ -48,7 +48,7 @@ export default async function PipelinesPage() {
               Redlistade företag
             </Button>
           </Link>
-          <Link href="/pipelines/ny">
+          <Link href="/pipelines/new">
             <Button>+ Ny pipeline</Button>
           </Link>
         </div>

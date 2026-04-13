@@ -34,7 +34,7 @@ export function RedlistAddForm() {
 
     setLoading(true)
     try {
-      const res = await fetch("/api/bolagsfakta/redlist", {
+      const res = await fetch("/api/company-facts/redlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

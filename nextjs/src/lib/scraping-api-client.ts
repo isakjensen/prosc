@@ -185,7 +185,7 @@ export async function runFetchDetailViaApi(
 
   try {
     const res = await scrapingApiFetch(
-      `/api/pipelines/${encodeURIComponent(pipelineId)}/foretag/${encodeURIComponent(foretagId)}/fetch-detail`,
+      `/api/pipelines/${encodeURIComponent(pipelineId)}/companies/${encodeURIComponent(foretagId)}/fetch-detail`,
       {
         method: "POST",
         body: JSON.stringify({ customerId, bolagsfaktaUrl }),
@@ -209,7 +209,7 @@ export async function queueFetchDetailViaApi(
 
   try {
     const res = await scrapingApiFetch(
-      `/api/pipelines/${encodeURIComponent(pipelineId)}/foretag/${encodeURIComponent(foretagId)}/fetch-detail`,
+      `/api/pipelines/${encodeURIComponent(pipelineId)}/companies/${encodeURIComponent(foretagId)}/fetch-detail`,
       {
         method: "POST",
         body: JSON.stringify({ customerId, bolagsfaktaUrl }),
@@ -236,7 +236,7 @@ export async function runCustomerBolagsfaktaRefreshViaApi(
 
   try {
     const res = await scrapingApiFetch(
-      `/api/kunder/${encodeURIComponent(customerId)}/bolagsfakta/refresh`,
+      `/api/customers/${encodeURIComponent(customerId)}/company-facts/refresh`,
       { method: "POST" },
     )
     return runQueuedDetailJobThenRespond(res, pollOptions)
@@ -260,7 +260,7 @@ export async function syncBranscherViaScrapingApi(
   try {
     const q = forceRefresh ? "?refresh=1" : ""
     const res = await scrapingApiFetch(
-      `/api/kommuner/${encodeURIComponent(kommunSlug)}/branscher${q}`,
+      `/api/municipalities/${encodeURIComponent(kommunSlug)}/industries${q}`,
     )
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>

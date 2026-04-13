@@ -59,7 +59,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(THEME_STORAGE_KEY, t)
       if (status === "authenticated") {
         try {
-          const res = await fetch("/api/profil", {
+          const res = await fetch("/api/profile", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ themePreference: t }),

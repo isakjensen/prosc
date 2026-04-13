@@ -37,38 +37,38 @@ const navGroups = [
   {
     label: 'CRM',
     items: [
-      { href: '/kunder', label: 'Kunder', icon: Building2 },
-      { href: '/prospekts', label: 'Prospekts', icon: Filter },
-      { href: '/kontakter', label: 'Kontakter', icon: UserCircle2 },
+      { href: '/customers', label: 'Kunder', icon: Building2 },
+      { href: '/prospects', label: 'Prospekts', icon: Filter },
+      { href: '/contacts', label: 'Kontakter', icon: UserCircle2 },
       { href: '/pipelines', label: 'Bolagsfakta Pipeline', icon: Users },
     ],
   },
   {
     label: 'Affär',
     items: [
-      { href: '/offerter', label: 'Offerter', icon: FileText },
-      { href: '/avtal', label: 'Avtal', icon: ClipboardList },
-      { href: '/fakturor', label: 'Fakturor', icon: Banknote },
-      { href: '/projekt', label: 'Projekt', icon: Box },
+      { href: '/quotes', label: 'Offerter', icon: FileText },
+      { href: '/contracts', label: 'Avtal', icon: ClipboardList },
+      { href: '/invoices', label: 'Fakturor', icon: Banknote },
+      { href: '/projects', label: 'Projekt', icon: Box },
     ],
   },
   {
     label: 'Arbete',
     items: [
-      { href: '/uppgifter', label: 'Uppgifter', icon: CheckSquare },
-      { href: '/moten', label: 'Möten', icon: Calendar },
-      { href: '/kalender', label: 'Kalender', icon: CalendarDays },
+      { href: '/tasks', label: 'Uppgifter', icon: CheckSquare },
+      { href: '/meetings', label: 'Möten', icon: Calendar },
+      { href: '/calendar', label: 'Kalender', icon: CalendarDays },
       { href: '/support', label: 'Support', icon: LifeBuoy },
     ],
   },
   {
     label: 'System',
     items: [
-      { href: '/rapporter', label: 'Rapporter', icon: BarChart3 },
-      { href: '/kunskapsbas', label: 'Kunskapsbas', icon: BookOpen },
-      { href: '/systemloggar', label: 'Systemloggar', icon: ScrollText },
-      { href: '/installningar', label: 'Inställningar', icon: Settings },
-      { href: '/anvandare', label: 'Användare', icon: UsersRound },
+      { href: '/reports', label: 'Rapporter', icon: BarChart3 },
+      { href: '/knowledge-base', label: 'Kunskapsbas', icon: BookOpen },
+      { href: '/system-logs', label: 'Systemloggar', icon: ScrollText },
+      { href: '/settings', label: 'Inställningar', icon: Settings },
+      { href: '/users', label: 'Användare', icon: UsersRound },
     ],
   },
 ]

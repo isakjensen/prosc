@@ -8,7 +8,7 @@ import { searchBolagsfaktaByOrgNumber } from '../lib/bolagsfakta-search.js'
  */
 export async function kunderBolagsfaktaRoutes(app: FastifyInstance) {
   app.post<{ Params: { customerId: string } }>(
-    '/api/kunder/:customerId/bolagsfakta/refresh',
+    '/api/customers/:customerId/company-facts/refresh',
     async (request, reply) => {
       const { customerId } = request.params
 

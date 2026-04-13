@@ -22,7 +22,7 @@ export default function BolagsfaktaRefreshButton({ customerId, label }: Bolagsfa
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch(`/api/kunder/${customerId}/bolagsfakta/refresh`, {
+      const res = await fetch(`/api/customers/${customerId}/company-facts/refresh`, {
         method: "POST",
       })
       const body = (await res.json().catch(() => ({}))) as {

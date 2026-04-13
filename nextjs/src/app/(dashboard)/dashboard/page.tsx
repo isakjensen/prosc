@@ -114,28 +114,28 @@ export default async function DashboardPage() {
       value: stats.customerCount,
       icon: Building2,
       iconClass: 'hero-chip__icon',
-      href: '/kunder',
+      href: '/customers',
     },
     {
       label: 'Prospekts',
       value: stats.prospectCount,
       icon: Filter,
       iconClass: 'hero-chip__icon--violet',
-      href: '/prospekts',
+      href: '/prospects',
     },
     {
       label: 'Utestående fakturor',
       value: formatCurrency(stats.openInvoicesTotal),
       icon: Banknote,
       iconClass: 'hero-chip__icon--emerald',
-      href: '/fakturor',
+      href: '/invoices',
     },
     {
       label: 'Offerter (utkast)',
       value: stats.draftQuotesCount,
       icon: FileText,
       iconClass: 'hero-chip__icon--amber',
-      href: '/offerter',
+      href: '/quotes',
     },
     {
       label: 'Öppna ärenden',
@@ -149,7 +149,7 @@ export default async function DashboardPage() {
       value: stats.pendingTasks,
       icon: Clock,
       iconClass: 'hero-chip__icon--blue',
-      href: '/uppgifter',
+      href: '/tasks',
     },
   ]
 
@@ -275,7 +275,7 @@ export default async function DashboardPage() {
               <p className="text-xs text-gray-400">Inga förfallna fakturor</p>
             ) : (
               stats.overdueInvoices.map((inv) => (
-                <Link key={inv.id} href={`/fakturor/${inv.id}`} className="flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors">
+                <Link key={inv.id} href={`/invoices/${inv.id}`} className="flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors">
                   <div className="min-w-0">
                     <p className="text-sm text-gray-700 truncate">{inv.number}</p>
                     <p className="text-[10px] text-gray-400">{inv.customer.name}</p>

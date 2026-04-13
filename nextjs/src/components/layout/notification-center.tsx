@@ -21,7 +21,7 @@ export function NotificationCenter() {
 
   async function fetchNotifications() {
     try {
-      const res = await fetch('/api/notifikationer')
+      const res = await fetch('/api/notifications')
       if (res.ok) {
         const data = await res.json()
         setNotifications(data.notifications ?? [])
@@ -49,7 +49,7 @@ export function NotificationCenter() {
   }, [open])
 
   async function markAllRead() {
-    await fetch('/api/notifikationer', {
+    await fetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ markAllRead: true }),
@@ -59,7 +59,7 @@ export function NotificationCenter() {
   }
 
   async function markRead(id: string) {
-    await fetch('/api/notifikationer', {
+    await fetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),

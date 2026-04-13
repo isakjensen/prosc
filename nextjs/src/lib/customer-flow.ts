@@ -88,7 +88,7 @@ export async function getCustomerFlowItems(customerId: string): Promise<FlowItem
       title: "Offert",
       subtitle: `${q.number} · ${quoteStatusSv[q.status] ?? q.status}`,
       description: q.title,
-      href: `/offerter/${q.id}`,
+      href: `/quotes/${q.id}`,
       occurredAt: at.toISOString(),
       editable: { date: true, noteFields: false },
     })
@@ -113,7 +113,7 @@ export async function getCustomerFlowItems(customerId: string): Promise<FlowItem
       title: "Möte",
       subtitle: m.title,
       description: m.description,
-      href: "/moten",
+      href: "/meetings",
       occurredAt: at.toISOString(),
       editable: { date: true, noteFields: false },
     })

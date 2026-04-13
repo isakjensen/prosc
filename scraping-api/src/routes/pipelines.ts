@@ -107,7 +107,7 @@ export async function pipelineRoutes(app: FastifyInstance) {
   })
 
   // Lista företag i pipeline
-  app.get<{ Params: { id: string } }>('/api/pipelines/:id/foretag', async (request, reply) => {
+  app.get<{ Params: { id: string } }>('/api/pipelines/:id/companies', async (request, reply) => {
     const { id } = request.params
     const pipeline = await prisma.bolagsfaktaPipeline.findUnique({ where: { id } })
     if (!pipeline) {
@@ -125,7 +125,7 @@ export async function pipelineRoutes(app: FastifyInstance) {
 
   // Köa detaljhämtning för ett företag
   app.post<{ Params: { id: string; foretagId: string }; Body: FetchDetailBody }>(
-    '/api/pipelines/:id/foretag/:foretagId/fetch-detail',
+    '/api/pipelines/:id/companies/:foretagId/fetch-detail',
     async (request, reply) => {
       const { id, foretagId } = request.params
       const { customerId, bolagsfaktaUrl } = request.body

@@ -36,18 +36,18 @@ export function systemLogEntityHref(
   const key = normalizeModelKey(entityType)
 
   const routes: Record<string, (id: string) => string> = {
-    customer: (id) => `/kunder/${id}`,
-    contact: (id) => `/kontakter/${id}`,
-    task: () => `/uppgifter`,
-    project: (id) => `/projekt/${id}`,
-    quote: (id) => `/offerter/${id}`,
-    invoice: (id) => `/fakturor/${id}`,
-    contract: (id) => `/avtal/${id}`,
+    customer: (id) => `/customers/${id}`,
+    contact: (id) => `/contacts/${id}`,
+    task: () => `/tasks`,
+    project: (id) => `/projects/${id}`,
+    quote: (id) => `/quotes/${id}`,
+    invoice: (id) => `/invoices/${id}`,
+    contract: (id) => `/contracts/${id}`,
     supportTicket: (id) => `/support/${id}`,
-    user: (id) => `/anvandare/${id}`,
+    user: (id) => `/users/${id}`,
     pipeline: (id) => `/pipelines/${id}`,
-    meeting: () => `/moten`,
-    prospect: () => `/prospekts`,
+    meeting: () => `/meetings`,
+    prospect: () => `/prospects`,
   }
 
   const fn = routes[key]

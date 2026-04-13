@@ -65,7 +65,7 @@ export async function onQuoteAccepted(quoteId: string) {
       type: 'INVOICE_SENT' as const,
       title: 'Fakturautkast skapat automatiskt',
       message: `Offert ${quote.number} accepterades. Faktura ${number} skapades som utkast för ${quote.customer.name}.`,
-      link: `/fakturor/${invoice.id}`,
+      link: `/invoices/${invoice.id}`,
     })),
   })
 
@@ -91,7 +91,7 @@ export async function onInvoiceOverdue(invoiceId: string) {
       type: 'WARNING' as const,
       title: 'Faktura förfallen',
       message: `Faktura ${invoice.number} för ${invoice.customer.name} har förfallit. Utestående: ${(invoice.total - invoice.paidAmount).toFixed(0)} kr.`,
-      link: `/fakturor/${invoiceId}`,
+      link: `/invoices/${invoiceId}`,
     })),
   })
 }
@@ -151,7 +151,7 @@ export async function onPaymentReceived(invoiceId: string) {
       type: 'PAYMENT_RECEIVED' as const,
       title: 'Betalning mottagen',
       message: `Faktura ${invoice.number} för ${invoice.customer.name} är nu betald (${invoice.total.toFixed(0)} kr).`,
-      link: `/fakturor/${invoiceId}`,
+      link: `/invoices/${invoiceId}`,
     })),
   })
 }

@@ -272,7 +272,7 @@ export default function PipelineForetagTable({
                   <div className="flex flex-wrap items-center gap-1.5">
                     {f.customerId ? (
                       <Link
-                        href={`/kunder/${f.customerId}?tab=bolagsfakta`}
+                        href={`/customers/${f.customerId}?tab=bolagsfakta`}
                         className={nameClass}
                       >
                         {nameInner}

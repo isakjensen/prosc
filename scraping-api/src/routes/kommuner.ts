@@ -5,13 +5,13 @@ import { fetchAndCacheBranscher } from '../lib/bolagsfakta-scraper.js'
 
 export async function kommunerRoutes(app: FastifyInstance) {
   // Lista alla kommuner
-  app.get('/api/kommuner', async () => {
+  app.get('/api/municipalities', async () => {
     return { kommuner: KOMMUNER }
   })
 
   // Hämta branscher för en kommun (cachad 7 dagar). ?refresh=1 tvingar ny hämtning från Bolagsfakta.
   app.get<{ Params: { slug: string }; Querystring: { refresh?: string } }>(
-    '/api/kommuner/:slug/branscher',
+    '/api/municipalities/:slug/industries',
     async (request, reply) => {
     const { slug } = request.params
     const forceRefresh = request.query.refresh === '1' || request.query.refresh === 'true'

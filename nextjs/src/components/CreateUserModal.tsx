@@ -33,7 +33,7 @@ export default function CreateUserModal({ isOpen, onClose }: CreateUserModalProp
     const data = Object.fromEntries(new FormData(form))
 
     try {
-      const res = await fetch('/api/anvandare', {
+      const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

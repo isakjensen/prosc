@@ -98,7 +98,7 @@ export default function PipelineForetagActions({
     setLoading("fetch")
     setError("")
     try {
-      const res = await fetch(`/api/pipelines/${pipelineId}/foretag/${foretagId}/fetch-detail`, {
+      const res = await fetch(`/api/pipelines/${pipelineId}/companies/${foretagId}/fetch-detail`, {
         method: "POST",
       })
       const body = (await res.json().catch(() => ({}))) as {
@@ -139,7 +139,7 @@ export default function PipelineForetagActions({
     setLoading("remove")
     setError("")
     try {
-      const res = await fetch(`/api/pipelines/${pipelineId}/foretag/${foretagId}`, {
+      const res = await fetch(`/api/pipelines/${pipelineId}/companies/${foretagId}`, {
         method: "DELETE",
       })
       const body = await res.json().catch(() => ({}))
@@ -159,7 +159,7 @@ export default function PipelineForetagActions({
     setLoading("promote")
     setError("")
     try {
-      const res = await fetch(`/api/pipelines/${pipelineId}/foretag/${foretagId}/promote`, {
+      const res = await fetch(`/api/pipelines/${pipelineId}/companies/${foretagId}/promote`, {
         method: "POST",
       })
       const body = await res.json().catch(() => ({}))
@@ -180,7 +180,7 @@ export default function PipelineForetagActions({
     setLoading("redlist")
     setError("")
     try {
-      const res = await fetch("/api/bolagsfakta/redlist", {
+      const res = await fetch("/api/company-facts/redlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ foretagId }),

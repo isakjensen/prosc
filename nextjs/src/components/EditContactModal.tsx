@@ -45,7 +45,7 @@ export default function EditContactModal({ isOpen, onClose, contact }: EditConta
     const data = Object.fromEntries(new FormData(form))
 
     try {
-      const res = await fetch(`/api/kontakter/${contact.id}`, {
+      const res = await fetch(`/api/contacts/${contact.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

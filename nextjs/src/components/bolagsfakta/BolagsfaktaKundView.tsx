@@ -159,7 +159,7 @@ export default function BolagsfaktaKundView({ customerId, data, contacts }: Bola
                 {contacts.map((c) => (
                   <tr key={c.id}>
                     <td className="px-4 py-2">
-                      <Link href={`/kontakter/${c.id}`} className="font-medium text-gray-900 hover:text-zinc-600">
+                      <Link href={`/contacts/${c.id}`} className="font-medium text-gray-900 hover:text-zinc-600">
                         {c.firstName} {c.lastName}
                       </Link>
                     </td>

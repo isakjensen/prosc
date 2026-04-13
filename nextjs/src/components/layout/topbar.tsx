@@ -50,7 +50,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           <p className="text-xs text-gray-500 dark:text-zinc-500">{session?.user?.role}</p>
         </div>
         <Link
-          href="/profil"
+          href="/profile"
           title="Min profil"
           className="rounded-full ring-1 ring-gray-200 dark:ring-zinc-600 hover:ring-zinc-400 dark:hover:ring-zinc-500 transition-[box-shadow] shrink-0"
         >

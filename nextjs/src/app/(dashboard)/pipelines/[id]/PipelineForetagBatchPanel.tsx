@@ -55,7 +55,7 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
     if (!hasActiveDetailJobs && !batchRunning) return
 
     const id = window.setInterval(() => {
-      fetch(`/api/pipelines/${pipelineId}/foretag`)
+      fetch(`/api/pipelines/${pipelineId}/companies`)
         .then((r) => r.json())
         .then((data) => {
           if (Array.isArray(data?.rows)) {
@@ -191,7 +191,7 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
           // Stagger starts to avoid a burst of requests.
           await sleep(200 + Math.floor(Math.random() * 500))
 
-          const res = await fetch(`/api/pipelines/${pipelineId}/foretag/${foretagId}/fetch-detail`, {
+          const res = await fetch(`/api/pipelines/${pipelineId}/companies/${foretagId}/fetch-detail`, {
             method: "POST",
             signal: controller.signal,
           })
@@ -275,7 +275,7 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
           if (!foretagId) return
 
           try {
-            const res = await fetch("/api/bolagsfakta/redlist", {
+            const res = await fetch("/api/company-facts/redlist", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ foretagId }),

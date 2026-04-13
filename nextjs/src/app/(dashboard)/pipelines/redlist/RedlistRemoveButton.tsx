@@ -13,7 +13,7 @@ export function RedlistRemoveButton({ entryId }: { entryId: string }) {
     setLoading(true)
     try {
       const res = await fetch(
-        `/api/bolagsfakta/redlist?id=${encodeURIComponent(entryId)}`,
+        `/api/company-facts/redlist?id=${encodeURIComponent(entryId)}`,
         { method: "DELETE" },
       )
       const data = await res.json().catch(() => ({}))
