@@ -5,7 +5,8 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ChevronRight } from "lucide-react"
 import PipelineActions from "./PipelineActions"
-import PipelineForetagTable, { type PipelineForetagRow } from "./PipelineForetagTable"
+import { type PipelineForetagRow } from "./PipelineForetagTable"
+import PipelineForetagBatchPanel from "./PipelineForetagBatchPanel"
 import PipelineLiveRefresh from "./PipelineLiveRefresh"
 import { PipelineForetagCountComparison } from "@/components/bolagsfakta/PipelineForetagCountComparison"
 
@@ -60,12 +61,23 @@ export default async function PipelineDetailPage({ params }: PageProps) {
     customerId: f.customerId,
     customerStage: f.customer?.stage ?? null,
     hasBolagsfakta: f.customer?.bolagsfaktaData != null,
+    bolagsfaktaUpdatedAt: f.customer?.bolagsfaktaData?.updatedAt?.toISOString() ?? null,
     isRedlisted: f.isRedlisted,
+    detailStatus: f.detailStatus,
+    detailJobId: f.detailJobId,
+    detailQueuedAt: f.detailQueuedAt?.toISOString() ?? null,
+    detailStartedAt: f.detailStartedAt?.toISOString() ?? null,
+    detailFinishedAt: f.detailFinishedAt?.toISOString() ?? null,
+    detailError: f.detailError,
   }))
+
+  const hasActiveDetailJobs = pipeline.foretag.some(
+    (f) => f.detailStatus === "QUEUED" || f.detailStatus === "RUNNING",
+  )
 
   return (
     <div className="space-y-6">
-      <PipelineLiveRefresh status={pipeline.status} />
+      <PipelineLiveRefresh status={pipeline.status} hasActiveDetailJobs={hasActiveDetailJobs} />
       {/* Header */}
       <div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
@@ -123,7 +135,7 @@ export default async function PipelineDetailPage({ params }: PageProps) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <PipelineForetagTable pipelineId={id} rows={foretagRows} />
+            <PipelineForetagBatchPanel pipelineId={id} rows={foretagRows} />
           </div>
         )}
       </div>

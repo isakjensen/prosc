@@ -5,8 +5,6 @@ import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { showWebsiteDiscoveryToasts } from "@/components/bolagsfakta/showWebsiteDiscoveryToasts"
-import type { WebsiteDiscoveryResult } from "@/lib/website-discovery-types"
 import { ChevronDown } from "lucide-react"
 
 const MENU_WIDTH = 224
@@ -107,7 +105,7 @@ export default function PipelineForetagActions({
         error?: string
         debugLogFile?: string
         sessionId?: string
-        websiteDiscovery?: WebsiteDiscoveryResult | null
+        jobId?: string
       }
       if (!res.ok) {
         if (body.debugLogFile) {
@@ -118,8 +116,7 @@ export default function PipelineForetagActions({
       if (body.debugLogFile) {
         console.info("[Bolagsfakta] Debug-logg (fil):", body.debugLogFile, "session:", body.sessionId)
       }
-      toast.success("Bolagsfakta-data sparad")
-      showWebsiteDiscoveryToasts(body.websiteDiscovery ?? undefined)
+      toast.success("Detaljskrapning köad")
       setOpen(false)
       router.refresh()
     } catch (e) {

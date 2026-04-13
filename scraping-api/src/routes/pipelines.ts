@@ -141,6 +141,17 @@ export async function pipelineRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Företag hittades inte i denna pipeline' })
       }
 
+      if (!foretag.customerId) {
+        return reply.status(400).send({ error: 'Företaget saknar customerId och kan inte detaljskrapas' })
+      }
+
+      if (foretag.detailStatus === 'RUNNING' || foretag.detailStatus === 'QUEUED') {
+        return reply.status(409).send({
+          error: 'Detaljskrapning körs redan för detta företag',
+          jobId: foretag.detailJobId ?? undefined,
+        })
+      }
+
       const job = await fetchDetailQueue.add('fetch-detail', {
         pipelineId: id,
         foretagId,
@@ -148,6 +159,18 @@ export async function pipelineRoutes(app: FastifyInstance) {
         bolagsfaktaUrl,
       }, {
         jobId: `detail-${foretagId}-${Date.now()}`,
+      })
+
+      await prisma.bolagsfaktaForetag.update({
+        where: { id: foretagId },
+        data: {
+          detailStatus: 'QUEUED',
+          detailJobId: job.id!,
+          detailQueuedAt: new Date(),
+          detailStartedAt: null,
+          detailFinishedAt: null,
+          detailError: null,
+        },
       })
 
       return reply.status(202).send({ jobId: job.id, foretagId, status: 'queued' })

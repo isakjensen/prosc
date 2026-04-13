@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio'
 import { chromium, type Browser, type Page } from 'playwright'
 import { prisma } from './db.js'
+import { fetchDetailQueue } from './queue.js'
 
 export const BASE_URL = 'https://www.bolagsfakta.se'
 
@@ -307,7 +308,7 @@ async function upsertForetagWithCustomer(pipelineId: string, f: Foretag) {
     })
   }
 
-  await prisma.bolagsfaktaForetag.create({
+  const created = await prisma.bolagsfaktaForetag.create({
     data: {
       pipelineId,
       customerId: customer?.id ?? null,
@@ -317,6 +318,32 @@ async function upsertForetagWithCustomer(pipelineId: string, f: Foretag) {
       orgNummer: f.orgNummer,
       bolagsform: f.bolagsform,
       url,
+    },
+  })
+
+  const canDetailScrape = Boolean(created.customerId) && Boolean(created.url) && !created.isRedlisted
+  if (!canDetailScrape) return
+
+  const job = await fetchDetailQueue.add(
+    'fetch-detail',
+    {
+      pipelineId,
+      foretagId: created.id,
+      customerId: created.customerId!,
+      bolagsfaktaUrl: created.url!,
+    },
+    { jobId: `detail-${created.id}-${Date.now()}` },
+  )
+
+  await prisma.bolagsfaktaForetag.update({
+    where: { id: created.id },
+    data: {
+      detailStatus: 'QUEUED',
+      detailJobId: job.id!,
+      detailQueuedAt: new Date(),
+      detailStartedAt: null,
+      detailFinishedAt: null,
+      detailError: null,
     },
   })
 }
