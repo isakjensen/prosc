@@ -7,13 +7,13 @@ async function main() {
   // Admin user
   const hash = await bcrypt.hash('password123', 10)
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@fullstack.com' },
+    where: { email: "admin@bcrm.com" },
     update: {},
     create: {
-      email: 'admin@fullstack.com',
-      name: 'Admin',
+      email: "admin@bcrm.com",
+      name: "Admin",
       passwordHash: hash,
-      role: 'ADMIN',
+      role: "ADMIN",
     },
   })
   console.log('Created user:', admin.email)
@@ -38,17 +38,17 @@ async function main() {
 
   // Default system settings
   const settings = [
-    { key: 'company_name', value: 'Fullstack AB' },
-    { key: 'company_org_number', value: '556000-0000' },
-    { key: 'company_address', value: 'Storgatan 1' },
-    { key: 'company_city', value: 'Stockholm' },
-    { key: 'company_zip', value: '111 22' },
-    { key: 'company_phone', value: '' },
-    { key: 'company_email', value: 'info@fullstack.com' },
-    { key: 'quote_prefix', value: 'OFF' },
-    { key: 'contract_prefix', value: 'AVT' },
-    { key: 'invoice_prefix', value: 'FAK' },
-    { key: 'default_tax', value: '25' },
+    { key: "company_name", value: "BCRM AB" },
+    { key: "company_org_number", value: "556000-0000" },
+    { key: "company_address", value: "Storgatan 1" },
+    { key: "company_city", value: "Stockholm" },
+    { key: "company_zip", value: "111 22" },
+    { key: "company_phone", value: "" },
+    { key: "company_email", value: "info@bcrm.com" },
+    { key: "quote_prefix", value: "OFF" },
+    { key: "contract_prefix", value: "AVT" },
+    { key: "invoice_prefix", value: "FAK" },
+    { key: "default_tax", value: "25" },
   ]
 
   for (const setting of settings) {

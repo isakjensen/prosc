@@ -6,6 +6,12 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import UserTabs from './UserTabs'
 import { EditUserButton } from '../AnvandareClient'
+import { UserAvatar } from '@/components/layout/user-avatar'
+import {
+  parseSystemLogMessage,
+  systemLogEntityHref,
+  systemLogEntityLabel,
+} from '@/lib/system-log-display'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -53,6 +59,7 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
       name: true,
       email: true,
       role: true,
+      avatar: true,
       createdAt: true,
       updatedAt: true,
       _count: {
@@ -92,9 +99,16 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user.name}</h1>
-          <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">{user.email}</p>
+        <div className="flex items-start gap-4 min-w-0">
+          <UserAvatar
+            src={user.avatar}
+            name={user.name}
+            className="h-16 w-16 sm:h-20 sm:w-20 shrink-0 ring-2 ring-gray-100 dark:ring-zinc-800"
+          />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user.name}</h1>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">{user.email}</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <EditUserButton user={{ id: user.id, name: user.name, email: user.email, role: user.role }} />
@@ -187,9 +201,9 @@ async function ActivityLog({ userId }: { userId: string }) {
       date: l.createdAt,
       type: 'log' as const,
       title: l.action,
-      description: l.details ? (JSON.parse(l.details) as Record<string, unknown>).message as string ?? null : null,
-      entity: l.entityType ? `${l.entityType}` : null,
-      entityHref: null,
+      description: parseSystemLogMessage(l.details),
+      entity: systemLogEntityLabel(l.entityType, l.entityId),
+      entityHref: systemLogEntityHref(l.entityType, l.entityId),
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
    .slice(0, 50)

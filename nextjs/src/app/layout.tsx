@@ -19,13 +19,13 @@ const ubuntuMono = Ubuntu_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Fullstack',
-  description: 'Fullstack – Affärssystem',
-  manifest: '/manifest.webmanifest',
+  title: "BCRM",
+  description: "BCRM – Affärssystem",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
-    title: 'Fullstack',
+    statusBarStyle: "default",
+    title: "BCRM",
   },
 }
 

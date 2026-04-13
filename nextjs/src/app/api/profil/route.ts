@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
+import { UserUiTheme } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
@@ -17,6 +19,7 @@ export async function GET() {
       email: true,
       role: true,
       avatar: true,
+      themePreference: true,
       createdAt: true,
       updatedAt: true,
       _count: {
@@ -57,7 +60,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Användaren hittades inte' }, { status: 404 })
   }
 
-  const data: Record<string, unknown> = {}
+  const data: Prisma.UserUpdateInput = {}
 
   if (body.name !== undefined) data.name = body.name
   if (body.email !== undefined) {
@@ -79,6 +82,14 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Felaktigt nuvarande lösenord' }, { status: 403 })
     }
     data.passwordHash = await bcrypt.hash(body.newPassword, 10)
+  }
+
+  if (body.themePreference !== undefined) {
+    if (body.themePreference !== 'light' && body.themePreference !== 'dark') {
+      return NextResponse.json({ error: 'Ogiltigt tema' }, { status: 400 })
+    }
+    data.themePreference =
+      body.themePreference === 'dark' ? UserUiTheme.DARK : UserUiTheme.LIGHT
   }
 
   const updated = await prisma.user.update({

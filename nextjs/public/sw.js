@@ -1,8 +1,8 @@
-const CACHE_NAME = 'fullstack-v1'
+const CACHE_NAME = "bcrm-v1"
 
 const PRECACHE_URLS = [
-  '/',
-  '/offline',
+  "/",
+  "/offline",
 ]
 
 // Install: precache the app shell

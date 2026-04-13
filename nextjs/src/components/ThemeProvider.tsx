@@ -1,43 +1,79 @@
-'use client'
+"use client"
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react"
+import { useSession } from "next-auth/react"
 
-type Theme = 'light' | 'dark' | 'system'
+type Theme = "light" | "dark"
 
-const THEME_STORAGE_KEY = 'fullstack-theme'
-/** Tidigare ProSC-nyckel — läses en gång så befintliga användare behåller tema. */
-const LEGACY_THEME_STORAGE_KEY = 'prosc-theme'
+const THEME_STORAGE_KEY = "bcrm-theme"
+/** Tidigare nycklar — läses en gång så befintliga användare behåller tema. */
+const LEGACY_THEME_STORAGE_KEYS = ["fullstack-theme", "prosc-theme"] as const
+
+function readStoredTheme(): Theme {
+  if (typeof window === "undefined") return "light"
+  const raw =
+    localStorage.getItem(THEME_STORAGE_KEY) ??
+    LEGACY_THEME_STORAGE_KEYS.map((k) => localStorage.getItem(k)).find(Boolean)
+  if (raw === "dark") return "dark"
+  if (raw === "light") return "light"
+  return "light"
+}
 
 const ThemeContext = createContext<{
   theme: Theme
   setTheme: (t: Theme) => void
-}>({ theme: 'light', setTheme: () => {} })
+}>({ theme: "light", setTheme: () => {} })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'light'
-    const stored =
-      (localStorage.getItem(THEME_STORAGE_KEY) ??
-        localStorage.getItem(LEGACY_THEME_STORAGE_KEY)) as Theme | null
-    return stored ?? 'light'
-  })
+  const { data: session, status, update } = useSession()
+  const [theme, setThemeState] = useState<Theme>(() =>
+    typeof window !== "undefined" ? readStoredTheme() : "light",
+  )
 
   useEffect(() => {
     const root = document.documentElement
-    root.classList.remove('light', 'dark')
-
-    if (theme === 'system') {
-      const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      root.classList.add(sys)
-    } else {
-      root.classList.add(theme)
-    }
+    root.classList.remove("light", "dark")
+    root.classList.add(theme)
   }, [theme])
 
-  function setTheme(t: Theme) {
-    localStorage.setItem(THEME_STORAGE_KEY, t)
-    setThemeState(t)
-  }
+  useEffect(() => {
+    if (status === "loading") return
+    if (status === "authenticated" && session?.user?.themePreference) {
+      const t = session.user.themePreference
+      setThemeState(t)
+      localStorage.setItem(THEME_STORAGE_KEY, t)
+    } else if (status === "unauthenticated") {
+      setThemeState(readStoredTheme())
+    }
+  }, [status, session?.user?.themePreference])
+
+  const setTheme = useCallback(
+    async (t: Theme) => {
+      setThemeState(t)
+      localStorage.setItem(THEME_STORAGE_KEY, t)
+      if (status === "authenticated") {
+        try {
+          const res = await fetch("/api/profil", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ themePreference: t }),
+          })
+          if (res.ok) {
+            await update({ themePreference: t })
+          }
+        } catch {
+          /* UI redan uppdaterad */
+        }
+      }
+    },
+    [status, update],
+  )
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

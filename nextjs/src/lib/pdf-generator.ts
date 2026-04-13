@@ -129,7 +129,7 @@ export function generateDocumentHtml(data: PdfData): string {
   ${data.notes ? `<div class="notes"><h3>Anteckningar</h3><p>${data.notes}</p></div>` : ''}
 
   <div class="footer">
-    ${data.companyName ?? 'Fullstack CRM'} &mdash; Genererad ${new Date().toLocaleDateString('sv-SE')}
+    ${data.companyName ?? 'BCRM'} &mdash; Genererad ${new Date().toLocaleDateString('sv-SE')}
   </div>
 </body>
 </html>`

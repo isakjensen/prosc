@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { DEFAULT_AVATAR_URL } from '@/lib/avatar'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
@@ -78,9 +80,22 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     <div className="flex h-full flex-col bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800">
       {/* Logo */}
       <div className="flex h-14 shrink-0 items-center px-5 border-b border-gray-200 dark:border-zinc-800">
-        <span className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight">
-          Full<span className="text-zinc-400 dark:text-zinc-500">stack</span>
-        </span>
+        <Link
+          href="/dashboard"
+          onClick={onClose}
+          className="flex items-center gap-2.5 min-w-0"
+        >
+          <Image
+            src={DEFAULT_AVATAR_URL}
+            alt="BCRM"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-lg object-cover shrink-0"
+          />
+          <span className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight truncate">
+            BCRM
+          </span>
+        </Link>
       </div>
 
       {/* Nav */}
@@ -99,10 +114,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                     href={href}
                     onClick={onClose}
                     className={cn(
-                      'relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors',
+                      "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-normal transition-colors",
                       active
-                        ? 'bg-gray-100 text-gray-900 dark:bg-zinc-800 dark:text-white'
-                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-zinc-500 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200',
+                        ? "bg-gray-100 text-gray-900 dark:bg-zinc-800 dark:text-white font-medium"
+                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-zinc-500 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200",
                     )}
                   >
                     {active && (

@@ -6,6 +6,12 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import ProfilTabs from './ProfilTabs'
 import ProfilForm from './ProfilForm'
+import { UserAvatar } from '@/components/layout/user-avatar'
+import {
+  parseSystemLogMessage,
+  systemLogEntityHref,
+  systemLogEntityLabel,
+} from '@/lib/system-log-display'
 
 interface PageProps {
   searchParams: Promise<{ tab?: string }>
@@ -54,6 +60,7 @@ export default async function ProfilPage({ searchParams }: PageProps) {
       name: true,
       email: true,
       role: true,
+      avatar: true,
       createdAt: true,
       updatedAt: true,
       _count: {
@@ -87,10 +94,17 @@ export default async function ProfilPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="page-kicker">Konto</p>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">Min profil</h1>
-          <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">{user.email}</p>
+        <div className="flex items-start gap-4 min-w-0">
+          <UserAvatar
+            src={user.avatar}
+            name={user.name}
+            className="h-16 w-16 sm:h-20 sm:w-20 shrink-0 ring-2 ring-gray-100 dark:ring-zinc-800"
+          />
+          <div className="min-w-0">
+            <p className="page-kicker">Konto</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">Min profil</h1>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">{user.email}</p>
+          </div>
         </div>
         <Badge variant={rb}>{rl}</Badge>
       </div>
@@ -185,9 +199,9 @@ async function ProfilActivityLog({ userId }: { userId: string }) {
       date: l.createdAt,
       type: 'log' as const,
       title: l.action,
-      description: l.details ? (JSON.parse(l.details) as Record<string, unknown>).message as string ?? null : null,
-      entity: l.entityType ? `${l.entityType}` : null,
-      entityHref: null,
+      description: parseSystemLogMessage(l.details),
+      entity: systemLogEntityLabel(l.entityType, l.entityId),
+      entityHref: systemLogEntityHref(l.entityType, l.entityId),
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
    .slice(0, 50)

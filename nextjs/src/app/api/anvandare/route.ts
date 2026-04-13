@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { DEFAULT_AVATAR_URL } from '@/lib/avatar'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       email: body.email,
       passwordHash,
       role: body.role || 'MEMBER',
+      avatar: DEFAULT_AVATAR_URL,
     },
     select: {
       id: true,

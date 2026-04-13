@@ -27,7 +27,7 @@ def _show_error(title: str, err: Exception) -> None:
 class UserAdminApp:
     def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.title("Fullstack — användare")
+        self.root.title("BCRM — användare")
         self.root.minsize(420, 360)
         self.root.geometry("480x400")
 

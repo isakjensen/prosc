@@ -6,8 +6,8 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider>
-      <SessionProvider>
+    <SessionProvider>
+      <ThemeProvider>
         {children}
         <Toaster
           position="bottom-right"
@@ -23,7 +23,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             },
           }}
         />
-      </SessionProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </SessionProvider>
   )
 }

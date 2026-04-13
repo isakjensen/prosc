@@ -1,4 +1,4 @@
-# Systemgranskning - Fullstack CRM
+# Systemgranskning - BCRM
 
 > Genererad: 2026-04-09
 > Syfte: Identifiera frånkopplade moduler, saknade kopplingar och föreslagna nya funktioner

@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTheme } from '@/components/ThemeProvider'
-import { Sun, Moon, Monitor } from 'lucide-react'
+import { Sun, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Setting {
@@ -29,10 +29,9 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 const themes = [
-  { value: 'light', label: 'Ljust', icon: Sun },
-  { value: 'dark', label: 'Mörkt', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
-] as const
+  { value: 'light' as const, label: 'Ljust', icon: Sun },
+  { value: 'dark' as const, label: 'Mörkt', icon: Moon },
+]
 
 export default function InstallningarForm({ settings }: Props) {
   const router = useRouter()
@@ -71,10 +70,12 @@ export default function InstallningarForm({ settings }: Props) {
       <div className="panel-surface max-w-2xl mx-auto">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Utseende</h2>
-          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Välj ljust eller mörkt läge</p>
+          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+            Sparas på ditt konto och följer dig på alla enheter
+          </p>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 max-w-md">
             {themes.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}

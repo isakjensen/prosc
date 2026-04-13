@@ -15,14 +15,15 @@ datasource db {
 // ============================================
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
+  id            String       @id @default(cuid())
+  email         String       @unique
   passwordHash  String
   name          String
-  role          UserRole @default(MEMBER)
+  role          UserRole     @default(MEMBER)
   avatar        String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  themePreference UserUiTheme @default(LIGHT)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   // Relations
   activities        Activity[]
@@ -49,6 +50,11 @@ enum UserRole {
   ADMIN
   MANAGER
   MEMBER
+}
+
+enum UserUiTheme {
+  LIGHT
+  DARK
 }
 
 model Customer {

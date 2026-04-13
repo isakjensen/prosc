@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { PasswordInput } from '@/components/ui/password-input'
+import { DEFAULT_AVATAR_URL } from '@/lib/avatar'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -41,12 +43,17 @@ export default function LoginPage() {
           {/* Brand header */}
           <div className="border-b border-gray-100 px-6 py-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-zinc-900 text-white">
-                <span className="text-sm font-bold">F</span>
-              </div>
+              <Image
+                src={DEFAULT_AVATAR_URL}
+                alt="BCRM"
+                width={36}
+                height={36}
+                className="h-9 w-9 shrink-0 rounded-md object-cover"
+                priority
+              />
               <div>
-                <h1 className="text-sm font-semibold text-gray-900">
-                  Full<span className="text-zinc-500">stack</span>
+                <h1 className="text-sm font-bold text-gray-900 tracking-tight">
+                  BCRM
                 </h1>
                 <p className="text-xs text-gray-500">Logga in för att fortsätta</p>
               </div>
@@ -63,7 +70,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@fullstack.com"
+                  placeholder="admin@bcrm.com"
                   required
                   autoFocus
                 />

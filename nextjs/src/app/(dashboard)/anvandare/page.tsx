@@ -3,6 +3,7 @@ import { formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { CreateUserButton, EditUserButton } from './AnvandareClient'
+import { UserAvatar } from '@/components/layout/user-avatar'
 
 interface PageProps {
   searchParams: Promise<{ q?: string }>
@@ -79,13 +80,23 @@ export default async function AnvandarePage({ searchParams }: PageProps) {
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
                   <td className="px-6 py-4">
-                    <Link
-                      href={`/anvandare/${user.id}`}
-                      className="font-medium text-gray-900 dark:text-white hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                    >
-                      {user.name}
-                    </Link>
-                    <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5 sm:hidden">{user.email}</p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <UserAvatar
+                        src={user.avatar}
+                        name={user.name}
+                        insetPaddingClassName="p-[10%]"
+                        className="h-9 w-9 shrink-0 ring-1 ring-gray-100 dark:ring-zinc-800"
+                      />
+                      <div className="min-w-0">
+                        <Link
+                          href={`/anvandare/${user.id}`}
+                          className="font-medium text-gray-900 dark:text-white hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                        >
+                          {user.name}
+                        </Link>
+                        <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5 sm:hidden">{user.email}</p>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-gray-600 dark:text-zinc-400 hidden sm:table-cell">{user.email}</td>
                   <td className="px-6 py-4">
