@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
+import type { OutreachType, OutreachStatus } from "@prisma/client"
 
 // POST /api/outreach/bulk — bulk create outreach for multiple customers
 export async function POST(request: NextRequest) {
@@ -57,10 +58,10 @@ export async function POST(request: NextRequest) {
     customerId: string
     userId: string
     title: string
-    type: string
+    type: OutreachType
     scheduledAt: Date
     body: string | null
-    status: string
+    status: OutreachStatus
   }[] = []
 
   let customerIndex = 0
@@ -72,10 +73,10 @@ export async function POST(request: NextRequest) {
         customerId: customerIds[customerIndex],
         userId: session.user.id,
         title: title.trim(),
-        type,
+        type: type as OutreachType,
         scheduledAt: day,
         body: outreachBody?.trim() || null,
-        status: "PLANNED",
+        status: "PLANNED" as OutreachStatus,
       })
       customerIndex++
     }
