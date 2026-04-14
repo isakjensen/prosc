@@ -161,6 +161,38 @@ npm run start
 
 Run it under a process manager (e.g. systemd/PM2) or as a container.
 
+### `tmux` cheat-sheet (VPS)
+
+Use this on the VPS (inside your SSH session) to keep processes running after you close the SSH window.
+
+Create a new session:
+
+```bash
+tmux new -s scraper
+```
+
+Detach (leave it running):
+
+- Press `Ctrl+b`, release, then press `d`
+
+Reattach later:
+
+```bash
+tmux attach -t scraper
+```
+
+List sessions:
+
+```bash
+tmux ls
+```
+
+Kill a session:
+
+```bash
+tmux kill-session -t scraper
+```
+
 #### `nextjs/`
 
 ```bash

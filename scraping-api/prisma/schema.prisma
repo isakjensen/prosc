@@ -7,64 +7,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// Customer & Contact (subset for scraping)
-// ============================================
-
 model Customer {
-  id          String        @id @default(cuid())
-  name        String
-  stage       CustomerStage @default(PROSPECT)
-  orgNumber   String?       @unique
-  industry    String?
-  website     String?
-  address     String?
-  city        String?
-  state       String?
-  zip         String?
-  country     String?
-  phone       String?
-  email       String?
-  notes       String?       @db.Text
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  promotedToProspectAt DateTime?
-
-  contacts           Contact[]
-  bolagsfaktaData    BolagsfaktaData?
-  bolagsfaktaForetag BolagsfaktaForetag[]
+  id                                  String                                @id @default(cuid())
+  name                                String
+  stage                               CustomerStage                         @default(PROSPECT)
+  orgNumber                           String?                               @unique
+  industry                            String?
+  website                             String?
+  address                             String?
+  city                                String?
+  state                               String?
+  zip                                 String?
+  country                             String?
+  phone                               String?
+  email                               String?
+  notes                               String?                               @db.Text
+  createdAt                           DateTime                              @default(now())
+  updatedAt                           DateTime                              @updatedAt
+  promotedToProspectAt                DateTime?
+  activities                          activities[]
+  bolagsfaktaData                     BolagsfaktaData?
+  bolagsfaktaForetag                  BolagsfaktaForetag[]
+  campaigns                           campaigns[]
+  contacts                            Contact[]
+  contracts                           contracts[]
+  customer_flow_notes                 customer_flow_notes[]
+  customer_flow_occurred_at_overrides customer_flow_occurred_at_overrides[]
+  documents                           documents[]
+  files                               files[]
+  invoices                            invoices[]
+  meetings                            meetings[]
+  outreach                            outreach[]
+  project_customers                   project_customers[]
+  prospect_stage_history              prospect_stage_history?
+  quotes                              quotes[]
+  support_tickets                     support_tickets[]
+  system_requirements                 system_requirements?
+  tasks                               tasks[]
 
   @@map("customers")
 }
 
-enum CustomerStage {
-  SCRAPED
-  PROSPECT
-  CUSTOMER
-  ARCHIVED
-}
-
 model Contact {
-  id         String   @id @default(cuid())
-  customerId String
-  firstName  String
-  lastName   String
-  email      String?
-  phone      String?
-  title      String?
-  role       String?
-  notes      String?  @db.Text
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String              @id @default(cuid())
+  customerId        String
+  firstName         String
+  lastName          String
+  email             String?
+  phone             String?
+  title             String?
+  role              String?
+  notes             String?             @db.Text
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  activities        activities[]
+  customer          Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  email_contacts    email_contacts[]
+  meeting_attendees meeting_attendees[]
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
+  @@index([customerId], map: "contacts_customerId_fkey")
   @@map("contacts")
 }
-
-// ============================================
-// Bolagsfakta Pipeline
-// ============================================
 
 model BolagsfaktaBransch {
   id           String   @id @default(cuid())
@@ -93,10 +96,836 @@ model BolagsfaktaPipeline {
   lastScrapedAt           DateTime?
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
-
-  foretag BolagsfaktaForetag[]
+  foretag                 BolagsfaktaForetag[]
 
   @@map("bolagsfakta_pipelines")
+}
+
+model BolagsfaktaForetag {
+  id               String                  @id @default(cuid())
+  pipelineId       String
+  customerId       String?
+  isRedlisted      Boolean                 @default(false)
+  namn             String
+  adress           String?
+  orgNummer        String?
+  bolagsform       String?
+  url              String?
+  createdAt        DateTime                @default(now())
+  detailError      String?                 @db.Text
+  detailFinishedAt DateTime?
+  detailJobId      String?
+  detailQueuedAt   DateTime?
+  detailStartedAt  DateTime?
+  detailStatus     BolagsfaktaDetailStatus @default(IDLE)
+  customer         Customer?               @relation(fields: [customerId], references: [id])
+  pipeline         BolagsfaktaPipeline     @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@index([pipelineId, url])
+  @@index([customerId])
+  @@index([detailJobId])
+  @@map("bolagsfakta_foretag")
+}
+
+model BolagsfaktaRedlistEntry {
+  id                  String   @id @default(cuid())
+  namn                String
+  orgNummerNormalized String?
+  url                 String?  @unique
+  createdAt           DateTime @default(now())
+
+  @@index([orgNummerNormalized])
+  @@map("bolagsfakta_redlist")
+}
+
+model BolagsfaktaData {
+  id                     String   @id @default(cuid())
+  customerId             String   @unique
+  sourceUrl              String?
+  scrapedAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  orgNumberFormatted     String?
+  phone                  String?
+  sniKodPrimary          String?
+  sniBenamningPrimary    String?
+  verkligHuvudman        String?  @db.Text
+  koncernModerNamn       String?
+  antalAnstalldaText     String?
+  firmaNamn              String?
+  bolagsformDetail       String?
+  registreringsStatus    String?
+  gatuadress             String?
+  postadress             String?
+  seatLocation           String?
+  bolagetBildatText      String?
+  bolagetRegistreratText String?
+  momsregnr              String?
+  verksamhetsbeskrivning String?  @db.Text
+  omsattningSenaste      String?
+  aretsResultatSenaste   String?
+  ebitdaSenaste          String?
+  utdelningSenaste       String?
+  overviewJson           String?  @db.LongText
+  ansvarigaJson          String?  @db.LongText
+  ekonomiJson            String?  @db.LongText
+  omForetagetJson        String?  @db.LongText
+  fordonJson             String?  @db.LongText
+  arbetsstallenJson      String?  @db.LongText
+  ovrigtJson             String?  @db.LongText
+  discoveredWebsite      String?
+  customer               Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("bolagsfakta_data")
+}
+
+model activities {
+  id              String           @id
+  type            activities_type
+  title           String
+  description     String?          @db.Text
+  userId          String?
+  customerId      String?
+  contactId       String?
+  quoteId         String?
+  contractId      String?
+  invoiceId       String?
+  ticketId        String?
+  metadata        String?          @db.Text
+  createdAt       DateTime         @default(now())
+  contacts        Contact?         @relation(fields: [contactId], references: [id])
+  contracts       contracts?       @relation(fields: [contractId], references: [id])
+  customers       Customer?        @relation(fields: [customerId], references: [id])
+  invoices        invoices?        @relation(fields: [invoiceId], references: [id])
+  quotes          quotes?          @relation(fields: [quoteId], references: [id])
+  support_tickets support_tickets? @relation(fields: [ticketId], references: [id])
+  users           users?           @relation(fields: [userId], references: [id])
+
+  @@index([contactId], map: "activities_contactId_fkey")
+  @@index([contractId], map: "activities_contractId_fkey")
+  @@index([customerId], map: "activities_customerId_fkey")
+  @@index([invoiceId], map: "activities_invoiceId_fkey")
+  @@index([quoteId], map: "activities_quoteId_fkey")
+  @@index([ticketId], map: "activities_ticketId_fkey")
+  @@index([userId], map: "activities_userId_fkey")
+}
+
+model campaigns {
+  id         String           @id
+  customerId String?
+  name       String
+  type       String
+  startDate  DateTime
+  endDate    DateTime?
+  budget     Float?
+  spent      Float            @default(0)
+  status     campaigns_status @default(PLANNING)
+  notes      String?          @db.Text
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime
+  customers  Customer?        @relation(fields: [customerId], references: [id])
+
+  @@index([customerId], map: "campaigns_customerId_fkey")
+}
+
+model contract_templates {
+  id          String      @id
+  name        String
+  description String?     @db.Text
+  content     String      @db.LongText
+  variables   String?     @db.Text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime
+  contracts   contracts[]
+}
+
+model contracts {
+  id                 String              @id
+  customerId         String
+  templateId         String?
+  quoteId            String?
+  number             String              @unique
+  title              String
+  content            String              @db.LongText
+  status             contracts_status    @default(DRAFT)
+  signedAt           DateTime?
+  expiresAt          DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime
+  activities         activities[]
+  customers          Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  quotes             quotes?             @relation(fields: [quoteId], references: [id])
+  contract_templates contract_templates? @relation(fields: [templateId], references: [id])
+
+  @@index([customerId], map: "contracts_customerId_fkey")
+  @@index([quoteId], map: "contracts_quoteId_fkey")
+  @@index([templateId], map: "contracts_templateId_fkey")
+}
+
+model customer_flow_notes {
+  id          String   @id
+  customerId  String
+  userId      String?
+  title       String
+  description String?  @db.Text
+  occurredAt  DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  customers   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  users       users?   @relation(fields: [userId], references: [id])
+
+  @@index([customerId])
+  @@index([userId], map: "customer_flow_notes_userId_fkey")
+}
+
+model customer_flow_occurred_at_overrides {
+  id         String                                         @id
+  customerId String
+  sourceType customer_flow_occurred_at_overrides_sourceType
+  sourceId   String
+  occurredAt DateTime
+  createdAt  DateTime                                       @default(now())
+  updatedAt  DateTime
+  customers  Customer                                       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, sourceType, sourceId])
+}
+
+model documents {
+  id          String    @id
+  customerId  String?
+  createdById String
+  title       String
+  content     String?   @db.LongText
+  category    String?
+  tags        String?   @db.Text
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  users       users     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  customers   Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([createdById], map: "documents_createdById_fkey")
+  @@index([customerId], map: "documents_customerId_fkey")
+}
+
+model email_contacts {
+  id              String          @id
+  emailId         String
+  contactId       String
+  type            String
+  createdAt       DateTime        @default(now())
+  contacts        Contact         @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  outbound_emails outbound_emails @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@unique([emailId, contactId, type])
+  @@index([contactId], map: "email_contacts_contactId_fkey")
+}
+
+model email_templates {
+  id        String     @id
+  name      String
+  subject   String
+  body      String     @db.LongText
+  variables String?    @db.Text
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  outreach  outreach[]
+}
+
+model expenses {
+  id          String          @id
+  projectId   String?
+  category    String
+  description String          @db.Text
+  amount      Float
+  date        DateTime        @default(now())
+  receiptPath String?
+  status      expenses_status @default(PENDING)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime
+  projects    projects?       @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+}
+
+model files {
+  id         String    @id
+  customerId String?
+  name       String
+  path       String
+  mimeType   String
+  size       Int
+  folder     String?
+  tags       String?   @db.Text
+  uploadedBy String?
+  createdAt  DateTime  @default(now())
+  customers  Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([customerId], map: "files_customerId_fkey")
+}
+
+model integrations {
+  id         String   @id
+  name       String
+  type       String
+  apiKey     String?
+  apiSecret  String?
+  webhookUrl String?
+  config     String?  @db.Text
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+}
+
+model invoice_line_items {
+  id          String   @id
+  invoiceId   String
+  description String   @db.Text
+  quantity    Float    @default(1)
+  unitPrice   Float
+  total       Float
+  createdAt   DateTime @default(now())
+  invoices    invoices @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId], map: "invoice_line_items_invoiceId_fkey")
+}
+
+model invoices {
+  id                 String               @id
+  customerId         String
+  number             String               @unique
+  title              String
+  status             invoices_status      @default(DRAFT)
+  issueDate          DateTime             @default(now())
+  dueDate            DateTime?
+  subtotal           Float                @default(0)
+  tax                Float                @default(0)
+  total              Float                @default(0)
+  paidAmount         Float                @default(0)
+  notes              String?              @db.Text
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  quoteId            String?
+  activities         activities[]
+  invoice_line_items invoice_line_items[]
+  customers          Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  quotes             quotes?              @relation(fields: [quoteId], references: [id])
+  payments           payments[]
+
+  @@index([customerId], map: "invoices_customerId_fkey")
+  @@index([quoteId])
+}
+
+model knowledge_base {
+  id        String   @id
+  title     String
+  content   String   @db.LongText
+  category  String?
+  tags      String?  @db.Text
+  published Boolean  @default(false)
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model meeting_attendees {
+  id        String                   @id
+  meetingId String
+  userId    String?
+  contactId String?
+  status    meeting_attendees_status @default(INVITED)
+  createdAt DateTime                 @default(now())
+  contacts  Contact?                 @relation(fields: [contactId], references: [id])
+  meetings  meetings                 @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  users     users?                   @relation(fields: [userId], references: [id])
+
+  @@index([contactId], map: "meeting_attendees_contactId_fkey")
+  @@index([meetingId], map: "meeting_attendees_meetingId_fkey")
+  @@index([userId], map: "meeting_attendees_userId_fkey")
+}
+
+model meetings {
+  id                String              @id
+  title             String
+  description       String?             @db.Text
+  startTime         DateTime
+  endTime           DateTime
+  location          String?
+  videoLink         String?
+  notes             String?             @db.Text
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  customerId        String?
+  projectId         String?
+  meeting_attendees meeting_attendees[]
+  customers         Customer?           @relation(fields: [customerId], references: [id])
+  projects          projects?           @relation(fields: [projectId], references: [id])
+
+  @@index([customerId])
+  @@index([projectId])
+}
+
+model notifications {
+  id        String             @id
+  userId    String
+  type      notifications_type
+  title     String
+  message   String             @db.Text
+  read      Boolean            @default(false)
+  link      String?
+  createdAt DateTime           @default(now())
+  users     users              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "notifications_userId_fkey")
+}
+
+model outbound_emails {
+  id             String                 @id
+  userId         String
+  to             String                 @db.Text
+  cc             String?                @db.Text
+  bcc            String?                @db.Text
+  subject        String
+  body           String                 @db.LongText
+  status         outbound_emails_status @default(LOGGED)
+  sentAt         DateTime?
+  createdAt      DateTime               @default(now())
+  email_contacts email_contacts[]
+  users          users                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "outbound_emails_userId_fkey")
+}
+
+model outreach {
+  id              String           @id
+  customerId      String
+  userId          String?
+  title           String
+  type            outreach_type
+  scheduledAt     DateTime
+  recipients      String?          @db.Text
+  body            String?          @db.LongText
+  attachments     String?          @db.Text
+  status          outreach_status  @default(PLANNED)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  emailTemplateId String?
+  customers       Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  email_templates email_templates? @relation(fields: [emailTemplateId], references: [id])
+  users           users?           @relation(fields: [userId], references: [id])
+
+  @@index([customerId])
+  @@index([emailTemplateId])
+  @@index([userId], map: "outreach_userId_fkey")
+}
+
+model payments {
+  id        String          @id
+  invoiceId String
+  amount    Float
+  method    payments_method
+  reference String?
+  paidAt    DateTime        @default(now())
+  notes     String?         @db.Text
+  createdAt DateTime        @default(now())
+  invoices  invoices        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId], map: "payments_invoiceId_fkey")
+}
+
+model project_board_cards {
+  id                    String                       @id
+  columnId              String
+  title                 String
+  description           String?                      @db.Text
+  priority              project_board_cards_priority @default(MEDIUM)
+  dueDate               DateTime?
+  order                 Int                          @default(0)
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime
+  project_board_columns project_board_columns        @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@index([columnId], map: "project_board_cards_columnId_fkey")
+}
+
+model project_board_columns {
+  id                  String                @id
+  projektId           String
+  name                String
+  order               Int                   @default(0)
+  color               String?
+  createdAt           DateTime              @default(now())
+  project_board_cards project_board_cards[]
+  projects            projects              @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@index([projektId], map: "project_board_columns_projektId_fkey")
+}
+
+model project_customers {
+  id         String   @id
+  projektId  String
+  customerId String
+  createdAt  DateTime @default(now())
+  customers  Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  projects   projects @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@unique([projektId, customerId])
+  @@index([customerId], map: "project_customers_customerId_fkey")
+}
+
+model project_features {
+  id               String                    @id
+  projektId        String
+  name             String
+  description      String?                   @db.Text
+  status           project_features_status   @default(PLANNING)
+  priority         project_features_priority @default(MEDIUM)
+  order            Int                       @default(0)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime
+  projects         projects                  @relation(fields: [projektId], references: [id], onDelete: Cascade)
+  project_subtasks project_subtasks[]
+
+  @@index([projektId], map: "project_features_projektId_fkey")
+}
+
+model project_finance_entries {
+  id          String                       @id
+  projektId   String
+  type        project_finance_entries_type
+  category    String?
+  description String
+  amount      Float
+  vatRate     Float                        @default(0.25)
+  isRecurring Boolean                      @default(false)
+  startDate   DateTime                     @default(now())
+  endDate     DateTime?
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime
+  projects    projects                     @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@index([projektId], map: "project_finance_entries_projektId_fkey")
+}
+
+model project_links {
+  id        String   @id
+  projektId String
+  title     String
+  url       String   @db.VarChar(2048)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  projects  projects @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@index([projektId])
+}
+
+model project_subtasks {
+  id               String           @id
+  featureId        String
+  title            String
+  completed        Boolean          @default(false)
+  completedAt      DateTime?
+  order            Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime
+  project_features project_features @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@index([featureId], map: "project_subtasks_featureId_fkey")
+}
+
+model projects {
+  id                      String                    @id
+  name                    String
+  description             String?                   @db.Text
+  status                  projects_status           @default(ACTIVE)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime
+  expenses                expenses[]
+  meetings                meetings[]
+  project_board_columns   project_board_columns[]
+  project_customers       project_customers[]
+  project_features        project_features[]
+  project_finance_entries project_finance_entries[]
+  project_links           project_links[]
+  support_tickets         support_tickets[]
+  tasks                   tasks[]
+}
+
+model prospect_stage_history {
+  id              String          @id
+  customerId      String          @unique
+  currentStageId  String
+  enteredAt       DateTime        @default(now())
+  notes           String?         @db.Text
+  prospect_stages prospect_stages @relation(fields: [currentStageId], references: [id])
+  customers       Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([currentStageId], map: "prospect_stage_history_currentStageId_fkey")
+}
+
+model prospect_stages {
+  id                     String                   @id
+  name                   String                   @unique
+  order                  Int                      @unique
+  description            String?                  @db.Text
+  color                  String?
+  createdAt              DateTime                 @default(now())
+  prospect_stage_history prospect_stage_history[]
+}
+
+model quote_line_items {
+  id          String   @id
+  quoteId     String
+  description String   @db.Text
+  quantity    Float    @default(1)
+  unitPrice   Float
+  total       Float
+  createdAt   DateTime @default(now())
+  quotes      quotes   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId], map: "quote_line_items_quoteId_fkey")
+}
+
+model quotes {
+  id               String             @id
+  customerId       String
+  number           String             @unique
+  title            String
+  status           quotes_status      @default(DRAFT)
+  validUntil       DateTime?
+  subtotal         Float              @default(0)
+  tax              Float              @default(0)
+  total            Float              @default(0)
+  notes            String?            @db.Text
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  activities       activities[]
+  contracts        contracts[]
+  invoices         invoices[]
+  quote_line_items quote_line_items[]
+  customers        Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId], map: "quotes_customerId_fkey")
+}
+
+model reports {
+  id          String       @id
+  createdById String
+  name        String
+  type        reports_type
+  parameters  String?      @db.Text
+  data        String?      @db.LongText
+  createdAt   DateTime     @default(now())
+  users       users        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById], map: "reports_createdById_fkey")
+}
+
+model support_tickets {
+  id                                        String                   @id
+  customerId                                String
+  title                                     String
+  description                               String                   @db.Text
+  status                                    support_tickets_status   @default(OPEN)
+  priority                                  support_tickets_priority @default(MEDIUM)
+  createdById                               String
+  assignedToId                              String?
+  resolvedAt                                DateTime?
+  createdAt                                 DateTime                 @default(now())
+  updatedAt                                 DateTime
+  projectId                                 String?
+  activities                                activities[]
+  users_support_tickets_assignedToIdTousers users?                   @relation("support_tickets_assignedToIdTousers", fields: [assignedToId], references: [id])
+  users_support_tickets_createdByIdTousers  users                    @relation("support_tickets_createdByIdTousers", fields: [createdById], references: [id], onDelete: Cascade)
+  customers                                 Customer                 @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  projects                                  projects?                @relation(fields: [projectId], references: [id])
+  ticket_comments                           ticket_comments[]
+
+  @@index([assignedToId], map: "support_tickets_assignedToId_fkey")
+  @@index([createdById], map: "support_tickets_createdById_fkey")
+  @@index([customerId], map: "support_tickets_customerId_fkey")
+  @@index([projectId])
+}
+
+model system_features {
+  id                  String                   @id
+  requirementId       String
+  name                String
+  description         String?                  @db.Text
+  status              system_features_status   @default(PLANNING)
+  priority            system_features_priority @default(MEDIUM)
+  order               Int                      @default(0)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime
+  system_requirements system_requirements      @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  system_subtasks     system_subtasks[]
+  system_updates      system_updates[]
+
+  @@index([requirementId], map: "system_features_requirementId_fkey")
+}
+
+model system_logs {
+  id         String   @id
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  details    String?  @db.Text
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  users      users?   @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "system_logs_userId_fkey")
+}
+
+model system_requirements {
+  id              String            @id
+  customerId      String            @unique
+  designNotes     String?           @db.Text
+  colorTheme      String?           @db.Text
+  typography      String?           @db.Text
+  logoPaths       String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  system_features system_features[]
+  customers       Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  system_updates  system_updates[]
+}
+
+model system_settings {
+  id        String   @id
+  key       String   @unique
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model system_subtasks {
+  id              String          @id
+  featureId       String
+  title           String
+  completed       Boolean         @default(false)
+  completedAt     DateTime?
+  order           Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  system_features system_features @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@index([featureId], map: "system_subtasks_featureId_fkey")
+}
+
+model system_updates {
+  id                  String              @id
+  requirementId       String
+  featureId           String?
+  title               String
+  description         String?             @db.Text
+  imagePaths          String?             @db.Text
+  commitLinks         String?             @db.Text
+  createdAt           DateTime            @default(now())
+  system_features     system_features?    @relation(fields: [featureId], references: [id])
+  system_requirements system_requirements @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([featureId], map: "system_updates_featureId_fkey")
+  @@index([requirementId], map: "system_updates_requirementId_fkey")
+}
+
+model task_comments {
+  id        String   @id
+  taskId    String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  tasks     tasks    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId], map: "task_comments_taskId_fkey")
+  @@index([userId], map: "task_comments_userId_fkey")
+}
+
+model tasks {
+  id            String          @id
+  title         String
+  description   String?         @db.Text
+  status        tasks_status    @default(TODO)
+  priority      tasks_priority  @default(MEDIUM)
+  assignedTo    String?
+  dueDate       DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  customerId    String?
+  projectId     String?
+  task_comments task_comments[]
+  users         users?          @relation(fields: [assignedTo], references: [id])
+  customers     Customer?       @relation(fields: [customerId], references: [id])
+  projects      projects?       @relation(fields: [projectId], references: [id])
+
+  @@index([assignedTo], map: "tasks_assignedTo_fkey")
+  @@index([customerId])
+  @@index([projectId])
+}
+
+model team_members {
+  id         String    @id
+  userId     String    @unique
+  department String?
+  title      String?
+  startDate  DateTime  @default(now())
+  endDate    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
+  users      users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ticket_comments {
+  id              String          @id
+  ticketId        String
+  userId          String
+  content         String          @db.Text
+  createdAt       DateTime        @default(now())
+  support_tickets support_tickets @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  users           users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId], map: "ticket_comments_ticketId_fkey")
+  @@index([userId], map: "ticket_comments_userId_fkey")
+}
+
+model users {
+  id                                                  String                @id
+  email                                               String                @unique
+  passwordHash                                        String
+  name                                                String
+  role                                                users_role            @default(MEMBER)
+  avatar                                              String?
+  createdAt                                           DateTime              @default(now())
+  updatedAt                                           DateTime
+  themePreference                                     users_themePreference @default(LIGHT)
+  activities                                          activities[]
+  customer_flow_notes                                 customer_flow_notes[]
+  documents                                           documents[]
+  meeting_attendees                                   meeting_attendees[]
+  notifications                                       notifications[]
+  outbound_emails                                     outbound_emails[]
+  outreach                                            outreach[]
+  reports                                             reports[]
+  support_tickets_support_tickets_assignedToIdTousers support_tickets[]     @relation("support_tickets_assignedToIdTousers")
+  support_tickets_support_tickets_createdByIdTousers  support_tickets[]     @relation("support_tickets_createdByIdTousers")
+  system_logs                                         system_logs[]
+  task_comments                                       task_comments[]
+  tasks                                               tasks[]
+  team_members                                        team_members?
+  ticket_comments                                     ticket_comments[]
+}
+
+enum CustomerStage {
+  SCRAPED
+  PROSPECT
+  CUSTOMER
+  ARCHIVED
 }
 
 enum BolagsfaktaPipelineStatus {
@@ -114,87 +943,219 @@ enum BolagsfaktaDetailStatus {
   ERROR
 }
 
-model BolagsfaktaForetag {
-  id          String   @id @default(cuid())
-  pipelineId  String
-  customerId  String?
-  isRedlisted Boolean  @default(false)
-  namn        String
-  adress      String?
-  orgNummer   String?
-  bolagsform  String?
-  url         String?
-  createdAt   DateTime @default(now())
-
-  detailStatus     BolagsfaktaDetailStatus @default(IDLE)
-  detailJobId      String?
-  detailQueuedAt   DateTime?
-  detailStartedAt  DateTime?
-  detailFinishedAt DateTime?
-  detailError      String?                 @db.Text
-
-  pipeline BolagsfaktaPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  customer Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  @@index([pipelineId, url])
-  @@index([customerId])
-  @@index([detailJobId])
-  @@map("bolagsfakta_foretag")
+enum activities_type {
+  CREATED
+  UPDATED
+  STAGE_CHANGED
+  EMAIL_SENT
+  CALL_MADE
+  MEETING_SCHEDULED
+  FILE_UPLOADED
+  CONTRACT_SIGNED
+  QUOTE_SENT
+  INVOICE_SENT
+  PAYMENT_RECEIVED
+  TASK_COMPLETED
+  MILESTONE_REACHED
+  NOTE_ADDED
 }
 
-model BolagsfaktaRedlistEntry {
-  id                  String   @id @default(cuid())
-  namn                String
-  orgNummerNormalized String?
-  url                 String?
-  createdAt           DateTime @default(now())
-
-  @@index([orgNummerNormalized])
-  @@unique([url])
-  @@map("bolagsfakta_redlist")
+enum notifications_type {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  INVOICE_SENT
+  PAYMENT_RECEIVED
+  TICKET_CREATED
+  TICKET_UPDATED
+  MEETING_REMINDER
 }
 
-model BolagsfaktaData {
-  id         String   @id @default(cuid())
-  customerId String   @unique
-  sourceUrl  String?
-  scrapedAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+enum project_finance_entries_type {
+  INCOME
+  EXPENSE
+}
 
-  orgNumberFormatted  String?
-  phone               String?
-  sniKodPrimary       String?
-  sniBenamningPrimary String?
-  verkligHuvudman     String? @db.Text
-  koncernModerNamn    String?
-  antalAnstalldaText  String?
+enum customer_flow_occurred_at_overrides_sourceType {
+  MEETING
+  QUOTE
+  BOLAGSFAKTA_SCRAPE
+  CUSTOMER_RECORD
+  PROSPECT_MILESTONE
+  ACTIVITY
+}
 
-  firmaNamn              String?
-  bolagsformDetail       String?
-  registreringsStatus    String?
-  gatuadress             String?
-  postadress             String?
-  seatLocation           String?
-  bolagetBildatText      String?
-  bolagetRegistreratText String?
-  momsregnr              String?
-  verksamhetsbeskrivning String? @db.Text
-  omsattningSenaste      String?
-  aretsResultatSenaste   String?
-  ebitdaSenaste          String?
-  utdelningSenaste       String?
+enum reports_type {
+  REVENUE
+  PROJECTS
+  TASKS
+  TIME_TRACKING
+  CUSTOMERS
+  QUOTES
+  INVOICES
+  PAYMENTS
+  SUPPORT_TICKETS
+  CUSTOM
+}
 
-  overviewJson      Json?
-  ansvarigaJson     Json?
-  ekonomiJson       Json?
-  omForetagetJson   Json?
-  fordonJson        Json?
-  arbetsstallenJson Json?
-  ovrigtJson        Json?
+enum tasks_status {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  CANCELLED
+}
 
-  discoveredWebsite String?
+enum projects_status {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+enum payments_method {
+  BANK_TRANSFER
+  CREDIT_CARD
+  CHECK
+  CASH
+  PAYPAL
+  STRIPE
+  OTHER
+}
 
-  @@map("bolagsfakta_data")
+enum users_role {
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+enum outreach_type {
+  EMAIL
+  PHONE
+  SMS
+  PHYSICAL
+}
+
+enum support_tickets_status {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum meeting_attendees_status {
+  INVITED
+  ACCEPTED
+  DECLINED
+  ATTENDED
+  NO_SHOW
+}
+
+enum system_features_status {
+  PLANNING
+  IN_PROGRESS
+  REVIEW
+  DONE
+  CANCELLED
+}
+
+enum tasks_priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum project_features_status {
+  PLANNING
+  IN_PROGRESS
+  REVIEW
+  DONE
+  CANCELLED
+}
+
+enum project_board_cards_priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum quotes_status {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum invoices_status {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum support_tickets_priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum system_features_priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum project_features_priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum expenses_status {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum outbound_emails_status {
+  QUEUED
+  LOGGED
+  SENT
+  FAILED
+}
+
+enum contracts_status {
+  DRAFT
+  SENT
+  SIGNED
+  EXPIRED
+  CANCELLED
+}
+
+enum users_themePreference {
+  LIGHT
+  DARK
+}
+
+enum campaigns_status {
+  PLANNING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum outreach_status {
+  PLANNED
+  COMPLETED
 }
