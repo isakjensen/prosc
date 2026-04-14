@@ -10,6 +10,7 @@ import {
   Loader2,
   Mail,
   MessageSquare,
+  Pencil,
   Phone,
   Plus,
   Search,
@@ -19,7 +20,10 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Modal, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { PageHeader } from '@/components/ui/page-header'
 import { FilterDrawer } from '@/components/ui/filter-drawer'
 import { cn, formatDate } from '@/lib/utils'
@@ -121,6 +125,14 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
   const [searchValue, setSearchValue] = useState(filters.q ?? '')
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
+  // Edit modal state
+  const [editItem, setEditItem] = useState<OutreachItem | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editType, setEditType] = useState<OutreachType>('EMAIL')
+  const [editDate, setEditDate] = useState('')
+  const [editBody, setEditBody] = useState('')
+  const [saving, setSaving] = useState(false)
+
   const now = new Date()
 
   // Count active filters
@@ -204,6 +216,45 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
     }
   }
 
+  function toDateValue(d: Date) {
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  }
+
+  function openEdit(item: OutreachItem) {
+    setEditTitle(item.title)
+    setEditType(item.type)
+    setEditDate(toDateValue(new Date(item.scheduledAt)))
+    setEditBody('')
+    setEditItem(item)
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editItem || !editTitle.trim() || !editDate) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/outreach/${editItem.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          type: editType,
+          scheduledAt: new Date(editDate).toISOString(),
+          body: editBody.trim() || null,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      setEditItem(null)
+      toast.success('Outreach uppdaterad')
+      router.refresh()
+    } catch {
+      toast.error('Kunde inte uppdatera outreach')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -213,9 +264,10 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
         action={
           <div className="flex items-center gap-2">
             {/* Filter button */}
-            <button
+            <Button
+              variant="outline"
               onClick={() => setFilterOpen(true)}
-              className="relative inline-flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+              className="relative gap-2"
             >
               <Filter className="h-4 w-4" />
               <span className="hidden sm:inline">Filtrera</span>
@@ -224,7 +276,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                   {activeFilterCount}
                 </span>
               )}
-            </button>
+            </Button>
             <Button onClick={() => setBulkOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Planera outreach</span>
@@ -535,6 +587,16 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                   type="button"
                                   variant="ghost"
                                   size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => openEdit(item)}
+                                  title="Redigera"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
                                   className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                   onClick={() => deleteItem(item.id)}
                                   title="Ta bort"
@@ -615,6 +677,15 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                 type="button"
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => openEdit(item)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
                                 className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => deleteItem(item.id)}
                               >
@@ -632,6 +703,96 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
           })}
         </div>
       )}
+
+      {/* Edit modal */}
+      <Modal
+        isOpen={!!editItem}
+        onClose={() => setEditItem(null)}
+        title="Redigera outreach"
+        description={editItem ? `${editItem.customerName}` : undefined}
+        size="lg"
+        panelClassName="sm:rounded-2xl shadow-zinc-950/20"
+      >
+        <form onSubmit={handleEdit}>
+          <ModalBody className="space-y-5 pb-2">
+            <div className="space-y-2">
+              <label htmlFor="edit-title" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Titel
+              </label>
+              <Input
+                id="edit-title"
+                value={editTitle}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditTitle(e.target.value)}
+                placeholder="T.ex. Uppföljning kring offert…"
+                className="h-11 text-base"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="edit-type" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Typ
+                </label>
+                <Select
+                  id="edit-type"
+                  value={editType}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditType(e.target.value as OutreachType)}
+                  className="h-11"
+                >
+                  <option value="EMAIL">E-post</option>
+                  <option value="PHONE">Samtal</option>
+                  <option value="SMS">SMS</option>
+                  <option value="PHYSICAL">Fysisk kontakt</option>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="edit-date" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Planerat datum
+                </label>
+                <div className="relative">
+                  <Calendar className="pointer-events-none absolute left-3 top-1/2 z-[1] h-4 w-4 -translate-y-1/2 text-zinc-400" aria-hidden />
+                  <Input
+                    id="edit-date"
+                    type="date"
+                    value={editDate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditDate(e.target.value)}
+                    className="h-11 pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <label htmlFor="edit-body" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Anteckningar
+                </label>
+                <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">Valfritt</span>
+              </div>
+              <Textarea
+                id="edit-body"
+                value={editBody}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditBody(e.target.value)}
+                rows={4}
+                placeholder="Anteckningar inför kontakten…"
+                className="min-h-[100px] resize-y leading-relaxed"
+              />
+            </div>
+          </ModalBody>
+
+          <ModalFooter className="gap-3 px-6 py-5">
+            <Button type="button" variant="outline" onClick={() => setEditItem(null)} className="min-w-[5.5rem] rounded-lg border-zinc-200 bg-white">
+              Avbryt
+            </Button>
+            <Button type="submit" disabled={saving || !editTitle.trim() || !editDate} className="min-w-[10rem] rounded-lg disabled:pointer-events-none disabled:opacity-45">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Spara
+            </Button>
+          </ModalFooter>
+        </form>
+      </Modal>
 
       <BulkPlanningModal
         isOpen={bulkOpen}
