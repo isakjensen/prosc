@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   Calendar,
   CheckCircle2,
+  Filter,
   Loader2,
   Mail,
   MessageSquare,
@@ -20,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/ui/page-header'
+import { FilterDrawer } from '@/components/ui/filter-drawer'
 import { cn, formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import BulkPlanningModal from './BulkPlanningModal'
@@ -115,10 +117,14 @@ function dateKey(dateStr: string): string {
 export default function OutreachPlanningView({ outreaches, prospects, filters }: Props) {
   const router = useRouter()
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [searchValue, setSearchValue] = useState(filters.q ?? '')
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
   const now = new Date()
+
+  // Count active filters
+  const activeFilterCount = [filters.q, filters.type, filters.status, filters.from, filters.to].filter(Boolean).length
 
   // Group outreaches by day
   const grouped = useMemo(() => {
@@ -161,6 +167,12 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
     router.push(buildUrl({ status: filters.status === s ? undefined : s }))
   }
 
+  function clearAllFilters() {
+    setSearchValue('')
+    router.push('/outreach-planning')
+    setFilterOpen(false)
+  }
+
   async function toggleItemStatus(item: OutreachItem) {
     const newStatus: OutreachStatus = item.status === 'PLANNED' ? 'COMPLETED' : 'PLANNED'
     setTogglingId(item.id)
@@ -199,115 +211,211 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
         title="Outreach-plan"
         description={`${outreaches.length} utskick`}
         action={
-          <Button onClick={() => setBulkOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Planera outreach</span>
-            <span className="sm:hidden">Planera</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Filter button */}
+            <button
+              onClick={() => setFilterOpen(true)}
+              className="relative inline-flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+            >
+              <Filter className="h-4 w-4" />
+              <span className="hidden sm:inline">Filtrera</span>
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-zinc-800 dark:bg-zinc-100 text-[10px] font-semibold text-white dark:text-zinc-900">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            <Button onClick={() => setBulkOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Planera outreach</span>
+              <span className="sm:hidden">Planera</span>
+            </Button>
+          </div>
         }
       />
 
-      {/* Filters */}
-      <div className="space-y-3">
-        {/* Search */}
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <Input
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              placeholder="Sök på kundnamn eller titel..."
-              className="h-10 pl-10 pr-9"
-            />
-            {searchValue && (
+      {/* Active filter badges (shown inline when filters are active) */}
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {filters.q && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+              Sök: &quot;{filters.q}&quot;
+              <button onClick={() => { setSearchValue(''); router.push(buildUrl({ q: undefined })) }} className="text-zinc-400 hover:text-zinc-600"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {filters.type && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+              Typ: {typeLabels[filters.type as OutreachType]}
+              <button onClick={() => router.push(buildUrl({ type: undefined }))} className="text-zinc-400 hover:text-zinc-600"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {filters.status && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+              {filters.status === 'PLANNED' ? 'Planerade' : 'Genomförda'}
+              <button onClick={() => router.push(buildUrl({ status: undefined }))} className="text-zinc-400 hover:text-zinc-600"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {(filters.from || filters.to) && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+              {filters.from && filters.to ? `${filters.from} – ${filters.to}` : filters.from ? `Från ${filters.from}` : `Till ${filters.to}`}
+              <button onClick={() => router.push(buildUrl({ from: undefined, to: undefined }))} className="text-zinc-400 hover:text-zinc-600"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          <button
+            onClick={clearAllFilters}
+            className="text-xs text-zinc-400 hover:text-zinc-600 underline"
+          >
+            Rensa alla
+          </button>
+        </div>
+      )}
+
+      {/* Filter Drawer */}
+      <FilterDrawer
+        isOpen={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        title="Filtrera outreach"
+      >
+        <div className="px-6 py-6 space-y-6">
+          {/* Search */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Sök
+            </label>
+            <form onSubmit={(e: React.FormEvent) => { e.preventDefault(); router.push(buildUrl({ q: searchValue || undefined })); setFilterOpen(false) }} className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  value={searchValue}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchValue(e.target.value)}
+                  placeholder="Kundnamn eller titel..."
+                  className="h-10 pl-10 pr-9"
+                />
+                {searchValue && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchValue(''); router.push(buildUrl({ q: undefined })) }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <Button type="submit" variant="outline" className="h-10 shrink-0">
+                Sök
+              </Button>
+            </form>
+          </div>
+
+          {/* Status */}
+          <div className="space-y-3">
+            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Status
+            </label>
+            <div className="flex flex-wrap gap-2">
               <button
-                type="button"
-                onClick={clearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                onClick={() => toggleStatus('PLANNED')}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                  filters.status === 'PLANNED'
+                    ? 'bg-blue-100 text-blue-800 border-blue-300'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-blue-200 hover:text-blue-700',
+                )}
               >
-                <X className="h-4 w-4" />
+                Planerade
+              </button>
+              <button
+                onClick={() => toggleStatus('COMPLETED')}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                  filters.status === 'COMPLETED'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-emerald-200 hover:text-emerald-700',
+                )}
+              >
+                Genomförda
+              </button>
+            </div>
+          </div>
+
+          {/* Type */}
+          <div className="space-y-3">
+            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Typ av outreach
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(typeLabels) as OutreachType[]).map((t) => {
+                const Icon = typeIcons[t]
+                const colors = typeFilterColors[t]
+                return (
+                  <button
+                    key={t}
+                    onClick={() => toggleType(t)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                      filters.type === t ? colors.active : colors.inactive,
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                    {typeLabels[t]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Date range */}
+          <div className="space-y-3">
+            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Datumintervall
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-400">Från</label>
+                <input
+                  type="date"
+                  value={filters.from ?? ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => router.push(buildUrl({ from: e.target.value || undefined }))}
+                  className="h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 outline-none hover:border-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-400">Till</label>
+                <input
+                  type="date"
+                  value={filters.to ?? ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => router.push(buildUrl({ to: e.target.value || undefined }))}
+                  className="h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 outline-none hover:border-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20"
+                />
+              </div>
+            </div>
+            {(filters.from || filters.to) && (
+              <button
+                onClick={() => router.push(buildUrl({ from: undefined, to: undefined }))}
+                className="text-xs text-zinc-400 hover:text-zinc-600 underline"
+              >
+                Rensa datum
               </button>
             )}
           </div>
-          <Button type="submit" variant="outline" className="h-10 shrink-0">
-            Sök
-          </Button>
-        </form>
-
-        {/* Type + Status filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Status pills */}
-          <button
-            onClick={() => toggleStatus('PLANNED')}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-              filters.status === 'PLANNED'
-                ? 'bg-blue-100 text-blue-800 border-blue-300'
-                : 'bg-white text-zinc-500 border-zinc-200 hover:border-blue-200 hover:text-blue-700',
-            )}
-          >
-            Planerade
-          </button>
-          <button
-            onClick={() => toggleStatus('COMPLETED')}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-              filters.status === 'COMPLETED'
-                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                : 'bg-white text-zinc-500 border-zinc-200 hover:border-emerald-200 hover:text-emerald-700',
-            )}
-          >
-            Genomförda
-          </button>
-
-          <span className="text-zinc-300">|</span>
-
-          {/* Type pills */}
-          {(Object.keys(typeLabels) as OutreachType[]).map((t) => {
-            const Icon = typeIcons[t]
-            const colors = typeFilterColors[t]
-            return (
-              <button
-                key={t}
-                onClick={() => toggleType(t)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                  filters.type === t ? colors.active : colors.inactive,
-                )}
-              >
-                <Icon className="h-3 w-3" />
-                {typeLabels[t]}
-              </button>
-            )
-          })}
         </div>
 
-        {/* Date range */}
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs font-medium text-zinc-500 shrink-0">Från:</label>
-          <input
-            type="date"
-            value={filters.from ?? ''}
-            onChange={(e) => router.push(buildUrl({ from: e.target.value || undefined }))}
-            className="h-9 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 outline-none hover:border-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20"
-          />
-          <label className="text-xs font-medium text-zinc-500 shrink-0">Till:</label>
-          <input
-            type="date"
-            value={filters.to ?? ''}
-            onChange={(e) => router.push(buildUrl({ to: e.target.value || undefined }))}
-            className="h-9 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 outline-none hover:border-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20"
-          />
-          {(filters.from || filters.to) && (
+        {/* Footer */}
+        <div className="sticky bottom-0 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-950/40 px-6 py-4 flex items-center justify-between gap-3">
+          {activeFilterCount > 0 && (
             <button
-              onClick={() => router.push(buildUrl({ from: undefined, to: undefined }))}
-              className="text-xs text-zinc-400 hover:text-zinc-600 underline"
+              onClick={clearAllFilters}
+              className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
             >
-              Rensa datum
+              <X className="h-3.5 w-3.5" />
+              Rensa alla
             </button>
           )}
+          <Button onClick={() => setFilterOpen(false)} className="ml-auto">
+            Klar
+          </Button>
         </div>
-      </div>
+      </FilterDrawer>
 
       {/* Content */}
       {outreaches.length === 0 ? (
