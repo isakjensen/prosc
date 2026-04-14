@@ -42,12 +42,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.add(theme)
   }, [theme])
 
+  // Uppdatera PWA status bar-färg dynamiskt
+  useEffect(() => {
+    const color = theme === "dark" ? "#18181b" : "#ffffff"
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    if (!meta) {
+      meta = document.createElement("meta")
+      meta.name = "theme-color"
+      document.head.appendChild(meta)
+    }
+    meta.content = color
+  }, [theme])
+
+  // localStorage är auktoritativt; session används bara för bootstrapping på ny enhet
   useEffect(() => {
     if (status === "loading") return
     if (status === "authenticated" && session?.user?.themePreference) {
-      const t = session.user.themePreference
-      setThemeState(t)
-      localStorage.setItem(THEME_STORAGE_KEY, t)
+      const stored = localStorage.getItem(THEME_STORAGE_KEY)
+      if (!stored) {
+        const t = session.user.themePreference
+        setThemeState(t)
+        localStorage.setItem(THEME_STORAGE_KEY, t)
+      }
     } else if (status === "unauthenticated") {
       setThemeState(readStoredTheme())
     }

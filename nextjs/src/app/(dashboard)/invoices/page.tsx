@@ -3,6 +3,7 @@ import { formatDate, formatCurrency } from '@/lib/utils'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { StatusFilterTabs } from '@/components/ui/status-filter-tabs'
 import Link from 'next/link'
 
 interface PageProps {
@@ -34,8 +35,6 @@ export default async function FakturorPage({ searchParams }: PageProps) {
     orderBy: { createdAt: 'desc' },
   })
 
-  const statusOptions = ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED']
-
   return (
     <div className="space-y-6">
       <div className="page-hero pb-5 flex items-start justify-between gap-4">
@@ -50,35 +49,24 @@ export default async function FakturorPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 flex-wrap">
-        <Link
-          href="/invoices"
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            !status ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          Alla
-        </Link>
-        {statusOptions.map((s) => (
-          <Link
-            key={s}
-            href={`/invoices?status=${s}`}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              status === s
-                ? 'bg-zinc-800 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {statusLabel[s]}
-          </Link>
-        ))}
-      </div>
+      <StatusFilterTabs
+        basePath="/invoices"
+        activeValue={status}
+        options={[
+          { value: '', label: 'Alla' },
+          { value: 'DRAFT', label: 'Utkast' },
+          { value: 'SENT', label: 'Skickad' },
+          { value: 'PAID', label: 'Betald' },
+          { value: 'OVERDUE', label: 'Förfallen' },
+          { value: 'CANCELLED', label: 'Avbruten' },
+        ]}
+      />
 
-      <div className="panel-surface">
+      <div className="panel-surface overflow-x-auto">
           {invoices.length === 0 ? (
             <div className="p-10 text-center text-gray-400 text-sm">Inga fakturor hittades</div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[52rem] text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Nummer</th>
