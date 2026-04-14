@@ -23,6 +23,7 @@ import {
   Settings,
   Filter,
   ScrollText,
+  Send,
   UserCircle2,
   UsersRound,
 } from 'lucide-react'
@@ -39,6 +40,7 @@ const navGroups = [
     items: [
       { href: '/customers', label: 'Kunder', icon: Building2 },
       { href: '/prospects', label: 'Prospekts', icon: Filter },
+      { href: '/outreach-planning', label: 'Outreach-plan', icon: Send },
       { href: '/contacts', label: 'Kontakter', icon: UserCircle2 },
       { href: '/pipelines', label: 'Bolagsfakta Pipeline', icon: Users },
     ],
