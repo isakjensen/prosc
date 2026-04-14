@@ -54,13 +54,13 @@ export default async function PipelinesPage() {
         </div>
       </div>
 
-      <div className="panel-surface">
+      <div className="panel-surface overflow-x-auto">
         {pipelines.length === 0 ? (
           <div className="p-10 text-center text-gray-400 text-sm">
             Inga pipelines ännu
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[56rem] text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Namn</th>

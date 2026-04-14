@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 
 import { Badge } from '@/components/ui/badge'
+import { StatusFilterTabs } from '@/components/ui/status-filter-tabs'
 import Link from 'next/link'
 
 interface PageProps {
@@ -45,8 +46,6 @@ export default async function SupportPage({ searchParams }: PageProps) {
     orderBy: { createdAt: 'desc' },
   })
 
-  const statusOptions = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
-
   return (
     <div className="space-y-6">
       <div className="page-hero pb-5 flex items-start justify-between gap-4">
@@ -58,35 +57,23 @@ export default async function SupportPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 flex-wrap">
-        <Link
-          href="/support"
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            !status ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          Alla
-        </Link>
-        {statusOptions.map((s) => (
-          <Link
-            key={s}
-            href={`/support?status=${s}`}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              status === s
-                ? 'bg-zinc-800 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {statusLabel[s]}
-          </Link>
-        ))}
-      </div>
+      <StatusFilterTabs
+        basePath="/support"
+        activeValue={status}
+        options={[
+          { value: '', label: 'Alla' },
+          { value: 'OPEN', label: 'Öppen' },
+          { value: 'IN_PROGRESS', label: 'Pågående' },
+          { value: 'RESOLVED', label: 'Löst' },
+          { value: 'CLOSED', label: 'Stängd' },
+        ]}
+      />
 
-      <div className="panel-surface">
+      <div className="panel-surface overflow-x-auto">
           {tickets.length === 0 ? (
             <div className="p-10 text-center text-gray-400 text-sm">Inga ärenden hittades</div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[44rem] text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Titel</th>

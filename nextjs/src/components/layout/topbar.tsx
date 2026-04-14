@@ -1,33 +1,55 @@
 'use client'
 
 import { signOut, useSession } from 'next-auth/react'
-import { Menu, Sun, Moon, LogOut } from 'lucide-react'
+import { Menu, Sun, Moon, LogOut, ChevronLeft } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 import { GlobalSearch } from './global-search'
 import { NotificationCenter } from './notification-center'
 import { UserAvatar } from './user-avatar'
 import Link from 'next/link'
+import { useRouter, usePathname } from 'next/navigation'
 
 interface TopbarProps {
   onMenuClick: () => void
 }
 
+const ROOT_PATHS = [
+  '/dashboard', '/contacts', '/customers', '/quotes', '/invoices',
+  '/contracts', '/support', '/projects', '/tasks', '/pipelines',
+  '/prospects', '/meetings', '/knowledge-base', '/reports',
+  '/settings', '/profile', '/users', '/calendar', '/system-logs',
+]
+
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
+  const router = useRouter()
+  const pathname = usePathname()
 
   const nextTheme = theme === 'light' ? 'dark' : 'light'
   const ThemeIcon = theme === 'dark' ? Moon : Sun
+  const showBack = !ROOT_PATHS.includes(pathname)
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 lg:px-6">
-      <button
-        onClick={onMenuClick}
-        className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors lg:hidden"
-        aria-label="Öppna meny"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 lg:px-6">
+      <div className="flex items-center gap-1 lg:hidden">
+        <button
+          onClick={onMenuClick}
+          className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors"
+          aria-label="Öppna meny"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        {showBack && (
+          <button
+            onClick={() => router.back()}
+            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors"
+            aria-label="Tillbaka"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
+      </div>
 
       <div className="flex items-center gap-2 ml-auto">
         <GlobalSearch />

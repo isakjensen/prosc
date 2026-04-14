@@ -1,92 +1,151 @@
 import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
-
 import Link from 'next/link'
+import { ContactsFilterSheet } from './ContactsFilterSheet'
 
 interface PageProps {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{
+    name?: string
+    email?: string
+    phone?: string
+    customerId?: string
+    hasEmail?: string
+    hasPhone?: string
+  }>
 }
 
 export default async function KontakterPage({ searchParams }: PageProps) {
-  const { q } = await searchParams
+  const { name, email, phone, customerId, hasEmail, hasPhone } = await searchParams
 
-  const contacts = await prisma.contact.findMany({
-    where: q
-      ? {
-          OR: [
-            { firstName: { contains: q } },
-            { lastName: { contains: q } },
-            { email: { contains: q } },
-          ],
-        }
-      : {},
-    include: { customer: true },
-    orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
-  })
+  const [contacts, companies] = await Promise.all([
+    prisma.contact.findMany({
+      where: {
+        AND: [
+          name ? { OR: [{ firstName: { contains: name } }, { lastName: { contains: name } }] } : {},
+          email ? { email: { contains: email } } : {},
+          phone ? { phone: { contains: phone } } : {},
+          customerId ? { customerId } : {},
+          hasEmail === '1' ? { email: { not: null } } : {},
+          hasPhone === '1' ? { phone: { not: null } } : {},
+        ],
+      },
+      include: { customer: { select: { id: true, name: true } } },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    }),
+    prisma.customer.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+  ])
+
+  const activeFilters: { label: string; removeUrl: string }[] = []
+
+  function buildUrl(omit: string) {
+    const params = new URLSearchParams()
+    if (name && omit !== 'name') params.set('name', name)
+    if (email && omit !== 'email') params.set('email', email)
+    if (phone && omit !== 'phone') params.set('phone', phone)
+    if (customerId && omit !== 'customerId') params.set('customerId', customerId)
+    if (hasEmail === '1' && omit !== 'hasEmail') params.set('hasEmail', '1')
+    if (hasPhone === '1' && omit !== 'hasPhone') params.set('hasPhone', '1')
+    const qs = params.toString()
+    return `/contacts${qs ? '?' + qs : ''}`
+  }
+
+  if (name) activeFilters.push({ label: `Namn: ${name}`, removeUrl: buildUrl('name') })
+  if (email) activeFilters.push({ label: `E-post: ${email}`, removeUrl: buildUrl('email') })
+  if (phone) activeFilters.push({ label: `Telefon: ${phone}`, removeUrl: buildUrl('phone') })
+  if (customerId) {
+    const co = companies.find((c) => c.id === customerId)
+    activeFilters.push({ label: co?.name ?? 'Företag', removeUrl: buildUrl('customerId') })
+  }
+  if (hasEmail === '1') activeFilters.push({ label: 'Har e-post', removeUrl: buildUrl('hasEmail') })
+  if (hasPhone === '1') activeFilters.push({ label: 'Har telefon', removeUrl: buildUrl('hasPhone') })
 
   return (
     <div className="space-y-6">
       <div className="page-hero pb-5 flex items-start justify-between gap-4">
         <div>
           <p className="page-kicker">CRM</p>
-          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Kontakter</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mt-0.5">Kontakter</h1>
           <p className="text-sm text-gray-500 mt-0.5">{contacts.length} kontakter totalt</p>
         </div>
+        <ContactsFilterSheet
+          companies={companies}
+          currentName={name}
+          currentEmail={email}
+          currentPhone={phone}
+          currentCustomerId={customerId}
+          currentHasEmail={hasEmail === '1'}
+          currentHasPhone={hasPhone === '1'}
+        />
       </div>
 
-      {/* Search */}
-      <form method="GET">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Sök kontakt, e-post..."
-          className="flex h-10 w-full max-w-sm rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:bg-white transition-all"
-        />
-      </form>
+      {/* Aktiva filter-pills */}
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {activeFilters.map((f) => (
+            <Link
+              key={f.label}
+              href={f.removeUrl}
+              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+            >
+              {f.label}
+              <span className="text-zinc-400 dark:text-zinc-500">×</span>
+            </Link>
+          ))}
+          <Link
+            href="/contacts"
+            className="inline-flex items-center rounded-full border border-zinc-200 dark:border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Rensa alla
+          </Link>
+        </div>
+      )}
 
-      <div className="panel-surface">
-          {contacts.length === 0 ? (
-            <div className="p-10 text-center text-gray-400 text-sm">Inga kontakter hittades</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Namn</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Företag</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Titel</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">E-post</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Telefon</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Skapad</th>
+      <div className="panel-surface overflow-x-auto">
+        {contacts.length === 0 ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Inga kontakter hittades</div>
+        ) : (
+          <table className="w-full min-w-[48rem] text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50/50">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Namn</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Företag</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Titel</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">E-post</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Telefon</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Skapad</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {contacts.map((contact) => (
+                <tr key={contact.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <Link
+                      href={`/contacts/${contact.id}`}
+                      className="font-medium text-gray-900 hover:text-zinc-600 transition-colors"
+                    >
+                      {contact.firstName} {contact.lastName}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">
+                    <Link
+                      href={`/customers/${contact.customer.id}`}
+                      className="hover:underline text-gray-700"
+                    >
+                      {contact.customer.name}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">{contact.title ?? '–'}</td>
+                  <td className="px-6 py-4 text-gray-600">{contact.email ?? '–'}</td>
+                  <td className="px-6 py-4 text-gray-600">{contact.phone ?? '–'}</td>
+                  <td className="px-6 py-4 text-gray-500">{formatDate(contact.createdAt)}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {contacts.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/contacts/${contact.id}`}
-                        className="font-medium text-gray-900 hover:text-zinc-600 transition-colors"
-                      >
-                        {contact.firstName} {contact.lastName}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      <Link
-                        href={`/customers/${contact.customerId}`}
-                        className="hover:underline text-gray-700"
-                      >
-                        {contact.customer.name}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{contact.title ?? '–'}</td>
-                    <td className="px-6 py-4 text-gray-600">{contact.email ?? '–'}</td>
-                    <td className="px-6 py-4 text-gray-600">{contact.phone ?? '–'}</td>
-                    <td className="px-6 py-4 text-gray-500">{formatDate(contact.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )

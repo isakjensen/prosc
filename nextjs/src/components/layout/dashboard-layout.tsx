@@ -10,7 +10,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#fafafa] dark:bg-[#111111]">
+    <div className="flex h-dvh overflow-hidden bg-[#fafafa] dark:bg-[#111111]">
       {/* Mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -38,7 +38,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 md:px-6 md:py-6 xl:px-8 xl:py-7">
+        <main className="flex-1 overflow-y-auto px-4 py-5 md:px-6 md:py-6 xl:px-8 xl:py-7">
           <div className="page-container">
             {children}
           </div>
