@@ -470,7 +470,18 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
             <h2 className="text-sm font-semibold text-gray-900">Outreach</h2>
           </div>
           <div className="p-6">
-            <KundOutreachTab customerId={id} />
+            <KundOutreachTab
+              customerId={id}
+              customerData={{
+                name: customer.name,
+                city: customer.city,
+                industry: customer.industry,
+                orgNumber: customer.orgNumber,
+              }}
+              contactEmails={customer.contacts
+                .map((c) => c.email)
+                .filter((e): e is string => !!e)}
+            />
           </div>
         </div>
       )}

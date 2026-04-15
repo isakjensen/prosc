@@ -74,6 +74,7 @@ export default async function OutreachPlanningPage({ searchParams }: PageProps) 
     customerCity: o.customer.city,
     customerIndustry: o.customer.industry,
     userName: o.user?.name ?? null,
+    emailStatus: o.emailStatus ?? null,
     createdAt: o.createdAt.toISOString(),
   }))
 

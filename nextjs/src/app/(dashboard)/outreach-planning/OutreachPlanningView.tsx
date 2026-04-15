@@ -29,6 +29,7 @@ import { FilterDrawer } from '@/components/ui/filter-drawer'
 import { cn, formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import BulkPlanningModal from './BulkPlanningModal'
+import EmailStatusBadge from '@/components/email/EmailStatusBadge'
 
 type OutreachType = 'EMAIL' | 'PHONE' | 'SMS' | 'PHYSICAL'
 type OutreachStatus = 'PLANNED' | 'COMPLETED'
@@ -44,6 +45,7 @@ interface OutreachItem {
   customerCity: string | null
   customerIndustry: string | null
   userName: string | null
+  emailStatus: string | null
   createdAt: string
 }
 
@@ -558,13 +560,18 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                               </Badge>
                             </td>
                             <td className="px-4 py-3">
-                              {item.status === 'COMPLETED' ? (
-                                <Badge variant="success">Genomförd</Badge>
-                              ) : isPast ? (
-                                <Badge variant="warning">Försenad</Badge>
-                              ) : (
-                                <Badge variant="info">Planerad</Badge>
-                              )}
+                              <div className="flex flex-wrap gap-1">
+                                {item.status === 'COMPLETED' ? (
+                                  <Badge variant="success">Genomförd</Badge>
+                                ) : isPast ? (
+                                  <Badge variant="warning">Försenad</Badge>
+                                ) : (
+                                  <Badge variant="info">Planerad</Badge>
+                                )}
+                                {item.type === 'EMAIL' && item.emailStatus && (
+                                  <EmailStatusBadge status={item.emailStatus} />
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -656,6 +663,9 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                 ) : isPast ? (
                                   <Badge variant="warning">Försenad</Badge>
                                 ) : null}
+                                {item.type === 'EMAIL' && item.emailStatus && (
+                                  <EmailStatusBadge status={item.emailStatus} />
+                                )}
                               </div>
                             </div>
                             <div className="flex shrink-0 gap-1">

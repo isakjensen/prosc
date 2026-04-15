@@ -99,6 +99,7 @@ model Customer {
   flowNotes              CustomerFlowNote[]
   flowOccurredAtOverrides CustomerFlowOccurredAtOverride[]
   outreaches             Outreach[]
+  outboundEmails         OutboundEmail[]
 
   @@map("customers")
 }
@@ -402,21 +403,38 @@ model EmailTemplate {
 }
 
 model OutboundEmail {
-  id          String   @id @default(cuid())
-  userId      String
-  to          String   @db.Text // JSON array of recipients
-  cc          String?  @db.Text // JSON array
-  bcc         String?  @db.Text // JSON array
-  subject     String
-  body        String   @db.LongText
-  status      EmailStatus @default(LOGGED)
-  sentAt      DateTime?
-  createdAt   DateTime @default(now())
+  id              String      @id @default(cuid())
+  userId          String
+  outreachId      String?
+  customerId      String?
+  resendMessageId String?     @unique
+  to              String      @db.Text // JSON array of recipients
+  cc              String?     @db.Text // JSON array
+  bcc             String?     @db.Text // JSON array
+  subject         String
+  body            String      @db.LongText
+  status          EmailStatus @default(QUEUED)
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  openedAt        DateTime?
+  openCount       Int         @default(0)
+  clickedAt       DateTime?
+  bouncedAt       DateTime?
+  bounceType      String?
+  errorMessage    String?     @db.Text
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   // Relations
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outreach      Outreach?     @relation(fields: [outreachId], references: [id], onDelete: SetNull)
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   emailContacts EmailContact[]
 
+  @@index([outreachId])
+  @@index([customerId])
+  @@index([resendMessageId])
   @@map("outbound_emails")
 }
 
@@ -438,8 +456,13 @@ model EmailContact {
 enum EmailStatus {
   QUEUED
   LOGGED
+  SCHEDULED
   SENT
+  DELIVERED
+  OPENED
+  BOUNCED
   FAILED
+  CANCELLED
 }
 
 // ============================================
@@ -1332,14 +1355,18 @@ model Outreach {
   scheduledAt     DateTime
   recipients      String?        @db.Text   // JSON array of recipient strings
   body            String?        @db.LongText
+  subject         String?        // Email subject line
+  sendAt          DateTime?      // Exact send time for email
+  emailStatus     String?        // draft|queued|scheduled|sent|delivered|opened|bounced
   attachments     String?        @db.Text   // JSON array of attachment file names
   status          OutreachStatus @default(PLANNED)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  customer      Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
-  emailTemplate EmailTemplate? @relation(fields: [emailTemplateId], references: [id], onDelete: SetNull)
+  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  emailTemplate  EmailTemplate?  @relation(fields: [emailTemplateId], references: [id], onDelete: SetNull)
+  outboundEmails OutboundEmail[]
 
   @@index([customerId])
   @@index([emailTemplateId])

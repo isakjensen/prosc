@@ -11,6 +11,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  Send,
   Trash2,
   Users,
 } from "lucide-react"
@@ -22,6 +23,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { cn, formatDate } from "@/lib/utils"
 import { toast } from "sonner"
+import EmailComposer from "@/components/email/EmailComposer"
+import EmailStatusBadge from "@/components/email/EmailStatusBadge"
+import type { VariableData } from "@/lib/email-variables"
 
 type OutreachType = "EMAIL" | "PHONE" | "SMS" | "PHYSICAL"
 type OutreachStatus = "PLANNED" | "COMPLETED"
@@ -33,6 +37,9 @@ interface OutreachItem {
   scheduledAt: string
   recipients: string | null
   body: string | null
+  subject: string | null
+  sendAt: string | null
+  emailStatus: string | null
   attachments: string | null
   status: OutreachStatus
   createdAt: string
@@ -83,10 +90,19 @@ function parseAttachments(raw: string | null): string[] {
   }
 }
 
-export default function KundOutreachTab({ customerId }: { customerId: string }) {
+export default function KundOutreachTab({
+  customerId,
+  customerData,
+  contactEmails,
+}: {
+  customerId: string
+  customerData?: { name?: string | null; city?: string | null; industry?: string | null; orgNumber?: string | null }
+  contactEmails?: string[]
+}) {
   const [items, setItems] = useState<OutreachItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [sending, setSending] = useState<string | null>(null)
 
   // Create modal
   const [createOpen, setCreateOpen] = useState(false)
@@ -96,12 +112,25 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
   const [formRecipients, setFormRecipients] = useState("")
   const [formBody, setFormBody] = useState("")
   const [formAttachments, setFormAttachments] = useState<string[]>([])
+  const [formSubject, setFormSubject] = useState("")
+  const [formSendAt, setFormSendAt] = useState("")
+  const [formSendMode, setFormSendMode] = useState<"now" | "scheduled">("now")
+  const [formTemplateId, setFormTemplateId] = useState("")
 
   // Edit modal
   const [editItem, setEditItem] = useState<OutreachItem | null>(null)
 
   // Detail modal
   const [detailItem, setDetailItem] = useState<OutreachItem | null>(null)
+
+  const variableData: VariableData | undefined = customerData
+    ? {
+        foretag: customerData.name ?? "",
+        stad: customerData.city ?? "",
+        bransch: customerData.industry ?? "",
+        orgnummer: customerData.orgNumber ?? "",
+      }
+    : undefined
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -128,6 +157,10 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
     setFormRecipients("")
     setFormBody("")
     setFormAttachments([])
+    setFormSubject("")
+    setFormSendAt("")
+    setFormSendMode("now")
+    setFormTemplateId("")
     setCreateOpen(true)
   }
 
@@ -138,6 +171,10 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
     setFormRecipients(parseRecipients(item.recipients).join(", "))
     setFormBody(item.body ?? "")
     setFormAttachments(parseAttachments(item.attachments))
+    setFormSubject(item.subject ?? "")
+    setFormSendAt(item.sendAt ?? "")
+    setFormSendMode(item.sendAt ? "scheduled" : "now")
+    setFormTemplateId("")
     setEditItem(item)
   }
 
@@ -150,17 +187,25 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
         .split(",")
         .map((r) => r.trim())
         .filter(Boolean)
+      const payload: Record<string, unknown> = {
+        title: formTitle,
+        type: formType,
+        scheduledAt: new Date(formDate).toISOString(),
+        recipients: recipients.length > 0 ? recipients : null,
+        body: formBody || null,
+        attachments: formAttachments.length > 0 ? formAttachments : null,
+      }
+      if (formType === "EMAIL") {
+        payload.subject = formSubject || null
+        payload.sendAt = formSendMode === "scheduled" && formSendAt
+          ? new Date(formSendAt).toISOString()
+          : null
+        payload.emailTemplateId = formTemplateId || null
+      }
       const res = await fetch(`/api/customers/${customerId}/outreach`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: formTitle,
-          type: formType,
-          scheduledAt: new Date(formDate).toISOString(),
-          recipients: recipients.length > 0 ? recipients : null,
-          body: formBody || null,
-          attachments: formAttachments.length > 0 ? formAttachments : null,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error("Kunde inte skapa")
       setCreateOpen(false)
@@ -182,19 +227,26 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
         .split(",")
         .map((r) => r.trim())
         .filter(Boolean)
+      const payload: Record<string, unknown> = {
+        title: formTitle,
+        type: formType,
+        scheduledAt: new Date(formDate).toISOString(),
+        recipients: recipients.length > 0 ? recipients : null,
+        body: formBody || null,
+        attachments: formAttachments.length > 0 ? formAttachments : null,
+      }
+      if (formType === "EMAIL") {
+        payload.subject = formSubject || null
+        payload.sendAt = formSendMode === "scheduled" && formSendAt
+          ? new Date(formSendAt).toISOString()
+          : null
+      }
       const res = await fetch(
         `/api/customers/${customerId}/outreach/${editItem.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: formTitle,
-            type: formType,
-            scheduledAt: new Date(formDate).toISOString(),
-            recipients: recipients.length > 0 ? recipients : null,
-            body: formBody || null,
-            attachments: formAttachments.length > 0 ? formAttachments : null,
-          }),
+          body: JSON.stringify(payload),
         },
       )
       if (!res.ok) throw new Error("Kunde inte uppdatera")
@@ -205,6 +257,25 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
       toast.error("Kunde inte uppdatera outreach")
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleSendEmail(outreachId: string) {
+    setSending(outreachId)
+    try {
+      const res = await fetch(`/api/outreach/${outreachId}/send`, {
+        method: "POST",
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Kunde inte skicka")
+      }
+      toast.success("E-post skickad!")
+      await load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunde inte skicka e-post")
+    } finally {
+      setSending(null)
     }
   }
 
@@ -353,90 +424,69 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <label
-                htmlFor="outreach-recipients"
-                className="text-xs font-semibold uppercase tracking-wide text-zinc-500"
-              >
-                Mottagare
-              </label>
-              <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-                Kommaseparerade
-              </span>
-            </div>
-            <Input
-              id="outreach-recipients"
-              value={formRecipients}
-              onChange={(e) => setFormRecipients(e.target.value)}
-              placeholder="namn@foretag.se, anna@foretag.se"
-              className="h-11"
-              autoComplete="off"
+          {formType === "EMAIL" ? (
+            <EmailComposer
+              subject={formSubject}
+              onSubjectChange={setFormSubject}
+              body={formBody}
+              onBodyChange={setFormBody}
+              recipients={formRecipients}
+              onRecipientsChange={setFormRecipients}
+              sendAt={formSendAt}
+              onSendAtChange={setFormSendAt}
+              sendMode={formSendMode}
+              onSendModeChange={setFormSendMode}
+              variableData={variableData}
+              templateId={formTemplateId}
+              onTemplateChange={setFormTemplateId}
+              contactEmails={contactEmails}
             />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <label
-                htmlFor="outreach-body"
-                className="text-xs font-semibold uppercase tracking-wide text-zinc-500"
-              >
-                {formType === "EMAIL" ? "Mejlinnehåll" : "Anteckningar"}
-              </label>
-              <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-                Valfritt
-              </span>
-            </div>
-            <Textarea
-              id="outreach-body"
-              value={formBody}
-              onChange={(e) => setFormBody(e.target.value)}
-              rows={6}
-              placeholder={
-                formType === "EMAIL"
-                  ? "Skriv hela mejlet här…"
-                  : "Anteckningar inför kontakten…"
-              }
-              className="min-h-[140px] resize-y leading-relaxed"
-            />
-          </div>
-
-          {formType === "EMAIL" && (
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Bilagor
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {formAttachments.map((name, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700"
+          ) : (
+            <>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <label
+                    htmlFor="outreach-recipients"
+                    className="text-xs font-semibold uppercase tracking-wide text-zinc-500"
                   >
-                    {name}
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(i)}
-                      className="text-zinc-400 hover:text-red-500 transition-colors"
-                    >
-                      &times;
-                    </button>
+                    Mottagare
+                  </label>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                    Kommaseparerade
                   </span>
-                ))}
-              </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-2 text-sm text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors">
-                <Plus className="h-4 w-4" />
-                Lägg till bilaga
-                <input
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={handleFileSelect}
+                </div>
+                <Input
+                  id="outreach-recipients"
+                  value={formRecipients}
+                  onChange={(e) => setFormRecipients(e.target.value)}
+                  placeholder="namn@foretag.se, anna@foretag.se"
+                  className="h-11"
+                  autoComplete="off"
                 />
-              </label>
-              <p className="text-[10px] text-zinc-400">
-                Filnamn sparas som referens — bifoga filerna manuellt vid utskick.
-              </p>
-            </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <label
+                    htmlFor="outreach-body"
+                    className="text-xs font-semibold uppercase tracking-wide text-zinc-500"
+                  >
+                    Anteckningar
+                  </label>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                    Valfritt
+                  </span>
+                </div>
+                <Textarea
+                  id="outreach-body"
+                  value={formBody}
+                  onChange={(e) => setFormBody(e.target.value)}
+                  rows={6}
+                  placeholder="Anteckningar inför kontakten…"
+                  className="min-h-[140px] resize-y leading-relaxed"
+                />
+              </div>
+            </>
           )}
         </ModalBody>
 
@@ -455,7 +505,11 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
             className="min-w-[10rem] rounded-lg disabled:pointer-events-none disabled:opacity-45"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {submitLabel}
+            {formType === "EMAIL"
+              ? formSendMode === "scheduled"
+                ? "Schemalägg utskick"
+                : submitLabel
+              : submitLabel}
           </Button>
         </ModalFooter>
       </form>
@@ -548,8 +602,31 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
                                 Till: {parseRecipients(item.recipients).join(", ")}
                               </p>
                             )}
+                            {item.type === "EMAIL" && item.emailStatus && (
+                              <div className="mt-1">
+                                <EmailStatusBadge status={item.emailStatus} />
+                              </div>
+                            )}
                           </div>
                           <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {item.type === "EMAIL" && !item.emailStatus && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => handleSendEmail(item.id)}
+                                disabled={sending === item.id}
+                                title="Skicka e-post"
+                              >
+                                {sending === item.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Send className="h-3.5 w-3.5" />
+                                )}
+                                <span className="text-xs">Skicka</span>
+                              </Button>
+                            )}
                             <Button
                               type="button"
                               variant="ghost"
@@ -716,12 +793,26 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
                     {formatDate(detailItem.scheduledAt)}
                   </span>
                 </div>
+                {detailItem.type === "EMAIL" && detailItem.subject && (
+                  <div className="flex justify-between text-sm gap-4">
+                    <span className="text-zinc-500 shrink-0">Ämne</span>
+                    <span className="font-medium text-zinc-900 text-right">
+                      {detailItem.subject}
+                    </span>
+                  </div>
+                )}
                 {parseRecipients(detailItem.recipients).length > 0 && (
                   <div className="flex justify-between text-sm gap-4">
                     <span className="text-zinc-500 shrink-0">Mottagare</span>
                     <span className="font-medium text-zinc-900 text-right">
                       {parseRecipients(detailItem.recipients).join(", ")}
                     </span>
+                  </div>
+                )}
+                {detailItem.type === "EMAIL" && detailItem.emailStatus && (
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-zinc-500">E-poststatus</span>
+                    <EmailStatusBadge status={detailItem.emailStatus} />
                   </div>
                 )}
                 {detailItem.user && (
@@ -776,6 +867,22 @@ export default function KundOutreachTab({ customerId }: { customerId: string }) 
                 <Copy className="h-3.5 w-3.5" />
                 Kopiera
               </Button>
+              {detailItem.type === "EMAIL" && !detailItem.emailStatus && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSendEmail(detailItem.id)}
+                  disabled={sending === detailItem.id}
+                  className="gap-2 rounded-lg text-blue-600 border-blue-200 hover:bg-blue-50"
+                >
+                  {sending === detailItem.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
+                  Skicka e-post
+                </Button>
+              )}
               <Button
                 type="button"
                 onClick={() => {

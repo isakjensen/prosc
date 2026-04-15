@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { customerIds, type, title, outreachBody, startDate, endDate, perDay } = body
+  const { customerIds, type, title, outreachBody, startDate, endDate, perDay, subject, emailTemplateId } = body
 
   if (!Array.isArray(customerIds) || customerIds.length === 0) {
     return NextResponse.json({ error: "Välj minst ett prospekt" }, { status: 400 })
@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
     type: OutreachType
     scheduledAt: Date
     body: string | null
+    subject: string | null
+    emailTemplateId: string | null
     status: OutreachStatus
   }[] = []
 
@@ -76,6 +78,8 @@ export async function POST(request: NextRequest) {
         type: type as OutreachType,
         scheduledAt: day,
         body: outreachBody?.trim() || null,
+        subject: type === "EMAIL" ? (subject?.trim() || null) : null,
+        emailTemplateId: type === "EMAIL" ? (emailTemplateId || null) : null,
         status: "PLANNED" as OutreachStatus,
       })
       customerIndex++
