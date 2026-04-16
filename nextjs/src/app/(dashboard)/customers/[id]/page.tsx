@@ -335,6 +335,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
           {customer.contacts.length === 0 ? (
             <p className="p-6 text-sm text-gray-400">Inga kontakter registrerade</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
@@ -372,6 +373,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
@@ -384,6 +386,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
           {customer.quotes.length === 0 ? (
             <p className="p-6 text-sm text-gray-400">Inga offerter</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
@@ -414,6 +417,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
@@ -430,6 +434,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
           ) : customer.invoices.length === 0 ? (
             <p className="p-6 text-sm text-gray-400">Inga fakturor</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
@@ -460,6 +465,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
