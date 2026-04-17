@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   Calendar,
   Check,
@@ -18,6 +18,7 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { AVAILABLE_VARIABLES } from '@/lib/email-variables'
 
 type OutreachType = 'EMAIL' | 'PHONE' | 'SMS' | 'PHYSICAL'
 
@@ -100,6 +101,13 @@ function distributeProspects(
   return result
 }
 
+interface EmailTemplate {
+  id: string
+  name: string
+  subject: string
+  body: string
+}
+
 export default function BulkPlanningModal({ isOpen, onClose, onCreated, prospects }: Props) {
   const [saving, setSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -109,6 +117,27 @@ export default function BulkPlanningModal({ isOpen, onClose, onCreated, prospect
   const [type, setType] = useState<OutreachType>('PHONE')
   const [title, setTitle] = useState('Första kontakt')
   const [body, setBody] = useState('')
+
+  // Email-specific state
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailTemplateId, setEmailTemplateId] = useState('')
+  const [templates, setTemplates] = useState<EmailTemplate[]>([])
+
+  const loadTemplates = useCallback(async () => {
+    try {
+      const res = await fetch('/api/email-templates')
+      if (res.ok) {
+        const data = await res.json()
+        setTemplates(data)
+      }
+    } catch {
+      // silently fail
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) loadTemplates()
+  }, [isOpen, loadTemplates])
 
   const today = new Date()
   const nextMonday = new Date(today)
@@ -171,18 +200,23 @@ export default function BulkPlanningModal({ isOpen, onClose, onCreated, prospect
     if (selected.size === 0 || !title.trim() || !startDate || !endDate) return
     setSaving(true)
     try {
+      const payload: Record<string, unknown> = {
+        customerIds: Array.from(selected),
+        type,
+        title: title.trim(),
+        outreachBody: body.trim() || null,
+        startDate,
+        endDate,
+        perDay,
+      }
+      if (type === 'EMAIL') {
+        payload.subject = emailSubject.trim() || null
+        payload.emailTemplateId = emailTemplateId || null
+      }
       const res = await fetch('/api/outreach/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerIds: Array.from(selected),
-          type,
-          title: title.trim(),
-          outreachBody: body.trim() || null,
-          startDate,
-          endDate,
-          perDay,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -386,22 +420,92 @@ export default function BulkPlanningModal({ isOpen, onClose, onCreated, prospect
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <label htmlFor="bulk-body" className="text-xs font-medium text-zinc-500">
-                Anteckningar
-              </label>
-              <span className="text-[10px] text-zinc-400 uppercase font-medium tracking-wide">Valfritt</span>
+          {type === 'EMAIL' ? (
+            <>
+              {/* Template selector */}
+              {templates.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-zinc-500">Mallval</label>
+                  <Select
+                    value={emailTemplateId}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                      const tid = e.target.value
+                      setEmailTemplateId(tid)
+                      const tmpl = templates.find((t) => t.id === tid)
+                      if (tmpl) {
+                        setEmailSubject(tmpl.subject)
+                        setBody(tmpl.body)
+                      }
+                    }}
+                    className="h-10"
+                  >
+                    <option value="">Välj en mall (valfritt)…</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+
+              {/* Email subject */}
+              <div className="space-y-2">
+                <label htmlFor="bulk-subject" className="text-xs font-medium text-zinc-500">
+                  Ämnesrad
+                </label>
+                <Input
+                  id="bulk-subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="T.ex. Erbjudande om samarbete…"
+                  className="h-10"
+                />
+              </div>
+
+              {/* Email body with variable buttons */}
+              <div className="space-y-2">
+                <label htmlFor="bulk-body" className="text-xs font-medium text-zinc-500">
+                  Mejlinnehåll
+                </label>
+                <div className="flex flex-wrap gap-1.5 mb-1">
+                  {AVAILABLE_VARIABLES.map((v) => (
+                    <button
+                      key={v.key}
+                      type="button"
+                      className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-200 transition-colors"
+                      onClick={() => setBody((prev) => prev + `{{${v.key}}}`)}
+                    >
+                      {`{{${v.label}}}`}
+                    </button>
+                  ))}
+                </div>
+                <Textarea
+                  id="bulk-body"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Skriv mejlinnehåll… Använd {{variabler}} för personalisering."
+                  rows={5}
+                  className="resize-y font-mono text-sm"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <label htmlFor="bulk-body" className="text-xs font-medium text-zinc-500">
+                  Anteckningar
+                </label>
+                <span className="text-[10px] text-zinc-400 uppercase font-medium tracking-wide">Valfritt</span>
+              </div>
+              <Textarea
+                id="bulk-body"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Gemensamma anteckningar för alla utskick..."
+                rows={3}
+                className="resize-y"
+              />
             </div>
-            <Textarea
-              id="bulk-body"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Gemensamma anteckningar för alla utskick..."
-              rows={3}
-              className="resize-y"
-            />
-          </div>
+          )}
         </div>
 
         {/* Preview */}

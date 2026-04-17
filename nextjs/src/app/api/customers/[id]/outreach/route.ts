@@ -25,7 +25,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const session = await auth()
   const body = await request.json()
 
-  const { title, type, scheduledAt, recipients, body: outreachBody, attachments } = body
+  const {
+    title,
+    type,
+    scheduledAt,
+    recipients,
+    body: outreachBody,
+    attachments,
+    subject,
+    sendAt,
+    emailTemplateId,
+  } = body
 
   if (!title?.trim() || !type || !scheduledAt) {
     return NextResponse.json({ error: "Titel, typ och datum krävs" }, { status: 400 })
@@ -46,6 +56,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       recipients: recipients ? JSON.stringify(recipients) : null,
       body: outreachBody?.trim() || null,
       attachments: attachments ? JSON.stringify(attachments) : null,
+      subject: type === "EMAIL" ? subject || null : null,
+      sendAt: type === "EMAIL" && sendAt ? new Date(sendAt) : null,
+      emailTemplateId: type === "EMAIL" ? emailTemplateId || null : null,
     },
   })
 

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import {
   Calendar,
   CheckCircle2,
+  Copy,
+  Eye,
   Filter,
   Loader2,
   Mail,
@@ -14,6 +16,7 @@ import {
   Phone,
   Plus,
   Search,
+  Send,
   Trash2,
   Users,
   X,
@@ -29,6 +32,9 @@ import { FilterDrawer } from '@/components/ui/filter-drawer'
 import { cn, formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import BulkPlanningModal from './BulkPlanningModal'
+import EmailComposer from '@/components/email/EmailComposer'
+import EmailStatusBadge from '@/components/email/EmailStatusBadge'
+import type { VariableData } from '@/lib/email-variables'
 
 type OutreachType = 'EMAIL' | 'PHONE' | 'SMS' | 'PHYSICAL'
 type OutreachStatus = 'PLANNED' | 'COMPLETED'
@@ -43,8 +49,34 @@ interface OutreachItem {
   customerName: string
   customerCity: string | null
   customerIndustry: string | null
+  customerOrgNumber: string | null
+  customerEmail: string | null
   userName: string | null
+  emailStatus: string | null
+  subject: string | null
+  body: string | null
+  recipients: string | null
+  attachments: string | null
+  sendAt: string | null
   createdAt: string
+}
+
+function parseRecipients(raw: string | null): string[] {
+  if (!raw) return []
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return []
+  }
+}
+
+function parseAttachments(raw: string | null): string[] {
+  if (!raw) return []
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return []
+  }
 }
 
 interface Prospect {
@@ -124,6 +156,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
   const [filterOpen, setFilterOpen] = useState(false)
   const [searchValue, setSearchValue] = useState(filters.q ?? '')
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
 
   // Edit modal state
   const [editItem, setEditItem] = useState<OutreachItem | null>(null)
@@ -131,7 +164,17 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
   const [editType, setEditType] = useState<OutreachType>('EMAIL')
   const [editDate, setEditDate] = useState('')
   const [editBody, setEditBody] = useState('')
+  const [editSubject, setEditSubject] = useState('')
+  const [editRecipients, setEditRecipients] = useState('')
+  const [editSendAt, setEditSendAt] = useState('')
+  const [editSendMode, setEditSendMode] = useState<'now' | 'scheduled'>('now')
+  const [editTemplateId, setEditTemplateId] = useState('')
+  const [editAttachments, setEditAttachments] = useState<string[]>([])
+  const [editContactEmails, setEditContactEmails] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+
+  // Detail modal
+  const [detailItem, setDetailItem] = useState<OutreachItem | null>(null)
 
   const now = new Date()
 
@@ -204,6 +247,27 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
     }
   }
 
+  async function handleSendEmail(id: string) {
+    setSendingId(id)
+    try {
+      console.log(`[UI] Sending outreach ${id}...`)
+      const res = await fetch(`/api/outreach/${id}/send`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      console.log(`[UI] Response:`, res.status, data)
+      if (!res.ok) {
+        throw new Error(data.error || 'Kunde inte skicka')
+      }
+      toast.success(data.scheduled ? 'E-post schemalagd!' : 'E-post skickad!')
+      router.refresh()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Kunde inte skicka e-post'
+      console.error(`[UI] Send failed:`, msg)
+      toast.error(msg)
+    } finally {
+      setSendingId(null)
+    }
+  }
+
   async function deleteItem(id: string) {
     if (!confirm('Ta bort den här outreachen?')) return
     try {
@@ -221,12 +285,34 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   }
 
-  function openEdit(item: OutreachItem) {
+  async function openEdit(item: OutreachItem) {
     setEditTitle(item.title)
     setEditType(item.type)
     setEditDate(toDateValue(new Date(item.scheduledAt)))
-    setEditBody('')
+    setEditBody(item.body ?? '')
+    setEditSubject(item.subject ?? '')
+    setEditRecipients(parseRecipients(item.recipients).join(', '))
+    setEditAttachments(parseAttachments(item.attachments))
+    setEditSendAt(item.sendAt ?? '')
+    setEditSendMode(item.sendAt ? 'scheduled' : 'now')
+    setEditTemplateId('')
+    setEditContactEmails([])
     setEditItem(item)
+
+    if (item.type === 'EMAIL') {
+      try {
+        const res = await fetch(`/api/contacts?customerId=${encodeURIComponent(item.customerId)}`)
+        if (res.ok) {
+          const contacts = await res.json()
+          const emails = (Array.isArray(contacts) ? contacts : [])
+            .map((c: { email: string | null }) => c.email)
+            .filter((e: string | null): e is string => Boolean(e))
+          setEditContactEmails(emails)
+        }
+      } catch {
+        // Silent — contactEmails is optional
+      }
+    }
   }
 
   async function handleEdit(e: React.FormEvent) {
@@ -234,15 +320,28 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
     if (!editItem || !editTitle.trim() || !editDate) return
     setSaving(true)
     try {
+      const recipients = editRecipients
+        .split(',')
+        .map((r) => r.trim())
+        .filter(Boolean)
+      const payload: Record<string, unknown> = {
+        title: editTitle.trim(),
+        type: editType,
+        scheduledAt: new Date(editDate).toISOString(),
+        body: editBody.trim() || null,
+        recipients: recipients.length > 0 ? recipients : null,
+        attachments: editAttachments.length > 0 ? editAttachments : null,
+      }
+      if (editType === 'EMAIL') {
+        payload.subject = editSubject || null
+        payload.sendAt = editSendMode === 'scheduled' && editSendAt
+          ? new Date(editSendAt).toISOString()
+          : null
+      }
       const res = await fetch(`/api/outreach/${editItem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: editTitle.trim(),
-          type: editType,
-          scheduledAt: new Date(editDate).toISOString(),
-          body: editBody.trim() || null,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error()
       setEditItem(null)
@@ -254,6 +353,40 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
       setSaving(false)
     }
   }
+
+  function copyBody(item: OutreachItem) {
+    const parts: string[] = []
+    parts.push(`Titel: ${item.title}`)
+    parts.push(`Typ: ${typeLabels[item.type]}`)
+    parts.push(`Datum: ${formatDate(item.scheduledAt)}`)
+    if (item.subject) parts.push(`Ämne: ${item.subject}`)
+    const recipients = parseRecipients(item.recipients)
+    if (recipients.length > 0) parts.push(`Mottagare: ${recipients.join(', ')}`)
+    if (item.body) parts.push(`\n${item.body}`)
+    navigator.clipboard.writeText(parts.join('\n'))
+    toast.success('Kopierat till urklipp')
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files) return
+    const names = Array.from(files).map((f) => f.name)
+    setEditAttachments((prev) => [...prev, ...names])
+    e.target.value = ''
+  }
+
+  function removeAttachment(index: number) {
+    setEditAttachments((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const editVariableData: VariableData | undefined = editItem
+    ? {
+        foretag: editItem.customerName ?? '',
+        stad: editItem.customerCity ?? '',
+        bransch: editItem.customerIndustry ?? '',
+        orgnummer: editItem.customerOrgNumber ?? '',
+      }
+    : undefined
 
   return (
     <div className="space-y-6">
@@ -550,7 +683,13 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                               )}
                             </td>
                             <td className="px-4 py-3 text-zinc-700">
-                              {item.title}
+                              <button
+                                type="button"
+                                onClick={() => setDetailItem(item)}
+                                className="text-left hover:text-zinc-900 transition-colors"
+                              >
+                                {item.title}
+                              </button>
                             </td>
                             <td className="px-4 py-3">
                               <Badge variant={item.type === 'EMAIL' ? 'info' : item.type === 'PHONE' ? 'warning' : 'default'}>
@@ -558,16 +697,48 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                               </Badge>
                             </td>
                             <td className="px-4 py-3">
-                              {item.status === 'COMPLETED' ? (
-                                <Badge variant="success">Genomförd</Badge>
-                              ) : isPast ? (
-                                <Badge variant="warning">Försenad</Badge>
-                              ) : (
-                                <Badge variant="info">Planerad</Badge>
-                              )}
+                              <div className="flex flex-wrap gap-1">
+                                {item.status === 'COMPLETED' ? (
+                                  <Badge variant="success">Genomförd</Badge>
+                                ) : isPast ? (
+                                  <Badge variant="warning">Försenad</Badge>
+                                ) : (
+                                  <Badge variant="info">Planerad</Badge>
+                                )}
+                                {item.type === 'EMAIL' && item.emailStatus && (
+                                  <EmailStatusBadge status={item.emailStatus} />
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {item.type === 'EMAIL' && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() => handleSendEmail(item.id)}
+                                    disabled={sendingId === item.id}
+                                    title="Skicka e-post"
+                                  >
+                                    {sendingId === item.id ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                      <Send className="h-3.5 w-3.5" />
+                                    )}
+                                  </Button>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => setDetailItem(item)}
+                                  title="Visa detaljer"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -582,6 +753,16 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                   ) : (
                                     <CheckCircle2 className={cn('h-3.5 w-3.5', item.status === 'COMPLETED' ? 'text-zinc-400' : 'text-emerald-600')} />
                                   )}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => copyBody(item)}
+                                  title="Kopiera innehåll"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   type="button"
@@ -641,12 +822,16 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                               >
                                 {item.customerName}
                               </Link>
-                              <p className={cn(
-                                'text-sm text-zinc-600 mt-0.5',
-                                item.status === 'COMPLETED' && 'line-through',
-                              )}>
+                              <button
+                                type="button"
+                                onClick={() => setDetailItem(item)}
+                                className={cn(
+                                  'text-sm text-zinc-600 mt-0.5 text-left hover:text-zinc-900 transition-colors',
+                                  item.status === 'COMPLETED' && 'line-through',
+                                )}
+                              >
                                 {item.title}
-                              </p>
+                              </button>
                               <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                 <Badge variant={item.type === 'EMAIL' ? 'info' : item.type === 'PHONE' ? 'warning' : 'default'}>
                                   {typeLabels[item.type]}
@@ -656,9 +841,29 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                 ) : isPast ? (
                                   <Badge variant="warning">Försenad</Badge>
                                 ) : null}
+                                {item.type === 'EMAIL' && item.emailStatus && (
+                                  <EmailStatusBadge status={item.emailStatus} />
+                                )}
                               </div>
                             </div>
                             <div className="flex shrink-0 gap-1">
+                              {item.type === 'EMAIL' && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleSendEmail(item.id)}
+                                  disabled={sendingId === item.id}
+                                  title="Skicka e-post"
+                                >
+                                  {sendingId === item.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Send className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                              )}
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -672,6 +877,16 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                 ) : (
                                   <CheckCircle2 className={cn('h-3.5 w-3.5', item.status === 'COMPLETED' ? 'text-zinc-400' : 'text-emerald-600')} />
                                 )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => copyBody(item)}
+                                title="Kopiera innehåll"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
                               </Button>
                               <Button
                                 type="button"
@@ -714,7 +929,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
         panelClassName="sm:rounded-2xl shadow-zinc-950/20"
       >
         <form onSubmit={handleEdit}>
-          <ModalBody className="space-y-5 pb-2">
+          <ModalBody className="space-y-5 pb-2 overflow-x-hidden">
             <div className="space-y-2">
               <label htmlFor="edit-title" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Titel
@@ -764,34 +979,313 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
               </div>
             </div>
 
+            {editType === 'EMAIL' ? (
+              <EmailComposer
+                subject={editSubject}
+                onSubjectChange={setEditSubject}
+                body={editBody}
+                onBodyChange={setEditBody}
+                recipients={editRecipients}
+                onRecipientsChange={setEditRecipients}
+                sendAt={editSendAt}
+                onSendAtChange={setEditSendAt}
+                sendMode={editSendMode}
+                onSendModeChange={setEditSendMode}
+                variableData={editVariableData}
+                templateId={editTemplateId}
+                onTemplateChange={setEditTemplateId}
+                contactEmails={editContactEmails}
+              />
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <label htmlFor="edit-recipients" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                      Mottagare
+                    </label>
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                      Kommaseparerade
+                    </span>
+                  </div>
+                  <Input
+                    id="edit-recipients"
+                    value={editRecipients}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditRecipients(e.target.value)}
+                    placeholder="namn@foretag.se, anna@foretag.se"
+                    className="h-11"
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label htmlFor="edit-body" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                      Anteckningar
+                    </label>
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">Valfritt</span>
+                  </div>
+                  <Textarea
+                    id="edit-body"
+                    value={editBody}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditBody(e.target.value)}
+                    rows={6}
+                    placeholder="Anteckningar inför kontakten…"
+                    className="min-h-[140px] resize-y leading-relaxed"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Attachments */}
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-2">
-                <label htmlFor="edit-body" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Anteckningar
+                <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Bilagor
                 </label>
                 <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">Valfritt</span>
               </div>
-              <Textarea
-                id="edit-body"
-                value={editBody}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditBody(e.target.value)}
-                rows={4}
-                placeholder="Anteckningar inför kontakten…"
-                className="min-h-[100px] resize-y leading-relaxed"
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                {editAttachments.map((name, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700"
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(i)}
+                      className="text-zinc-400 hover:text-zinc-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+                <label className="inline-flex items-center gap-1 rounded-md border border-dashed border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 cursor-pointer hover:border-zinc-400 hover:text-zinc-800">
+                  <Plus className="h-3 w-3" />
+                  Lägg till
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
           </ModalBody>
+
+          {editItem && (
+            <div className="px-6 py-2 bg-zinc-50 border-t border-zinc-100 text-[11px] font-mono text-zinc-400">
+              DEBUG: type={editType} | emailStatus={editItem.emailStatus ?? 'null'} | showSend={String(editType === 'EMAIL')}
+            </div>
+          )}
 
           <ModalFooter className="gap-3 px-6 py-5">
             <Button type="button" variant="outline" onClick={() => setEditItem(null)} className="min-w-[5.5rem] rounded-lg border-zinc-200 bg-white">
               Avbryt
             </Button>
-            <Button type="submit" disabled={saving || !editTitle.trim() || !editDate} className="min-w-[10rem] rounded-lg disabled:pointer-events-none disabled:opacity-45">
+            <Button type="submit" disabled={saving || !editTitle.trim() || !editDate} className="min-w-[8rem] rounded-lg disabled:pointer-events-none disabled:opacity-45">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Spara
             </Button>
+            {editItem && editType === 'EMAIL' && (
+              <Button
+                type="button"
+                disabled={sendingId === editItem.id || saving || !editSubject.trim() || !editRecipients.trim()}
+                className="min-w-[10rem] rounded-lg gap-2 bg-blue-600 hover:bg-blue-700 text-white disabled:pointer-events-none disabled:opacity-45"
+                onClick={async () => {
+                  if (!editItem) return
+                  // Save first, then send
+                  setSaving(true)
+                  try {
+                    const recipients = editRecipients.split(',').map((r) => r.trim()).filter(Boolean)
+                    const payload: Record<string, unknown> = {
+                      title: editTitle.trim(),
+                      type: editType,
+                      scheduledAt: new Date(editDate).toISOString(),
+                      body: editBody.trim() || null,
+                      recipients: recipients.length > 0 ? recipients : null,
+                      attachments: editAttachments.length > 0 ? editAttachments : null,
+                      subject: editSubject || null,
+                      sendAt: editSendMode === 'scheduled' && editSendAt
+                        ? new Date(editSendAt).toISOString()
+                        : null,
+                    }
+                    const saveRes = await fetch(`/api/outreach/${editItem.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    })
+                    if (!saveRes.ok) {
+                      toast.error('Kunde inte spara outreach')
+                      return
+                    }
+                  } catch {
+                    toast.error('Kunde inte spara outreach')
+                    return
+                  } finally {
+                    setSaving(false)
+                  }
+                  // Now send
+                  setEditItem(null)
+                  await handleSendEmail(editItem.id)
+                }}
+              >
+                {sendingId === editItem.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {editSendMode === 'scheduled' ? 'Spara & schemalägg' : 'Spara & skicka'}
+              </Button>
+            )}
           </ModalFooter>
         </form>
+      </Modal>
+
+      {/* Detail modal */}
+      <Modal
+        isOpen={!!detailItem}
+        onClose={() => setDetailItem(null)}
+        title={detailItem?.title ?? ''}
+        description={detailItem?.customerName}
+        size="lg"
+        panelClassName="sm:rounded-2xl shadow-zinc-950/20"
+      >
+        {detailItem && (
+          <>
+            <ModalBody className="space-y-4 pb-2">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant={detailItem.status === 'COMPLETED' ? 'success' : 'info'}>
+                  {detailItem.status === 'COMPLETED' ? 'Genomförd' : 'Planerad'}
+                </Badge>
+                <Badge variant="default">{typeLabels[detailItem.type]}</Badge>
+                {detailItem.type === 'EMAIL' && detailItem.emailStatus && (
+                  <EmailStatusBadge status={detailItem.emailStatus} />
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-500">Kund</span>
+                  <Link
+                    href={`/customers/${detailItem.customerId}`}
+                    className="font-medium text-zinc-900 hover:text-zinc-600"
+                  >
+                    {detailItem.customerName}
+                  </Link>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-500">Planerat datum</span>
+                  <span className="font-medium text-zinc-900">
+                    {formatDate(detailItem.scheduledAt)}
+                  </span>
+                </div>
+                {detailItem.sendAt && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-500">Schemalagd sändning</span>
+                    <span className="font-medium text-zinc-900">
+                      {new Date(detailItem.sendAt).toLocaleString('sv-SE')}
+                    </span>
+                  </div>
+                )}
+                {detailItem.type === 'EMAIL' && detailItem.subject && (
+                  <div className="flex justify-between text-sm gap-4">
+                    <span className="text-zinc-500 shrink-0">Ämne</span>
+                    <span className="font-medium text-zinc-900 text-right">
+                      {detailItem.subject}
+                    </span>
+                  </div>
+                )}
+                {parseRecipients(detailItem.recipients).length > 0 && (
+                  <div className="flex justify-between text-sm gap-4">
+                    <span className="text-zinc-500 shrink-0">Mottagare</span>
+                    <span className="font-medium text-zinc-900 text-right">
+                      {parseRecipients(detailItem.recipients).join(', ')}
+                    </span>
+                  </div>
+                )}
+                {detailItem.userName && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-500">Skapad av</span>
+                    <span className="font-medium text-zinc-900">{detailItem.userName}</span>
+                  </div>
+                )}
+              </div>
+
+              {detailItem.body && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    {detailItem.type === 'EMAIL' ? 'Mejlinnehåll' : 'Anteckningar'}
+                  </h4>
+                  <div className="rounded-lg bg-zinc-50 border border-zinc-100 p-4">
+                    <p className="text-sm text-zinc-700 whitespace-pre-wrap leading-relaxed">
+                      {detailItem.body}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {parseAttachments(detailItem.attachments).length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Bilagor
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {parseAttachments(detailItem.attachments).map((name, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center rounded-md bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700"
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </ModalBody>
+
+            <ModalFooter className="gap-3 py-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => copyBody(detailItem)}
+                className="gap-2 rounded-lg"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Kopiera
+              </Button>
+              {detailItem.type === 'EMAIL' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSendEmail(detailItem.id)}
+                  disabled={sendingId === detailItem.id}
+                  className="gap-2 rounded-lg text-blue-600 border-blue-200 hover:bg-blue-50"
+                >
+                  {sendingId === detailItem.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
+                  Skicka e-post
+                </Button>
+              )}
+              <Button
+                type="button"
+                onClick={() => {
+                  const item = detailItem
+                  setDetailItem(null)
+                  openEdit(item)
+                }}
+                className="gap-2 rounded-lg"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Redigera
+              </Button>
+            </ModalFooter>
+          </>
+        )}
       </Modal>
 
       <BulkPlanningModal

@@ -26,6 +26,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (body.body !== undefined) data.body = body.body?.trim() || null
   if (body.attachments !== undefined) data.attachments = body.attachments ? JSON.stringify(body.attachments) : null
   if (body.status !== undefined) data.status = body.status
+  if (body.subject !== undefined) data.subject = body.subject || null
+  if (body.sendAt !== undefined) data.sendAt = body.sendAt ? new Date(body.sendAt) : null
 
   const updated = await prisma.outreach.update({
     where: { id: outreachId },
