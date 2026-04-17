@@ -11,10 +11,16 @@ interface RouteParams {
 // POST /api/outreach/[id]/send — send the email for an outreach
 export async function POST(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params
+
+  console.log(`[SEND] Starting send for outreach ${id}`)
+
   const session = await auth()
   if (!session?.user?.id) {
+    console.log(`[SEND] FAIL: Not authenticated`)
     return NextResponse.json({ error: "Ej inloggad" }, { status: 401 })
   }
+
+  console.log(`[SEND] User: ${session.user.id} (${session.user.name ?? "?"})`)
 
   const outreach = await prisma.outreach.findUnique({
     where: { id },
@@ -28,14 +34,28 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
   })
 
   if (!outreach) {
+    console.log(`[SEND] FAIL: Outreach ${id} not found`)
     return NextResponse.json({ error: "Outreach hittades inte" }, { status: 404 })
   }
 
+  console.log(`[SEND] Outreach found:`, {
+    type: outreach.type,
+    emailStatus: outreach.emailStatus,
+    subject: outreach.subject,
+    recipients: outreach.recipients,
+    body: outreach.body ? `${outreach.body.substring(0, 50)}...` : null,
+    sendAt: outreach.sendAt,
+    customerId: outreach.customerId,
+    customerName: outreach.customer?.name,
+  })
+
   if (outreach.type !== "EMAIL") {
+    console.log(`[SEND] FAIL: Type is ${outreach.type}, not EMAIL`)
     return NextResponse.json({ error: "Bara EMAIL-outreach kan skickas" }, { status: 400 })
   }
 
   if (outreach.emailStatus && !["draft", "queued"].includes(outreach.emailStatus)) {
+    console.log(`[SEND] FAIL: emailStatus is "${outreach.emailStatus}" — already sent/scheduled`)
     return NextResponse.json(
       { error: "E-posten har redan skickats eller schemalagts" },
       { status: 400 },
@@ -52,12 +72,16 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     }
   }
 
+  console.log(`[SEND] Parsed recipients:`, recipients)
+
   if (recipients.length === 0) {
+    console.log(`[SEND] FAIL: No recipients`)
     return NextResponse.json({ error: "Inga mottagare angivna" }, { status: 400 })
   }
 
   const subject = outreach.subject
   if (!subject) {
+    console.log(`[SEND] FAIL: No subject`)
     return NextResponse.json({ error: "Ämnesrad saknas" }, { status: 400 })
   }
 
@@ -85,6 +109,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     const maxTime = new Date()
     maxTime.setHours(maxTime.getHours() + 72)
     if (sendTime > maxTime) {
+      console.log(`[SEND] FAIL: sendAt ${outreach.sendAt} is more than 72h in the future`)
       return NextResponse.json(
         { error: "Schemaläggning stöder max 72 timmar framåt" },
         { status: 400 },
@@ -95,6 +120,18 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     }
   }
 
+  console.log(`[SEND] Sending email via Resend:`, {
+    to: recipients,
+    subject: resolvedSubject,
+    scheduled: !!scheduledAt,
+    scheduledAt: scheduledAt ?? null,
+    fromEnv: {
+      RESEND_API_KEY: process.env.RESEND_API_KEY ? `${process.env.RESEND_API_KEY.substring(0, 8)}...` : "NOT SET",
+      RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL ?? "NOT SET",
+      RESEND_FROM_NAME: process.env.RESEND_FROM_NAME ?? "NOT SET",
+    },
+  })
+
   try {
     const result = await sendEmail({
       to: recipients,
@@ -102,6 +139,8 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       html: htmlBody,
       scheduledAt,
     })
+
+    console.log(`[SEND] SUCCESS: messageId=${result.id}, scheduled=${!!scheduledAt}`)
 
     // Create OutboundEmail record
     await prisma.outboundEmail.create({
@@ -135,6 +174,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     })
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Okänt fel vid sändning"
+    console.error(`[SEND] ERROR:`, err)
 
     // Create failed OutboundEmail record
     await prisma.outboundEmail.create({

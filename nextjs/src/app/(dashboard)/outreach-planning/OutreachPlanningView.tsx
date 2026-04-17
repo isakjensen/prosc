@@ -250,15 +250,19 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
   async function handleSendEmail(id: string) {
     setSendingId(id)
     try {
+      console.log(`[UI] Sending outreach ${id}...`)
       const res = await fetch(`/api/outreach/${id}/send`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      console.log(`[UI] Response:`, res.status, data)
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Kunde inte skicka')
       }
-      toast.success('E-post skickad!')
+      toast.success(data.scheduled ? 'E-post schemalagd!' : 'E-post skickad!')
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kunde inte skicka e-post')
+      const msg = err instanceof Error ? err.message : 'Kunde inte skicka e-post'
+      console.error(`[UI] Send failed:`, msg)
+      toast.error(msg)
     } finally {
       setSendingId(null)
     }
@@ -1074,10 +1078,61 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
             <Button type="button" variant="outline" onClick={() => setEditItem(null)} className="min-w-[5.5rem] rounded-lg border-zinc-200 bg-white">
               Avbryt
             </Button>
-            <Button type="submit" disabled={saving || !editTitle.trim() || !editDate} className="min-w-[10rem] rounded-lg disabled:pointer-events-none disabled:opacity-45">
+            <Button type="submit" disabled={saving || !editTitle.trim() || !editDate} className="min-w-[8rem] rounded-lg disabled:pointer-events-none disabled:opacity-45">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {editType === 'EMAIL' && editSendMode === 'scheduled' ? 'Spara (schemalagd)' : 'Spara'}
+              Spara
             </Button>
+            {editItem && editType === 'EMAIL' && (!editItem.emailStatus || editItem.emailStatus === 'draft' || editItem.emailStatus === 'queued') && (
+              <Button
+                type="button"
+                disabled={sendingId === editItem.id || saving || !editSubject.trim() || !editRecipients.trim()}
+                className="min-w-[10rem] rounded-lg gap-2 bg-blue-600 hover:bg-blue-700 text-white disabled:pointer-events-none disabled:opacity-45"
+                onClick={async () => {
+                  if (!editItem) return
+                  // Save first, then send
+                  setSaving(true)
+                  try {
+                    const recipients = editRecipients.split(',').map((r) => r.trim()).filter(Boolean)
+                    const payload: Record<string, unknown> = {
+                      title: editTitle.trim(),
+                      type: editType,
+                      scheduledAt: new Date(editDate).toISOString(),
+                      body: editBody.trim() || null,
+                      recipients: recipients.length > 0 ? recipients : null,
+                      attachments: editAttachments.length > 0 ? editAttachments : null,
+                      subject: editSubject || null,
+                      sendAt: editSendMode === 'scheduled' && editSendAt
+                        ? new Date(editSendAt).toISOString()
+                        : null,
+                    }
+                    const saveRes = await fetch(`/api/outreach/${editItem.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    })
+                    if (!saveRes.ok) {
+                      toast.error('Kunde inte spara outreach')
+                      return
+                    }
+                  } catch {
+                    toast.error('Kunde inte spara outreach')
+                    return
+                  } finally {
+                    setSaving(false)
+                  }
+                  // Now send
+                  setEditItem(null)
+                  await handleSendEmail(editItem.id)
+                }}
+              >
+                {sendingId === editItem.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {editSendMode === 'scheduled' ? 'Spara & schemalägg' : 'Spara & skicka'}
+              </Button>
+            )}
           </ModalFooter>
         </form>
       </Modal>
