@@ -4,17 +4,20 @@ import { prisma } from '@/lib/db'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const q = searchParams.get('q') ?? ''
+  const customerId = searchParams.get('customerId') ?? ''
+
+  const where: Record<string, unknown> = {}
+  if (customerId) where.customerId = customerId
+  if (q) {
+    where.OR = [
+      { firstName: { contains: q } },
+      { lastName: { contains: q } },
+      { email: { contains: q } },
+    ]
+  }
 
   const contacts = await prisma.contact.findMany({
-    where: q
-      ? {
-          OR: [
-            { firstName: { contains: q } },
-            { lastName: { contains: q } },
-            { email: { contains: q } },
-          ],
-        }
-      : {},
+    where,
     include: { customer: true },
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   })

@@ -50,7 +50,9 @@ export default async function OutreachPlanningPage({ searchParams }: PageProps) 
     prisma.outreach.findMany({
       where,
       include: {
-        customer: { select: { id: true, name: true, city: true, industry: true } },
+        customer: {
+          select: { id: true, name: true, city: true, industry: true, orgNumber: true, email: true },
+        },
         user: { select: { id: true, name: true } },
       },
       orderBy: { scheduledAt: 'asc' },
@@ -73,8 +75,15 @@ export default async function OutreachPlanningPage({ searchParams }: PageProps) 
     customerName: o.customer.name,
     customerCity: o.customer.city,
     customerIndustry: o.customer.industry,
+    customerOrgNumber: o.customer.orgNumber,
+    customerEmail: o.customer.email,
     userName: o.user?.name ?? null,
     emailStatus: o.emailStatus ?? null,
+    subject: o.subject ?? null,
+    body: o.body ?? null,
+    recipients: o.recipients ?? null,
+    attachments: o.attachments ?? null,
+    sendAt: o.sendAt ? o.sendAt.toISOString() : null,
     createdAt: o.createdAt.toISOString(),
   }))
 
