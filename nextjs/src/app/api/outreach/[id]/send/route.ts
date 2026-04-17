@@ -54,12 +54,8 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Bara EMAIL-outreach kan skickas" }, { status: 400 })
   }
 
-  if (outreach.emailStatus && !["draft", "queued"].includes(outreach.emailStatus)) {
-    console.log(`[SEND] FAIL: emailStatus is "${outreach.emailStatus}" — already sent/scheduled`)
-    return NextResponse.json(
-      { error: "E-posten har redan skickats eller schemalagts" },
-      { status: 400 },
-    )
+  if (outreach.emailStatus) {
+    console.log(`[SEND] Note: emailStatus is "${outreach.emailStatus}" — sending again anyway`)
   }
 
   // Parse recipients

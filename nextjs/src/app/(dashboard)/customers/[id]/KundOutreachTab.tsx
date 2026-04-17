@@ -609,7 +609,7 @@ export default function KundOutreachTab({
                             )}
                           </div>
                           <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {item.type === "EMAIL" && !item.emailStatus && (
+                            {item.type === "EMAIL" && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -867,7 +867,7 @@ export default function KundOutreachTab({
                 <Copy className="h-3.5 w-3.5" />
                 Kopiera
               </Button>
-              {detailItem.type === "EMAIL" && !detailItem.emailStatus && (
+              {detailItem.type === "EMAIL" && (
                 <Button
                   type="button"
                   variant="outline"

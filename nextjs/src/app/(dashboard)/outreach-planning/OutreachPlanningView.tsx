@@ -712,7 +712,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {item.type === 'EMAIL' && item.status === 'PLANNED' && (!item.emailStatus || !['sent', 'delivered', 'opened', 'scheduled'].includes(item.emailStatus)) && (
+                                {item.type === 'EMAIL' && (
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -847,7 +847,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                               </div>
                             </div>
                             <div className="flex shrink-0 gap-1">
-                              {item.type === 'EMAIL' && item.status === 'PLANNED' && (!item.emailStatus || !['sent', 'delivered', 'opened', 'scheduled'].includes(item.emailStatus)) && (
+                              {item.type === 'EMAIL' && (
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -1076,7 +1076,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
 
           {editItem && (
             <div className="px-6 py-2 bg-zinc-50 border-t border-zinc-100 text-[11px] font-mono text-zinc-400">
-              DEBUG: type={editType} | emailStatus={editItem.emailStatus ?? 'null'} | showSend={String(editType === 'EMAIL' && (!editItem.emailStatus || !['sent', 'delivered', 'opened', 'scheduled'].includes(editItem.emailStatus)))}
+              DEBUG: type={editType} | emailStatus={editItem.emailStatus ?? 'null'} | showSend={String(editType === 'EMAIL')}
             </div>
           )}
 
@@ -1088,7 +1088,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Spara
             </Button>
-            {editItem && editType === 'EMAIL' && (!editItem.emailStatus || !['sent', 'delivered', 'opened', 'scheduled'].includes(editItem.emailStatus)) && (
+            {editItem && editType === 'EMAIL' && (
               <Button
                 type="button"
                 disabled={sendingId === editItem.id || saving || !editSubject.trim() || !editRecipients.trim()}
@@ -1255,7 +1255,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                 <Copy className="h-3.5 w-3.5" />
                 Kopiera
               </Button>
-              {detailItem.type === 'EMAIL' && detailItem.status === 'PLANNED' && (!detailItem.emailStatus || !['sent', 'delivered', 'opened', 'scheduled'].includes(detailItem.emailStatus)) && (
+              {detailItem.type === 'EMAIL' && (
                 <Button
                   type="button"
                   variant="outline"
