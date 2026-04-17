@@ -14,6 +14,7 @@ import {
   Phone,
   Plus,
   Search,
+  Send,
   Trash2,
   Users,
   X,
@@ -126,6 +127,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
   const [filterOpen, setFilterOpen] = useState(false)
   const [searchValue, setSearchValue] = useState(filters.q ?? '')
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
 
   // Edit modal state
   const [editItem, setEditItem] = useState<OutreachItem | null>(null)
@@ -203,6 +205,23 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
       toast.error('Kunde inte uppdatera status')
     } finally {
       setTogglingId(null)
+    }
+  }
+
+  async function handleSendEmail(id: string) {
+    setSendingId(id)
+    try {
+      const res = await fetch(`/api/outreach/${id}/send`, { method: 'POST' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Kunde inte skicka')
+      }
+      toast.success('E-post skickad!')
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Kunde inte skicka e-post')
+    } finally {
+      setSendingId(null)
     }
   }
 
@@ -575,6 +594,23 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {item.type === 'EMAIL' && !item.emailStatus && item.status === 'PLANNED' && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() => handleSendEmail(item.id)}
+                                    disabled={sendingId === item.id}
+                                    title="Skicka e-post"
+                                  >
+                                    {sendingId === item.id ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                      <Send className="h-3.5 w-3.5" />
+                                    )}
+                                  </Button>
+                                )}
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -669,6 +705,23 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                               </div>
                             </div>
                             <div className="flex shrink-0 gap-1">
+                              {item.type === 'EMAIL' && !item.emailStatus && item.status === 'PLANNED' && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleSendEmail(item.id)}
+                                  disabled={sendingId === item.id}
+                                  title="Skicka e-post"
+                                >
+                                  {sendingId === item.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Send className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                              )}
                               <Button
                                 type="button"
                                 variant="ghost"
