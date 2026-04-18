@@ -27,10 +27,14 @@ export default function BolagsfaktaRefreshButton({ customerId, label }: Bolagsfa
       })
       const body = (await res.json().catch(() => ({}))) as {
         error?: string
+        detail?: string
         websiteDiscovery?: WebsiteDiscoveryResult | null
       }
       if (!res.ok) {
-        setError(body.error ?? "Kunde inte uppdatera")
+        const main = body.error ?? "Kunde inte uppdatera"
+        const combined =
+          body.detail && body.detail !== body.error ? `${main} (${body.detail})` : main
+        setError(combined)
         return
       }
       toast.success("Bolagsfakta uppdaterad")
