@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { CheckCircle2, ExternalLink, Loader2, AlertCircle, Clock } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import PipelineForetagActions from "./PipelineForetagActions"
@@ -13,6 +14,8 @@ export type PipelineForetagRow = {
   orgNummer: string | null
   bolagsform: string | null
   url: string | null
+  /** Företagets webbplats (kundpost eller upptäckt via Bolagsfakta) */
+  website: string | null
   customerId: string | null
   customerStage: string | null
   hasBolagsfakta: boolean
@@ -32,6 +35,26 @@ export function isEligibleForBatch(f: PipelineForetagRow): boolean {
   return Boolean(f.customerId) && Boolean(f.url) && !f.isRedlisted
 }
 
+/** Kan köa ny detaljhämtning (ej redan köad eller pågående). */
+export function canQueueDetailFetch(f: PipelineForetagRow): boolean {
+  return isEligibleForBatch(f) && f.detailStatus !== "QUEUED" && f.detailStatus !== "RUNNING"
+}
+
+/** Kan köa webbplats-sökning / synk detaljskrapning (samma villkor som detaljjobb). */
+export function canQueueWebsiteScan(f: PipelineForetagRow): boolean {
+  return canQueueDetailFetch(f)
+}
+
+/** Ingen visad webbplats (varken manuell eller upptäckt). */
+export function rowMissingWebsite(f: PipelineForetagRow): boolean {
+  return !f.website?.trim()
+}
+
+/** Saknar bolagsfakta-data eller senaste hämtning misslyckades. */
+export function rowNeedsDetailScrape(f: PipelineForetagRow): boolean {
+  return !f.hasBolagsfakta || f.detailStatus === "ERROR"
+}
+
 interface Props {
   pipelineId: string
   rows: PipelineForetagRow[]
@@ -41,6 +64,13 @@ interface Props {
   statuses?: Map<string, BatchStatus>
   errors?: Map<string, string>
   batchRunning?: boolean
+  /** Separat progress för webbplats-sökning (visas i statuskolumnen när aktiv). */
+  siteStatuses?: Map<string, BatchStatus>
+  siteErrors?: Map<string, string>
+  siteBatchRunning?: boolean
+  /** När webbplats-sökning pågår: annan text i BF-data-kolumnen än vid vanlig detaljskrapning. */
+  websiteBfLoadingByRow?: Map<string, "pending" | "running">
+  onSoloWebsiteDiscoverLoading?: (foretagId: string, loading: boolean) => void
 }
 
 function rowAccentClass(f: PipelineForetagRow, status?: BatchStatus) {
@@ -62,9 +92,12 @@ function rowAccentClass(f: PipelineForetagRow, status?: BatchStatus) {
   return "hover:bg-gray-50"
 }
 
-function stageBadge(customerId: string | null, customerStage: string | null) {
+function stageBadge(
+  customerId: string | null,
+  customerStage: string | null,
+): { label: string; variant: "gray" | "success" | "info" | "warning" } | null {
   if (!customerId) {
-    return { label: "Pipeline", variant: "gray" as const }
+    return null
   }
   switch (customerStage) {
     case "CUSTOMER":
@@ -72,7 +105,7 @@ function stageBadge(customerId: string | null, customerStage: string | null) {
     case "PROSPECT":
       return { label: "Prospect", variant: "info" as const }
     case "SCRAPED":
-      return { label: "Pipeline", variant: "gray" as const }
+      return null
     case "ARCHIVED":
       return { label: "Arkiverad", variant: "warning" as const }
     default:
@@ -98,30 +131,6 @@ function StatusIndicator({ status, error }: { status?: BatchStatus; error?: stri
   }
 }
 
-function DetailStatusIndicator({
-  status,
-  error,
-}: {
-  status?: PipelineForetagRow["detailStatus"]
-  error?: string | null
-}) {
-  if (!status || status === "IDLE") return null
-  switch (status) {
-    case "QUEUED":
-      return <Clock className="h-4 w-4 text-gray-400" aria-label="Köad" />
-    case "RUNNING":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" aria-label="Skrapar..." />
-    case "SUCCESS":
-      return <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-label="Klar" />
-    case "ERROR":
-      return (
-        <span className="inline-flex items-center gap-1" title={error ?? undefined}>
-          <AlertCircle className="h-4 w-4 text-red-600" aria-label="Fel" />
-        </span>
-      )
-  }
-}
-
 function detailStatusLabel(status?: PipelineForetagRow["detailStatus"]) {
   switch (status) {
     case "QUEUED":
@@ -137,6 +146,89 @@ function detailStatusLabel(status?: PipelineForetagRow["detailStatus"]) {
   }
 }
 
+function DetailScrapeStatusCell({
+  f,
+  websiteLoadPhase,
+}: {
+  f: PipelineForetagRow
+  websiteLoadPhase?: "pending" | "running"
+}) {
+  if (websiteLoadPhase === "pending") {
+    return (
+      <div className="flex justify-center">
+        <span
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-violet-600"
+          title="Webbplats-sökning är köad"
+        >
+          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Köar webbsökning…
+        </span>
+      </div>
+    )
+  }
+
+  if (websiteLoadPhase === "running") {
+    return (
+      <div className="flex justify-center">
+        <span
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-violet-700"
+          title="Söker företagets webbplats (Google + AI)"
+        >
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+          Söker webbplats…
+        </span>
+      </div>
+    )
+  }
+
+  const s = f.detailStatus
+  if (!s || s === "IDLE") {
+    return <span className="text-xs text-gray-400">–</span>
+  }
+
+  const label = detailStatusLabel(s)
+  let Icon: LucideIcon | null = null
+  let textClass = "text-gray-600"
+
+  switch (s) {
+    case "SUCCESS":
+      Icon = CheckCircle2
+      textClass = "text-emerald-700"
+      break
+    case "ERROR":
+      Icon = AlertCircle
+      textClass = "text-red-600"
+      break
+    case "RUNNING":
+      Icon = Loader2
+      textClass = "text-blue-600"
+      break
+    case "QUEUED":
+      Icon = Clock
+      textClass = "text-gray-500"
+      break
+    default:
+      break
+  }
+
+  return (
+    <div className="flex justify-center">
+      <span
+        className={`inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums ${textClass}`}
+        title={s === "ERROR" ? (f.detailError ?? label ?? undefined) : label ?? undefined}
+      >
+        {Icon ? (
+          <Icon
+            className={`h-3.5 w-3.5 shrink-0 ${s === "RUNNING" ? "animate-spin" : ""}`}
+            aria-hidden
+          />
+        ) : null}
+        {label}
+      </span>
+    </div>
+  )
+}
+
 export default function PipelineForetagTable({
   pipelineId,
   rows,
@@ -146,14 +238,27 @@ export default function PipelineForetagTable({
   statuses,
   errors,
   batchRunning,
+  siteStatuses,
+  siteErrors,
+  siteBatchRunning,
+  websiteBfLoadingByRow,
+  onSoloWebsiteDiscoverLoading,
 }: Props) {
   const hasSelection = selectedIds !== undefined
-  const showStatusColumns = Boolean(hasSelection && selectedIds && selectedIds.size > 0)
+  const showStatusColumns = Boolean(
+    hasSelection &&
+      selectedIds &&
+      (selectedIds.size > 0 ||
+        (statuses && statuses.size > 0) ||
+        batchRunning ||
+        (siteStatuses && siteStatuses.size > 0) ||
+        siteBatchRunning),
+  )
   const eligibleRows = rows.filter(isEligibleForBatch)
   const allEligibleSelected = eligibleRows.length > 0 && eligibleRows.every((r) => selectedIds?.has(r.id))
 
   return (
-    <table className="w-full min-w-[56rem] text-sm">
+    <table className="w-full min-w-[64rem] text-sm">
       <thead>
         <tr className="border-b border-gray-100 bg-gray-50/50">
           {hasSelection && (
@@ -163,7 +268,7 @@ export default function PipelineForetagTable({
                 className="h-4 w-4 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 checked={allEligibleSelected}
                 onChange={onToggleAll}
-                disabled={batchRunning || eligibleRows.length === 0}
+                disabled={batchRunning || siteBatchRunning || eligibleRows.length === 0}
                 title="Välj alla valbara företag"
               />
             </th>
@@ -177,14 +282,8 @@ export default function PipelineForetagTable({
           >
             Status
           </th>
-          <th
-            className={cn(
-              "px-2 py-3 align-middle text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-10",
-              !showStatusColumns && "hidden",
-            )}
-            suppressHydrationWarning
-          >
-            Detail
+          <th className="px-3 py-3 align-middle text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-[5.5rem] whitespace-nowrap">
+            BF-data
           </th>
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[10rem]">
             Företag
@@ -198,6 +297,9 @@ export default function PipelineForetagTable({
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[12rem]">
             Bolagsform
           </th>
+          <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[10rem]">
+            Webbplats
+          </th>
           <th className="px-2 py-3 align-middle text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-12" title="Öppna bolagsfakta.se">
             BF
           </th>
@@ -210,9 +312,8 @@ export default function PipelineForetagTable({
         {rows.map((f) => {
           const stage = stageBadge(f.customerId, f.customerStage)
           const eligible = isEligibleForBatch(f)
-          const rowStatus = statuses?.get(f.id)
-          const rowError = errors?.get(f.id)
-          const detailLabel = detailStatusLabel(f.detailStatus)
+          const rowStatus = siteStatuses?.get(f.id) ?? statuses?.get(f.id)
+          const rowError = siteErrors?.get(f.id) ?? errors?.get(f.id)
           const nameClass = f.hasBolagsfakta
             ? "font-medium text-emerald-700 hover:text-emerald-800 transition-colors inline-block max-w-full break-words"
             : "font-medium text-gray-900 hover:text-zinc-600 transition-colors inline-block max-w-full break-words"
@@ -238,7 +339,7 @@ export default function PipelineForetagTable({
                     className="h-4 w-4 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     checked={selectedIds.has(f.id)}
                     onChange={() => onToggle?.(f.id)}
-                    disabled={!eligible || batchRunning}
+                    disabled={!eligible || batchRunning || siteBatchRunning}
                     title={
                       !eligible
                         ? f.isRedlisted
@@ -259,13 +360,11 @@ export default function PipelineForetagTable({
               >
                 <StatusIndicator status={rowStatus} error={rowError} />
               </td>
-              <td
-                className={cn(
-                  "px-2 py-3 align-middle text-center",
-                  !showStatusColumns && "hidden",
-                )}
-              >
-                <DetailStatusIndicator status={f.detailStatus} error={f.detailError} />
+              <td className="px-3 py-3 align-middle">
+                <DetailScrapeStatusCell
+                  f={f}
+                  websiteLoadPhase={websiteBfLoadingByRow?.get(f.id)}
+                />
               </td>
               <td className="px-6 py-3 align-middle">
                 <div className="flex flex-col gap-0.5">
@@ -282,18 +381,11 @@ export default function PipelineForetagTable({
                         {nameInner}
                       </span>
                     )}
-                    <Badge variant={stage.variant} className="text-[10px] px-1.5 py-0 font-medium">
-                      {stage.label}
-                    </Badge>
-                    {detailLabel && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-600"
-                        title={f.detailStatus === "ERROR" ? (f.detailError ?? detailLabel) : detailLabel}
-                      >
-                        <DetailStatusIndicator status={f.detailStatus} error={f.detailError} />
-                        <span>{detailLabel}</span>
-                      </span>
-                    )}
+                    {stage ? (
+                      <Badge variant={stage.variant} className="text-[10px] px-1.5 py-0 font-medium">
+                        {stage.label}
+                      </Badge>
+                    ) : null}
                     {f.isRedlisted && (
                       <Badge variant="danger" className="text-[10px] px-1.5 py-0 font-medium">
                         Redlistad
@@ -307,10 +399,30 @@ export default function PipelineForetagTable({
                   )}
                 </div>
               </td>
-              <td className="px-6 py-3 align-middle text-gray-500 whitespace-normal break-words">{f.adress ?? "–"}</td>
+              <td className="px-6 py-3 align-middle text-xs text-gray-500 whitespace-normal break-words leading-snug">
+                {f.adress ?? "–"}
+              </td>
               <td className="px-6 py-3 align-middle text-gray-500 whitespace-nowrap">{f.orgNummer ?? "–"}</td>
               <td className="px-6 py-3 align-middle text-gray-500 whitespace-normal break-words min-w-[12rem]">
                 {f.bolagsform ?? "–"}
+              </td>
+              <td className="px-6 py-3 align-middle text-gray-500 min-w-[10rem] max-w-[14rem]">
+                {f.website ? (
+                  <a
+                    href={
+                      f.website.startsWith("http://") || f.website.startsWith("https://")
+                        ? f.website
+                        : `https://${f.website}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-zinc-800 hover:underline break-all line-clamp-2"
+                  >
+                    {f.website}
+                  </a>
+                ) : (
+                  <span className="text-gray-400">Ingen webbplats</span>
+                )}
               </td>
               <td className="px-2 py-3 align-middle text-center">
                 {f.url ? (
@@ -333,7 +445,11 @@ export default function PipelineForetagTable({
                   pipelineId={pipelineId}
                   foretagId={f.id}
                   hasCustomer={Boolean(f.customerId)}
+                  customerStage={f.customerStage}
                   isRedlisted={f.isRedlisted}
+                  bolagsfaktaUrl={f.url}
+                  detailStatus={f.detailStatus}
+                  onSoloWebsiteDiscoverLoading={onSoloWebsiteDiscoverLoading}
                 />
               </td>
             </tr>

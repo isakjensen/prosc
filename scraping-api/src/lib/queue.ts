@@ -12,6 +12,17 @@ function getRedisConnection(): ConnectionOptions {
 
 export const redisConnection = getRedisConnection()
 
+/**
+ * BullMQ defaults to lockDuration 30s. Our jobs run Playwright + (for detail) Google + Cursor CLI
+ * (~3–10+ min). If the lock expires before renewal, the job is marked stalled and can fail with
+ * "job stalled more than allowable limit" — Next.js then surfaces that as HTTP 502.
+ */
+export const bullMqLongJobWorkerSettings = {
+  lockDuration: 600_000,
+  stalledInterval: 60_000,
+  maxStalledCount: 5,
+} as const
+
 export const scrapePipelineQueue = new Queue('scrape-pipeline', {
   connection: redisConnection,
   defaultJobOptions: {

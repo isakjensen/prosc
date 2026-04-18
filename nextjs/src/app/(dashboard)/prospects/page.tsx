@@ -11,6 +11,7 @@ export default async function ProspektsPage() {
       include: {
         prospectStage: { include: { currentStage: true } },
         contacts: { select: { id: true } },
+        bolagsfaktaData: { select: { discoveredWebsite: true } },
       },
       orderBy: { name: 'asc' },
     }),
@@ -71,12 +72,16 @@ function serialize(c: {
   city: string | null
   phone: string | null
   email: string | null
+  website: string | null
   contacts: { id: string }[]
+  bolagsfaktaData: { discoveredWebsite: string | null } | null
   prospectStage: {
     currentStageId: string
     currentStage: { id: string; name: string; color: string | null }
   } | null
 }) {
+  const website =
+    c.website?.trim() || c.bolagsfaktaData?.discoveredWebsite?.trim() || null
   return {
     id: c.id,
     name: c.name,
@@ -84,6 +89,7 @@ function serialize(c: {
     city: c.city,
     phone: c.phone,
     email: c.email,
+    website,
     contacts: c.contacts,
     prospectStage: c.prospectStage
       ? {

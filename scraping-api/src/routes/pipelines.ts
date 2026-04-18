@@ -1,9 +1,18 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/db.js'
+import { deletePipelineCascade } from '../lib/delete-pipeline-cascade.js'
+import { reconcileAllBolagsfaktaStaleStatuses, reconcileStalePipelineRunningStatus } from '../lib/bolagsfakta-status-reconcile.js'
 import { scrapePipelineQueue, fetchDetailQueue } from '../lib/queue.js'
 import type { CreatePipelineBody, FetchDetailBody } from '../types/api.js'
 
 export async function pipelineRoutes(app: FastifyInstance) {
+  /** Synka DB-status mot BullMQ (t.ex. efter omstart) — anropas från Next vid sidladdning. */
+  app.post<{ Body: { pipelineId?: string } }>('/api/pipelines/reconcile-status', async (request) => {
+    const raw = request.body?.pipelineId
+    const pipelineId = typeof raw === 'string' && raw.trim() ? raw.trim() : undefined
+    return reconcileAllBolagsfaktaStaleStatuses(pipelineId)
+  })
+
   // Lista alla pipelines
   app.get('/api/pipelines', async () => {
     const pipelines = await prisma.bolagsfaktaPipeline.findMany({
@@ -44,7 +53,7 @@ export async function pipelineRoutes(app: FastifyInstance) {
       where: { id },
       include: {
         foretag: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: [{ isRedlisted: 'asc' }, { createdAt: 'desc' }],
           include: { customer: { select: { id: true, name: true, stage: true } } },
         },
         _count: { select: { foretag: true } },
@@ -56,15 +65,19 @@ export async function pipelineRoutes(app: FastifyInstance) {
     return { pipeline }
   })
 
-  // Ta bort pipeline
+  // Ta bort pipeline (inkl. kunder som bara fanns i denna lista)
   app.delete<{ Params: { id: string } }>('/api/pipelines/:id', async (request, reply) => {
     const { id } = request.params
-    try {
-      await prisma.bolagsfaktaPipeline.delete({ where: { id } })
-      return { deleted: true }
-    } catch {
-      return reply.status(404).send({ error: 'Pipeline hittades inte' })
+    const result = await deletePipelineCascade(prisma, id)
+    if (!result.ok) {
+      if (result.code === 'NOT_FOUND') {
+        return reply.status(404).send({ error: 'Pipeline hittades inte' })
+      }
+      return reply.status(409).send({
+        error: 'Pipeline körs — stoppa den innan du tar bort den.',
+      })
     }
+    return { deleted: true, deletedCustomerCount: result.deletedCustomerCount }
   })
 
   // Starta scraping (köar BullMQ-jobb)
@@ -75,7 +88,11 @@ export async function pipelineRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Pipeline hittades inte' })
     }
     if (pipeline.status === 'RUNNING') {
-      return reply.status(409).send({ error: 'Pipeline körs redan' })
+      await reconcileStalePipelineRunningStatus(id)
+      const fresh = await prisma.bolagsfaktaPipeline.findUnique({ where: { id } })
+      if (fresh?.status === 'RUNNING') {
+        return reply.status(409).send({ error: 'Pipeline körs redan' })
+      }
     }
 
     await prisma.bolagsfaktaPipeline.update({
@@ -116,7 +133,7 @@ export async function pipelineRoutes(app: FastifyInstance) {
 
     const foretag = await prisma.bolagsfaktaForetag.findMany({
       where: { pipelineId: id },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ isRedlisted: 'asc' }, { createdAt: 'desc' }],
       include: { customer: { select: { id: true, name: true, stage: true } } },
     })
 

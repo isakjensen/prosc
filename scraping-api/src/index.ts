@@ -7,6 +7,7 @@ import { kommunerRoutes } from './routes/kommuner.js'
 import { pipelineRoutes } from './routes/pipelines.js'
 import { companyRoutes } from './routes/companies.js'
 import { kunderBolagsfaktaRoutes } from './routes/kunder-bolagsfakta.js'
+import { reconcileAllBolagsfaktaStaleStatuses } from './lib/bolagsfakta-status-reconcile.js'
 import { startScrapePipelineWorker } from './workers/scrape-pipeline.js'
 import { startFetchDetailWorker } from './workers/fetch-detail.js'
 
@@ -36,12 +37,23 @@ await app.register(kunderBolagsfaktaRoutes)
 startScrapePipelineWorker()
 startFetchDetailWorker()
 
+void reconcileAllBolagsfaktaStaleStatuses()
+  .then((r) => {
+    if (r.pipelinesFixed > 0 || r.detailRowsFixed > 0) {
+      console.log(
+        `[reconcile] Rensade stale status: pipelines=${r.pipelinesFixed}, detailRader=${r.detailRowsFixed}`,
+      )
+    }
+  })
+  .catch((e) => console.error('[reconcile] misslyckades', e))
+
 // Start server
 try {
-  await app.listen({ port: PORT, host: '0.0.0.0' })
-  console.log(`\n🚀 Scraping API running on http://0.0.0.0:${PORT}`)
-  console.log(`   Health: http://0.0.0.0:${PORT}/health`)
-  console.log(`   API:    http://0.0.0.0:${PORT}/api/...`)
+  // `::` is dual-stack on most platforms so `localhost` (often ::1 in Node on Windows) can connect.
+  await app.listen({ port: PORT, host: '::' })
+  console.log(`\nScraping API listening on port ${PORT} (IPv4 + IPv6)`)
+  console.log(`   Health: http://127.0.0.1:${PORT}/health`)
+  console.log(`   API:    http://127.0.0.1:${PORT}/api/...`)
 } catch (err) {
   app.log.error(err)
   process.exit(1)

@@ -1,5 +1,5 @@
 import { Worker } from 'bullmq'
-import { redisConnection } from '../lib/queue.js'
+import { bullMqLongJobWorkerSettings, redisConnection } from '../lib/queue.js'
 import { scrapeBolagsfaktaCompanyPage, persistBolagsfaktaDetail } from '../lib/bolagsfakta-detail-scraper.js'
 import { BolagsfaktaDebugLogger } from '../lib/bolagsfakta-debug-logger.js'
 import { prisma } from '../lib/db.js'
@@ -49,6 +49,7 @@ export function startFetchDetailWorker() {
     {
       connection: redisConnection,
       concurrency: 3, // Three detail scrapes at a time
+      ...bullMqLongJobWorkerSettings,
     },
   )
 

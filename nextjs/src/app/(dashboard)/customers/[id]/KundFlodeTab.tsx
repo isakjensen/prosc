@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react"
+import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Modal, ModalBody, ModalFooter } from "@/components/ui/modal"
@@ -74,6 +75,7 @@ const kindMeta: Record<
 }
 
 export default function KundFlodeTab({ customerId }: { customerId: string }) {
+  const confirm = useConfirm()
   const [mounted, setMounted] = useState(false)
   const [items, setItems] = useState<FlowItemJson[]>([])
   const [loading, setLoading] = useState(true)
@@ -242,7 +244,14 @@ export default function KundFlodeTab({ customerId }: { customerId: string }) {
   }
 
   async function deleteNote(noteId: string) {
-    if (!confirm("Ta bort den här händelsen?")) return
+    const ok = await confirm({
+      title: "Ta bort händelse?",
+      description: "Ta bort den här händelsen? Detta går inte att ångra.",
+      variant: "danger",
+      confirmLabel: "Ta bort",
+      cancelLabel: "Avbryt",
+    })
+    if (!ok) return
     setSaving(true)
     try {
       const res = await fetch(`/api/customers/${customerId}/flow/notes/${noteId}`, {

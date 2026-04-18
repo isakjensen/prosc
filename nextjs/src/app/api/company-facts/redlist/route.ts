@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db"
-import { normalizeOrgNumber } from "@/lib/bolagsfakta-scraper"
+import { normalizeOrgNumber, orgNumberLookupVariants } from "@/lib/swedish-org-number"
 
 export async function GET() {
   const entries = await prisma.bolagsfaktaRedlistEntry.findMany({
@@ -47,9 +47,10 @@ export async function POST(request: NextRequest) {
     })
 
     // Upsert global entry when we have url or org
+    const orgVars = orgNumberLookupVariants(orgNorm)
     const orFilters: Prisma.BolagsfaktaRedlistEntryWhereInput[] = []
     if (url) orFilters.push({ url })
-    if (orgNorm) orFilters.push({ orgNummerNormalized: orgNorm })
+    if (orgVars.length) orFilters.push({ orgNummerNormalized: { in: orgVars } })
 
     if (orFilters.length === 0) {
       return NextResponse.json({ ok: true, flagged: true, entry: null })
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Mode B: admin UI can POST { namn, url?, orgNummer? } to add a global entry.
+  // Mode B: admin UI can POST { namn, url?, orgNummer?, nameContains? } to add a global entry.
   const namn = typeof body.namn === "string" ? body.namn.trim() : ""
   if (!namn) return NextResponse.json({ error: "Namn krävs" }, { status: 400 })
 
@@ -93,21 +94,38 @@ export async function POST(request: NextRequest) {
         : null
   const orgNorm = normalizeOrgNumber(orgInput)
 
+  const nameContainsRaw =
+    typeof body.nameContains === "string" ? body.nameContains.trim() : ""
+  const nameContainsNorm = nameContainsRaw ? nameContainsRaw.toLowerCase() : null
+
+  if (!url && !orgNorm && !nameContainsNorm) {
+    return NextResponse.json(
+      {
+        error:
+          "Ange minst ett av: org.nr, Bolagsfakta-URL eller text för automatisk namn-matchning",
+      },
+      { status: 400 },
+    )
+  }
+
+  const orgVarsB = orgNumberLookupVariants(orgNorm)
   const orFilters: Prisma.BolagsfaktaRedlistEntryWhereInput[] = []
   if (url) orFilters.push({ url })
-  if (orgNorm) orFilters.push({ orgNummerNormalized: orgNorm })
+  if (orgVarsB.length) orFilters.push({ orgNummerNormalized: { in: orgVarsB } })
+  if (nameContainsNorm) orFilters.push({ nameContains: nameContainsNorm })
 
-  if (orFilters.length > 0) {
-    const existing = await prisma.bolagsfaktaRedlistEntry.findFirst({
-      where: { OR: orFilters },
+  const existing =
+    orFilters.length > 0
+      ? await prisma.bolagsfaktaRedlistEntry.findFirst({
+          where: { OR: orFilters },
+        })
+      : null
+  if (existing) {
+    return NextResponse.json({
+      ok: true,
+      entry: existing,
+      duplicate: true,
     })
-    if (existing) {
-      return NextResponse.json({
-        ok: true,
-        entry: existing,
-        duplicate: true,
-      })
-    }
   }
 
   try {
@@ -116,6 +134,7 @@ export async function POST(request: NextRequest) {
         namn,
         url,
         orgNummerNormalized: orgNorm,
+        nameContains: nameContainsNorm,
       },
     })
     return NextResponse.json(

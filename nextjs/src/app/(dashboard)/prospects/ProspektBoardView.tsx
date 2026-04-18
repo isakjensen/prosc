@@ -8,6 +8,7 @@ interface ProspectCompany {
   name: string
   industry: string | null
   city: string | null
+  website: string | null
   contacts: { id: string }[]
   prospectStage: { currentStageId: string } | null
 }
@@ -51,6 +52,25 @@ export default function ProspektBoardView({ columns }: { columns: Column[] }) {
                   {company.industry && (
                     <p className="text-xs text-gray-400 mt-0.5">{company.industry}</p>
                   )}
+                  <p className="text-xs mt-1 truncate">
+                    {company.website ? (
+                      <a
+                        href={
+                          company.website.startsWith('http://') || company.website.startsWith('https://')
+                            ? company.website
+                            : `https://${company.website}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-zinc-700 hover:underline"
+                      >
+                        {company.website}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">Ingen webbplats</span>
+                    )}
+                  </p>
                   <div className="flex items-center gap-2 mt-2">
                     {company.city && (
                       <span className="text-xs text-gray-500">{company.city}</span>

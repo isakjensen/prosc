@@ -11,6 +11,7 @@ interface ProspectCompany {
   city: string | null
   phone: string | null
   email: string | null
+  website: string | null
   contacts: { id: string }[]
   prospectStage: { currentStageId: string; currentStage: { id: string; name: string; color: string | null } } | null
 }
@@ -70,6 +71,7 @@ export default function ProspektListView({ companies, stages }: Props) {
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Namn</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Bransch</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Stad</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Webbplats</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Fas</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Kontakter</th>
                 </tr>
@@ -84,6 +86,25 @@ export default function ProspektListView({ companies, stages }: Props) {
                     </td>
                     <td className="px-6 py-4 text-gray-600">{company.industry ?? '–'}</td>
                     <td className="px-6 py-4 text-gray-600">{company.city ?? '–'}</td>
+                    <td className="px-6 py-4 text-gray-600 max-w-[14rem]">
+                      {company.website ? (
+                        <a
+                          href={
+                            company.website.startsWith('http://') || company.website.startsWith('https://')
+                              ? company.website
+                              : `https://${company.website}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-zinc-800 hover:underline break-all line-clamp-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {company.website}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">Ingen webbplats</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       {company.prospectStage?.currentStage ? (
                         <span className="inline-flex items-center gap-1.5">
@@ -128,7 +149,26 @@ export default function ProspektListView({ companies, stages }: Props) {
                       <span className="text-xs text-gray-400 shrink-0">Ingen fas</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-2">
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
+                    <span className="text-xs">
+                      {company.website ? (
+                        <a
+                          href={
+                            company.website.startsWith('http://') || company.website.startsWith('https://')
+                              ? company.website
+                              : `https://${company.website}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-zinc-700 hover:underline truncate max-w-[12rem] inline-block"
+                        >
+                          {company.website}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">Ingen webbplats</span>
+                      )}
+                    </span>
                     {company.city && (
                       <span className="text-xs text-gray-500">{company.city}</span>
                     )}

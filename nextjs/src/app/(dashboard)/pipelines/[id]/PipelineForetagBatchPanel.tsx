@@ -3,22 +3,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
+import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
-import { Loader2, Play, Square, RotateCcw } from "lucide-react"
+import { Loader2, Play, Square, RotateCcw, Globe } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import PipelineForetagTable, {
   type PipelineForetagRow,
   type BatchStatus,
   isEligibleForBatch,
+  canQueueDetailFetch,
+  canQueueWebsiteScan,
+  rowNeedsDetailScrape,
+  rowMissingWebsite,
 } from "./PipelineForetagTable"
 
 interface Props {
   pipelineId: string
+  pipelineStatus: string
+  /** Totalt antal företagsrader i pipelinen (kan växa under listskrapning). */
+  listForetagTotal: number
   rows: PipelineForetagRow[]
 }
 
-export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
+export default function PipelineForetagBatchPanel({
+  pipelineId,
+  pipelineStatus,
+  listForetagTotal,
+  rows,
+}: Props) {
+  const confirm = useConfirm()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [mounted, setMounted] = useState(false)
@@ -27,7 +41,10 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
   const filtersOpen = mounted && searchParams.get("filters") === "1"
 
   const [liveRows, setLiveRows] = useState<PipelineForetagRow[]>(rows)
+  const [liveListTotal, setLiveListTotal] = useState(listForetagTotal)
+
   useEffect(() => setLiveRows(rows), [rows])
+  useEffect(() => setLiveListTotal(listForetagTotal), [listForetagTotal])
 
   const [query, setQuery] = useState("")
   const [sortBy, setSortBy] = useState<"name" | "org" | "stage" | "fetched">("name")
@@ -45,28 +62,41 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
   const [statuses, setStatuses] = useState<Map<string, BatchStatus>>(new Map())
   const [errors, setErrors] = useState<Map<string, string>>(new Map())
   const abortRef = useRef<AbortController | null>(null)
+  const [siteBatchRunning, setSiteBatchRunning] = useState(false)
+  const [siteStatuses, setSiteStatuses] = useState<Map<string, BatchStatus>>(new Map())
+  const [siteErrors, setSiteErrors] = useState<Map<string, string>>(new Map())
+  const siteAbortRef = useRef<AbortController | null>(null)
   const [redlistRunning, setRedlistRunning] = useState(false)
+  /** En-rads webbsökning från Åtgärder (påverkar BF-data-kolumnens laddningstext). */
+  const [soloWebsiteRowIds, setSoloWebsiteRowIds] = useState<Set<string>>(new Set())
 
   const hasActiveDetailJobs = liveRows.some(
     (r) => r.detailStatus === "QUEUED" || r.detailStatus === "RUNNING",
   )
 
   useEffect(() => {
-    if (!hasActiveDetailJobs && !batchRunning) return
+    const pollListScrape = pipelineStatus === "RUNNING"
+    if (!hasActiveDetailJobs && !batchRunning && !siteBatchRunning && !pollListScrape) return
 
-    const id = window.setInterval(() => {
+    function poll() {
       fetch(`/api/pipelines/${pipelineId}/companies`)
         .then((r) => r.json())
-        .then((data) => {
+        .then((data: { rows?: PipelineForetagRow[]; totalCount?: number }) => {
           if (Array.isArray(data?.rows)) {
-            setLiveRows(data.rows as PipelineForetagRow[])
+            setLiveRows(data.rows)
+          }
+          if (typeof data?.totalCount === "number") {
+            setLiveListTotal(data.totalCount)
           }
         })
         .catch(() => {})
-    }, 1500)
+    }
+
+    poll()
+    const id = window.setInterval(poll, 1500)
 
     return () => window.clearInterval(id)
-  }, [pipelineId, hasActiveDetailJobs, batchRunning])
+  }, [pipelineId, pipelineStatus, hasActiveDetailJobs, batchRunning, siteBatchRunning])
 
   const visibleRows = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -84,11 +114,14 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
         }
       }
       if (!q) return true
-      const hay = `${r.namn ?? ""} ${r.orgNummer ?? ""} ${r.adress ?? ""}`.toLowerCase()
+      const hay = `${r.namn ?? ""} ${r.orgNummer ?? ""} ${r.adress ?? ""} ${r.website ?? ""}`.toLowerCase()
       return hay.includes(q)
     })
 
     filtered.sort((a, b) => {
+      const redCmp = Number(a.isRedlisted) - Number(b.isRedlisted)
+      if (redCmp !== 0) return redCmp
+
       let cmp = 0
       if (sortBy === "fetched") {
         const aTs = a.bolagsfaktaUpdatedAt ? Date.parse(a.bolagsfaktaUpdatedAt) : -Infinity
@@ -124,10 +157,52 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
 
   const eligibleRows = visibleRows.filter(isEligibleForBatch)
 
+  const queueableRows = useMemo(() => visibleRows.filter(canQueueDetailFetch), [visibleRows])
+  const queueableMissingRows = useMemo(
+    () => queueableRows.filter(rowNeedsDetailScrape),
+    [queueableRows],
+  )
+
+  const websiteScanQueueableRows = useMemo(
+    () => visibleRows.filter(canQueueWebsiteScan),
+    [visibleRows],
+  )
+
+  const websiteMissingQueueableRows = useMemo(
+    () => websiteScanQueueableRows.filter(rowMissingWebsite),
+    [websiteScanQueueableRows],
+  )
+
   const completedCount = [...statuses.values()].filter((s) => s === "success").length
   const failedCount = [...statuses.values()].filter((s) => s === "error").length
   const totalBatch = [...statuses.values()].length
   const processedCount = completedCount + failedCount
+
+  const siteCompletedCount = [...siteStatuses.values()].filter((s) => s === "success").length
+  const siteFailedCount = [...siteStatuses.values()].filter((s) => s === "error").length
+  const siteTotalBatch = [...siteStatuses.values()].length
+  const siteProcessedCount = siteCompletedCount + siteFailedCount
+
+  const websiteBfLoadingByRow = useMemo(() => {
+    const m = new Map<string, "pending" | "running">()
+    for (const [id, st] of siteStatuses) {
+      if (st === "pending") m.set(id, "pending")
+      else if (st === "running") m.set(id, "running")
+    }
+    for (const id of soloWebsiteRowIds) {
+      if (!m.has(id)) m.set(id, "running")
+    }
+    return m
+  }, [siteStatuses, soloWebsiteRowIds])
+
+  const onSoloWebsiteDiscoverLoading = useCallback((foretagId: string, loading: boolean) => {
+    setSoloWebsiteRowIds((prev) => {
+      const next = new Set(prev)
+      if (loading) next.add(foretagId)
+      else next.delete(foretagId)
+      return next
+    })
+  }, [])
 
   const handleToggle = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -152,16 +227,44 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
     })
   }, [eligibleRows])
 
-  async function runBatch() {
+  async function runBatch(mode?: "selection" | "missing" | "all") {
     function sleep(ms: number) {
       return new Promise<void>((resolve) => window.setTimeout(resolve, ms))
     }
 
-    const idsToProcess = [...selectedIds].filter((id) =>
-      liveRows.find((r) => r.id === id && isEligibleForBatch(r)),
+    setSiteStatuses(new Map())
+    setSiteErrors(new Map())
+    setSoloWebsiteRowIds(new Set())
+
+    let idsToProcess: string[]
+    if (mode === "missing") {
+      idsToProcess = queueableMissingRows.map((r) => r.id)
+    } else if (mode === "all") {
+      idsToProcess = queueableRows.map((r) => r.id)
+    } else {
+      idsToProcess = [...selectedIds].filter((id) =>
+        liveRows.find((r) => r.id === id && canQueueDetailFetch(r)),
+      )
+    }
+
+    idsToProcess = idsToProcess.filter((id) =>
+      liveRows.some((r) => r.id === id && canQueueDetailFetch(r)),
     )
 
-    if (idsToProcess.length === 0) return
+    if (idsToProcess.length === 0) {
+      if (mode === "missing") {
+        toast.info("Inga oskrapade företag i den synliga listan (eller alla köas redan).")
+      } else if (mode === "all") {
+        toast.info("Inga valbara företag i den synliga listan (eller alla köas redan).")
+      }
+      return
+    }
+
+    if (mode === "missing" || mode === "all") {
+      setSelectedIds(new Set(idsToProcess))
+      setStatuses(new Map())
+      setErrors(new Map())
+    }
 
     const controller = new AbortController()
     abortRef.current = controller
@@ -238,8 +341,132 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
     }
   }
 
+  async function runWebsiteBatch(mode?: "selection" | "missing") {
+    function sleep(ms: number) {
+      return new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+    }
+
+    setStatuses(new Map())
+    setErrors(new Map())
+    setSoloWebsiteRowIds(new Set())
+
+    let idsToProcess: string[]
+    if (mode === "missing") {
+      idsToProcess = websiteMissingQueueableRows.map((r) => r.id)
+    } else {
+      idsToProcess = [...selectedIds].filter((id) =>
+        liveRows.some((r) => r.id === id && canQueueWebsiteScan(r)),
+      )
+    }
+
+    idsToProcess = idsToProcess.filter((id) =>
+      liveRows.some((r) => r.id === id && canQueueWebsiteScan(r)),
+    )
+
+    if (idsToProcess.length === 0) {
+      if (mode === "missing") {
+        toast.info("Inga företag i den synliga listan saknar webbplats (eller detaljjobb köas redan).")
+      } else {
+        toast.info("Välj företag som kan skannas, eller använd knappen för saknad webbplats.")
+      }
+      return
+    }
+
+    if (mode === "missing") {
+      setSelectedIds(new Set(idsToProcess))
+    }
+
+    const controller = new AbortController()
+    siteAbortRef.current = controller
+    setSiteBatchRunning(true)
+
+    const initialStatuses = new Map<string, BatchStatus>()
+    for (const id of idsToProcess) {
+      initialStatuses.set(id, "pending")
+    }
+    setSiteStatuses(initialStatuses)
+    setSiteErrors(new Map())
+
+    let succeeded = 0
+    let failed = 0
+    let foundWebsite = 0
+
+    const concurrency = 2
+    const queue = [...idsToProcess]
+
+    async function worker() {
+      while (!controller.signal.aborted) {
+        const foretagId = queue.shift()
+        if (!foretagId) return
+
+        setSiteStatuses((prev) => new Map(prev).set(foretagId, "running"))
+
+        try {
+          await sleep(400 + Math.floor(Math.random() * 600))
+
+          const res = await fetch(
+            `/api/pipelines/${pipelineId}/companies/${foretagId}/discover-website`,
+            { method: "POST", signal: controller.signal },
+          )
+
+          const body = (await res.json().catch(() => ({}))) as {
+            error?: string
+            websiteDiscovery?: { enrichment?: { website?: string | null } | null } | null
+          }
+
+          if (!res.ok) {
+            throw new Error(body.error ?? `HTTP ${res.status}`)
+          }
+
+          const web = body.websiteDiscovery?.enrichment?.website?.trim()
+          if (web) foundWebsite++
+
+          setSiteStatuses((prev) => new Map(prev).set(foretagId, "success"))
+          setSelectedIds((prev) => {
+            if (!prev.has(foretagId)) return prev
+            const next = new Set(prev)
+            next.delete(foretagId)
+            return next
+          })
+          succeeded++
+        } catch (e) {
+          if (controller.signal.aborted) {
+            setSiteStatuses((prev) => new Map(prev).set(foretagId, "pending"))
+            return
+          }
+          const msg = e instanceof Error ? e.message : "Okänt fel"
+          setSiteStatuses((prev) => new Map(prev).set(foretagId, "error"))
+          setSiteErrors((prev) => new Map(prev).set(foretagId, msg))
+          failed++
+        }
+      }
+    }
+
+    await Promise.all(Array.from({ length: concurrency }, () => worker()))
+
+    setSiteBatchRunning(false)
+    siteAbortRef.current = null
+    router.refresh()
+
+    if (controller.signal.aborted) {
+      toast.info(`Webbplats-sökning avbruten — ${succeeded} klara, ${failed} misslyckades`)
+    } else if (failed === 0) {
+      toast.success(
+        `Webbplats-sökning klar: ${succeeded} företag. Hittade webb för ${foundWebsite} av ${succeeded}.`,
+      )
+    } else {
+      toast.warning(
+        `Webbplats-sökning: ${succeeded} klara (${foundWebsite} med ny webb), ${failed} misslyckades`,
+      )
+    }
+  }
+
   function handleAbort() {
     abortRef.current?.abort()
+  }
+
+  function handleAbortWebsite() {
+    siteAbortRef.current?.abort()
   }
 
   async function runRedlistSelected() {
@@ -256,9 +483,13 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
       return
     }
 
-    const ok = window.confirm(
-      `Redlista ${idsToRedlist.length} markerade företag? Detta påverkar vilka företag som kan hämtas.`,
-    )
+    const ok = await confirm({
+      title: "Redlista markerade företag?",
+      description: `Redlista ${idsToRedlist.length} markerade företag? Detta påverkar vilka företag som kan hämtas.`,
+      confirmLabel: "Redlista",
+      cancelLabel: "Avbryt",
+      variant: "danger",
+    })
     if (!ok) return
 
     setRedlistRunning(true)
@@ -302,6 +533,9 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
       setSelectedIds(new Set())
       setStatuses(new Map())
       setErrors(new Map())
+      setSiteStatuses(new Map())
+      setSiteErrors(new Map())
+      setSoloWebsiteRowIds(new Set())
 
       if (failed === 0) {
         toast.success(`Redlistade ${succeeded} företag`)
@@ -318,18 +552,95 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
     setSelectedIds(new Set(failedIds))
     setStatuses(new Map())
     setErrors(new Map())
+    setSiteStatuses(new Map())
+    setSiteErrors(new Map())
+    setSoloWebsiteRowIds(new Set())
+  }
+
+  function handleRetrySiteFailed() {
+    const failedIds = [...siteErrors.keys()]
+    setSelectedIds(new Set(failedIds))
+    setSiteStatuses(new Map())
+    setSiteErrors(new Map())
+    setStatuses(new Map())
+    setErrors(new Map())
+    setSoloWebsiteRowIds(new Set())
   }
 
   function handleClearSelection() {
     setSelectedIds(new Set())
     setStatuses(new Map())
     setErrors(new Map())
+    setSiteStatuses(new Map())
+    setSiteErrors(new Map())
+    setSoloWebsiteRowIds(new Set())
   }
 
-  const showBar = selectedIds.size > 0 || batchRunning || statuses.size > 0
+  const showBar =
+    selectedIds.size > 0 ||
+    batchRunning ||
+    statuses.size > 0 ||
+    siteBatchRunning ||
+    siteStatuses.size > 0
 
   return (
     <div className="relative">
+      <div className="flex flex-col gap-3 border-b border-gray-100 bg-gray-50/50 px-6 py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-gray-600 max-w-xl leading-snug">
+            <span className="font-medium text-gray-800">Masshämta bolagsdata</span> — gäller den{" "}
+            <strong>synliga</strong> listan (filter/sök). Oskrapade = saknar data eller senaste körning
+            misslyckades. Alla valbara = inkluderar redan skrapade (för omhämtning).
+          </p>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={
+                batchRunning || siteBatchRunning || redlistRunning || queueableMissingRows.length === 0
+              }
+              onClick={() => void runBatch("missing")}
+            >
+              Endast oskrapade ({queueableMissingRows.length})
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={batchRunning || siteBatchRunning || redlistRunning || queueableRows.length === 0}
+              onClick={() => void runBatch("all")}
+            >
+              Alla valbara ({queueableRows.length})
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-gray-600 max-w-xl leading-snug">
+            <span className="font-medium text-gray-800">Webbplats-sökning</span> — kör samma
+            Bolagsfakta-detaljskrapning som uppdaterar webb/e-post/telefon via Google + AI. Gäller den{" "}
+            <strong>synliga</strong> listan. Använd markerade rader i verktygsraden nedan, eller kör för alla
+            som saknar webb här.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={
+                batchRunning ||
+                siteBatchRunning ||
+                redlistRunning ||
+                websiteMissingQueueableRows.length === 0
+              }
+              onClick={() => void runWebsiteBatch("missing")}
+            >
+              <Globe className="h-3.5 w-3.5" />
+              Saknar webbplats ({websiteMissingQueueableRows.length})
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Collapsible filter panel (opened via header button) */}
       {filtersOpen && (
         <div className="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
@@ -459,7 +770,13 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
             <div className="sm:col-span-12 flex items-center justify-between gap-3 pt-1">
               <p className="text-xs text-gray-500">
                 Visar <span className="font-medium text-gray-700">{visibleRows.length}</span> av{" "}
-                <span className="font-medium text-gray-700">{rows.length}</span>
+                <span className="font-medium text-gray-700 tabular-nums">{liveListTotal}</span>
+                {pipelineStatus === "RUNNING" ? (
+                  <span className="ml-1.5 inline-flex items-center gap-1 text-emerald-700">
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                    Uppdateras…
+                  </span>
+                ) : null}
               </p>
               <Button
                 variant="ghost"
@@ -483,11 +800,11 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
       )}
 
       {showBar && (
-        <div className="sticky top-0 left-0 right-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-3 flex items-center justify-between gap-4 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-          <div className="flex items-center gap-3 text-sm">
+        <div className="sticky top-0 left-0 right-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center gap-3 text-sm min-w-0">
             {batchRunning ? (
               <>
-                <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
                 <span className="text-gray-700">
                   Hämtar bolagsdata... <span className="font-semibold">{processedCount}</span> av{" "}
                   <span className="font-semibold">{totalBatch}</span>
@@ -499,19 +816,40 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
                   <span className="text-red-600 font-medium">{failedCount} fel</span>
                 )}
               </>
-            ) : statuses.size > 0 ? (
+            ) : siteBatchRunning ? (
               <>
+                <Loader2 className="h-4 w-4 text-violet-500 animate-spin shrink-0" />
                 <span className="text-gray-700">
-                  Klart:{" "}
-                  <span className="font-semibold text-emerald-600">{completedCount} lyckades</span>
-                  {failedCount > 0 && (
-                    <>
-                      ,{" "}
-                      <span className="font-semibold text-red-600">{failedCount} misslyckades</span>
-                    </>
-                  )}
+                  Skannar webbplatser... <span className="font-semibold">{siteProcessedCount}</span> av{" "}
+                  <span className="font-semibold">{siteTotalBatch}</span>
                 </span>
+                {siteCompletedCount > 0 && (
+                  <span className="text-emerald-600 font-medium">{siteCompletedCount} klar</span>
+                )}
+                {siteFailedCount > 0 && (
+                  <span className="text-red-600 font-medium">{siteFailedCount} fel</span>
+                )}
               </>
+            ) : statuses.size > 0 ? (
+              <span className="text-gray-700">
+                Bolagsdata klar:{" "}
+                <span className="font-semibold text-emerald-600">{completedCount} lyckades</span>
+                {failedCount > 0 && (
+                  <>
+                    , <span className="font-semibold text-red-600">{failedCount} misslyckades</span>
+                  </>
+                )}
+              </span>
+            ) : siteStatuses.size > 0 ? (
+              <span className="text-gray-700">
+                Webbplats-sökning klar:{" "}
+                <span className="font-semibold text-emerald-600">{siteCompletedCount} lyckades</span>
+                {siteFailedCount > 0 && (
+                  <>
+                    , <span className="font-semibold text-red-600">{siteFailedCount} misslyckades</span>
+                  </>
+                )}
+              </span>
             ) : (
               <span className="text-gray-700">
                 <span className="font-semibold">{selectedIds.size}</span> företag valda
@@ -519,25 +857,36 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            {!batchRunning && statuses.size === 0 && selectedIds.size > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void runRedlistSelected()}
-                disabled={redlistRunning}
-              >
-                {redlistRunning ? "Redlistar…" : `Redlista (${selectedIds.size})`}
-              </Button>
-            )}
-            {!batchRunning && statuses.size > 0 && failedCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {!batchRunning &&
+              !siteBatchRunning &&
+              statuses.size === 0 &&
+              siteStatuses.size === 0 &&
+              selectedIds.size > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void runRedlistSelected()}
+                  disabled={redlistRunning}
+                >
+                  {redlistRunning ? "Redlistar…" : `Redlista (${selectedIds.size})`}
+                </Button>
+              )}
+            {!batchRunning && !siteBatchRunning && statuses.size > 0 && failedCount > 0 && (
               <Button variant="outline" size="sm" onClick={handleRetryFailed}>
                 <RotateCcw className="h-3.5 w-3.5" />
-                Kör om misslyckade
+                Kör om bolagsdata
               </Button>
             )}
 
-            {!batchRunning && statuses.size > 0 && (
+            {!batchRunning && !siteBatchRunning && siteStatuses.size > 0 && siteFailedCount > 0 && (
+              <Button variant="outline" size="sm" onClick={handleRetrySiteFailed}>
+                <RotateCcw className="h-3.5 w-3.5" />
+                Kör om webbsökning
+              </Button>
+            )}
+
+            {!batchRunning && !siteBatchRunning && (statuses.size > 0 || siteStatuses.size > 0) && (
               <Button variant="ghost" size="sm" onClick={handleClearSelection}>
                 Rensa
               </Button>
@@ -548,15 +897,32 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
                 <Square className="h-3.5 w-3.5" />
                 Avbryt
               </Button>
-            ) : statuses.size === 0 ? (
-              <Button
-                size="sm"
-                onClick={() => void runBatch()}
-                disabled={selectedIds.size === 0 || redlistRunning}
-              >
-                <Play className="h-3.5 w-3.5" />
-                Kör ({selectedIds.size})
+            ) : siteBatchRunning ? (
+              <Button variant="destructive" size="sm" onClick={handleAbortWebsite}>
+                <Square className="h-3.5 w-3.5" />
+                Avbryt
               </Button>
+            ) : statuses.size === 0 && siteStatuses.size === 0 ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void runWebsiteBatch()}
+                  disabled={selectedIds.size === 0 || redlistRunning}
+                >
+                  <Globe className="h-3.5 w-3.5" />
+                  Skanna webb ({selectedIds.size})
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => void runBatch()}
+                  disabled={selectedIds.size === 0 || redlistRunning}
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  Kör bolagsdata ({selectedIds.size})
+                </Button>
+              </>
             ) : null}
           </div>
         </div>
@@ -570,7 +936,12 @@ export default function PipelineForetagBatchPanel({ pipelineId, rows }: Props) {
         onToggleAll={handleToggleAll}
         statuses={statuses}
         errors={errors}
-        batchRunning={batchRunning || redlistRunning}
+        batchRunning={batchRunning || redlistRunning || siteBatchRunning}
+        siteStatuses={siteStatuses}
+        siteErrors={siteErrors}
+        siteBatchRunning={siteBatchRunning}
+        websiteBfLoadingByRow={websiteBfLoadingByRow}
+        onSoloWebsiteDiscoverLoading={onSoloWebsiteDiscoverLoading}
       />
     </div>
   )

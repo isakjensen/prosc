@@ -1,5 +1,5 @@
 import { Worker } from 'bullmq'
-import { redisConnection } from '../lib/queue.js'
+import { bullMqLongJobWorkerSettings, redisConnection } from '../lib/queue.js'
 import { scrapeBolagsfaktaPipeline } from '../lib/bolagsfakta-scraper.js'
 import { prisma } from '../lib/db.js'
 
@@ -38,6 +38,7 @@ export function startScrapePipelineWorker() {
     {
       connection: redisConnection,
       concurrency: 1, // Only one pipeline scrape at a time (browser-heavy)
+      ...bullMqLongJobWorkerSettings,
     },
   )
 

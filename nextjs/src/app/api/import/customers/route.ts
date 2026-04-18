@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { normalizeOrgNumber, orgNumberLookupVariants } from '@/lib/swedish-org-number'
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
@@ -57,9 +58,19 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Skip if orgNumber exists
-      if (data.orgNumber) {
-        const existing = await prisma.customer.findFirst({ where: { orgNumber: data.orgNumber } })
+      const orgNorm = data.orgNumber ? normalizeOrgNumber(data.orgNumber) : null
+      const orgStored = orgNorm ?? (data.orgNumber?.trim() || null)
+      const orgLookup =
+        orgNorm != null
+          ? orgNumberLookupVariants(orgNorm)
+          : orgStored
+            ? [orgStored]
+            : []
+
+      if (orgLookup.length > 0) {
+        const existing = await prisma.customer.findFirst({
+          where: { orgNumber: { in: orgLookup } },
+        })
         if (existing) {
           skipped++
           continue
@@ -70,7 +81,7 @@ export async function POST(request: NextRequest) {
         data: {
           name: data.name,
           stage: 'PROSPECT',
-          orgNumber: data.orgNumber || null,
+          orgNumber: orgStored,
           industry: data.industry || null,
           email: data.email || null,
           phone: data.phone || null,

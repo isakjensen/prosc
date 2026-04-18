@@ -22,15 +22,40 @@ export interface BolagsfaktaParsedDetail {
   flat: {
     orgNumberFormatted?: string
     phone?: string
-    sniKodPrimary?: string
-    sniBenamningPrimary?: string
-    verkligHuvudman?: string
-    koncernModerNamn?: string
     antalAnstalldaText?: string
   }
   fordon: unknown
   arbetsstallen: unknown
   websiteDiscovery?: WebsiteDiscoveryResult
+}
+
+/** DB-kolumnerna är `String` (LongText); MySQL får serialiserad JSON. */
+function stringifyJsonColumn(value: unknown): string | null {
+  if (value == null) return null
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return null
+  }
+}
+
+/** Bolaget bildat först, annars Bolaget registrerat (Bolagsfakta yyyy-mm-dd). */
+function parseCompanyFoundedAtFromDisplay(
+  bolagetBildatText: string | null | undefined,
+  bolagetRegistreratText: string | null | undefined,
+): Date | null {
+  for (const raw of [bolagetBildatText, bolagetRegistreratText]) {
+    if (!raw?.trim()) continue
+    const m = raw.trim().match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (!m) continue
+    const y = Number(m[1])
+    const mo = Number(m[2])
+    const d = Number(m[3])
+    if (y < 1600 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) continue
+    const dt = new Date(Date.UTC(y, mo - 1, d))
+    if (!Number.isNaN(dt.getTime())) return dt
+  }
+  return null
 }
 
 function parsePersonName(raw: string): { firstName: string; lastName: string } {
@@ -269,18 +294,6 @@ export async function scrapeBolagsfaktaCompanyPage(
   const org = (overview.organisationsnummer as string | undefined) || omTables['Organisationsnummer']
   if (org) flat.orgNumberFormatted = org.replace(/\s/g, '')
   flat.phone = (overview.telefon as string | undefined) || omTables['Telefonnummer']
-  const sniKeys = Object.keys(omTables).filter(k => /SNI|sni/i.test(k) || /^\d{4,5}\s*[-–]/.test(omTables[k]))
-  if (sniKeys.length) {
-    const first = omTables[sniKeys[0]]
-    flat.sniBenamningPrimary = first
-    const m = first.match(/^(\d{4,5})\s*[-–]\s*/)
-    if (m) flat.sniKodPrimary = m[1]
-  }
-  const vhText = $overview('body').text()
-  const vhMatch = vhText.match(/verklig huvudman[^\n.]+[.:]?\s*([^\n.]+)/i)
-  if (vhMatch) flat.verkligHuvudman = vhMatch[1].trim().slice(0, 500)
-  const km = overviewHtml.match(/Koncernmoderbolag[^>]*>([^<]+)</i) || overviewHtml.match(/Koncernmoderbolag[\s\S]{0,200}?>([^<]+)</i)
-  if (km) flat.koncernModerNamn = km[1].replace(/\s+/g, ' ').trim()
   flat.antalAnstalldaText = omTables['Antal anställda'] || omTables['Antal anställda:']
 
   const fordon = {
@@ -328,10 +341,10 @@ export async function persistBolagsfaktaDetail(
     sourceUrl: parsed.sourceUrl,
     orgNumberFormatted: flat.orgNumberFormatted ?? null,
     phone: flat.phone ?? null,
-    sniKodPrimary: flat.sniKodPrimary ?? null,
-    sniBenamningPrimary: flat.sniBenamningPrimary ?? null,
-    verkligHuvudman: flat.verkligHuvudman ?? null,
-    koncernModerNamn: flat.koncernModerNamn ?? null,
+    sniKodPrimary: null,
+    sniBenamningPrimary: null,
+    verkligHuvudman: null,
+    koncernModerNamn: null,
     antalAnstalldaText: flat.antalAnstalldaText ?? null,
     firmaNamn: display.firmaNamn,
     bolagsformDetail: display.bolagsformDetail,
@@ -347,12 +360,12 @@ export async function persistBolagsfaktaDetail(
     aretsResultatSenaste: display.aretsResultatSenaste,
     ebitdaSenaste: display.ebitdaSenaste,
     utdelningSenaste: display.utdelningSenaste,
-    overviewJson: parsed.overview as object,
-    ansvarigaJson: parsed.ansvariga as object,
-    ekonomiJson: parsed.ekonomi as object,
-    omForetagetJson: parsed.omForetaget as object,
-    fordonJson: parsed.fordon as object,
-    arbetsstallenJson: parsed.arbetsstallen as object,
+    overviewJson: stringifyJsonColumn(parsed.overview),
+    ansvarigaJson: stringifyJsonColumn(parsed.ansvariga),
+    ekonomiJson: stringifyJsonColumn(parsed.ekonomi),
+    omForetagetJson: stringifyJsonColumn(parsed.omForetaget),
+    fordonJson: stringifyJsonColumn(parsed.fordon),
+    arbetsstallenJson: stringifyJsonColumn(parsed.arbetsstallen),
     discoveredWebsite: parsed.websiteDiscovery?.enrichment?.website?.trim() || null,
   }
 
@@ -368,9 +381,26 @@ export async function persistBolagsfaktaDetail(
     },
   })
 
-  const customerUpdate: { phone?: string; industry?: string } = {}
+  const companyFoundedAt = parseCompanyFoundedAtFromDisplay(
+    display.bolagetBildatText,
+    display.bolagetRegistreratText,
+  )
+
+  const customerUpdate: { phone?: string; companyFoundedAt?: Date; website?: string } = {}
   if (flat.phone) customerUpdate.phone = flat.phone
-  if (flat.sniBenamningPrimary) customerUpdate.industry = flat.sniBenamningPrimary
+  if (companyFoundedAt) customerUpdate.companyFoundedAt = companyFoundedAt
+
+  const discoveredWs = dataBlock.discoveredWebsite
+  if (discoveredWs) {
+    const cust = await prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { website: true },
+    })
+    if (cust && !cust.website?.trim()) {
+      customerUpdate.website = discoveredWs
+    }
+  }
+
   if (Object.keys(customerUpdate).length) {
     await prisma.customer.update({
       where: { id: customerId },
@@ -387,7 +417,6 @@ export async function persistBolagsfaktaDetail(
         customerId,
         firstName,
         lastName,
-        role: p.role,
       },
     })
     if (existing) continue

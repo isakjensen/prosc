@@ -11,7 +11,7 @@ export async function GET(
     where: { id },
     include: {
       foretag: {
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ isRedlisted: "asc" }, { createdAt: "desc" }],
         take: 100,
         include: {
           customer: {
@@ -36,6 +36,10 @@ export async function GET(
     orgNummer: f.orgNummer,
     bolagsform: f.bolagsform,
     url: f.url,
+    website:
+      f.customer?.website?.trim() ||
+      f.customer?.bolagsfaktaData?.discoveredWebsite?.trim() ||
+      null,
     customerId: f.customerId,
     customerStage: f.customer?.stage ?? null,
     hasBolagsfakta: f.customer?.bolagsfaktaData != null,

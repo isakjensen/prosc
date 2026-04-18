@@ -15,6 +15,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react"
+import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Modal, ModalBody, ModalFooter } from "@/components/ui/modal"
@@ -99,6 +100,7 @@ export default function KundOutreachTab({
   customerData?: { name?: string | null; city?: string | null; industry?: string | null; orgNumber?: string | null }
   contactEmails?: string[]
 }) {
+  const confirm = useConfirm()
   const [items, setItems] = useState<OutreachItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -280,7 +282,14 @@ export default function KundOutreachTab({
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Ta bort den här outreachen?")) return
+    const ok = await confirm({
+      title: "Ta bort outreach?",
+      description: "Ta bort den här outreachen? Detta går inte att ångra.",
+      variant: "danger",
+      confirmLabel: "Ta bort",
+      cancelLabel: "Avbryt",
+    })
+    if (!ok) return
     setSaving(true)
     try {
       const res = await fetch(`/api/customers/${customerId}/outreach/${id}`, {

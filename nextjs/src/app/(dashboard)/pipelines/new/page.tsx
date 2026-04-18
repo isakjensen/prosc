@@ -123,7 +123,7 @@ export default function NyPipelinePage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <Link href="/pipelines" className="hover:text-gray-600 transition-colors">Bolagsfakta Pipeline</Link>
+          <Link href="/pipelines" className="hover:text-gray-600 transition-colors">Pipeline</Link>
           <ChevronRight className="h-3 w-3" />
           <span className="text-gray-600">Ny pipeline</span>
         </div>

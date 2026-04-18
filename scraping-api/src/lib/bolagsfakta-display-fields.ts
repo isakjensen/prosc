@@ -73,6 +73,7 @@ export function buildBolagsfaktaDisplayFields(parsed: {
     bolagetBildatText: tableLookup(tables, ["Bolaget bildat", "Bolaget bildat "]),
     bolagetRegistreratText: tableLookup(tables, ["Bolaget registrerat"]),
     momsregnr: tableLookup(tables, [
+      "Momsregistreringsnummer (VAT-nummer)",
       "Momsregistreringsnummer(VAT-nummer)",
       "Momsregistreringsnummer",
     ]),

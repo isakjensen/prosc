@@ -12,8 +12,12 @@ interface ModalProps {
   title?: string
   description?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** Mindre vertikal padding i sidhuvud (t.ex. bekräftelsedialoger). */
+  dense?: boolean
   /** Extra classes on the dialog panel (e.g. rounded-2xl) */
   panelClassName?: string
+  /** T.ex. högre z-index så dialog ligger över portaler (dropdown-menyer). */
+  rootClassName?: string
   children: React.ReactNode
 }
 
@@ -23,7 +27,9 @@ export function Modal({
   title,
   description,
   size = 'md',
+  dense = false,
   panelClassName,
+  rootClassName,
   children,
 }: ModalProps) {
   useEffect(() => {
@@ -55,7 +61,12 @@ export function Modal({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] overflow-x-hidden overflow-y-auto no-scrollbar overscroll-contain">
+        <div
+          className={cn(
+            'fixed inset-0 z-[200] overflow-x-hidden overflow-y-auto no-scrollbar overscroll-contain',
+            rootClassName,
+          )}
+        >
           <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
@@ -78,13 +89,28 @@ export function Modal({
               )}
             >
               {title && (
-                <div className="sticky top-0 bg-gradient-to-b from-zinc-50/90 to-white dark:from-zinc-900 dark:to-zinc-900 flex items-start justify-between gap-4 px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 z-10">
-                  <div className="min-w-0 pt-0.5">
-                    <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-white">
+                <div
+                  className={cn(
+                    'sticky top-0 bg-gradient-to-b from-zinc-50/90 to-white dark:from-zinc-900 dark:to-zinc-900 flex items-start justify-between gap-3 sm:gap-4 border-b border-zinc-100 dark:border-zinc-800 z-10',
+                    dense ? 'px-5 py-3' : 'px-6 py-5',
+                  )}
+                >
+                  <div className={cn('min-w-0', dense ? 'pt-0' : 'pt-0.5')}>
+                    <h2
+                      className={cn(
+                        'font-semibold tracking-tight text-zinc-900 dark:text-white',
+                        dense ? 'text-base' : 'text-lg',
+                      )}
+                    >
                       {title}
                     </h2>
                     {description && (
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed max-w-md">
+                      <p
+                        className={cn(
+                          'text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-none',
+                          dense ? 'mt-0.5' : 'mt-1 max-w-md',
+                        )}
+                      >
                         {description}
                       </p>
                     )}
@@ -92,7 +118,10 @@ export function Modal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="shrink-0 p-2 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                    className={cn(
+                      'shrink-0 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors',
+                      dense ? 'p-1.5' : 'p-2',
+                    )}
                   >
                     <X className="h-4 w-4" />
                   </button>

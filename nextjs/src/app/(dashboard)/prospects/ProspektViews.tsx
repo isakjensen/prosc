@@ -12,6 +12,7 @@ interface ProspectCompany {
   city: string | null
   phone: string | null
   email: string | null
+  website: string | null
   contacts: { id: string }[]
   prospectStage: {
     currentStageId: string

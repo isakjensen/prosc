@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,40 +7,1017 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// Core Models
-// ============================================
-
 model User {
-  id            String       @id @default(cuid())
-  email         String       @unique
-  passwordHash  String
-  name          String
-  role          UserRole     @default(MEMBER)
-  avatar        String?
-  themePreference UserUiTheme @default(LIGHT)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
-  // Relations
+  id                String             @id @default(cuid())
+  email             String             @unique
+  passwordHash      String
+  name              String
+  role              UserRole           @default(MEMBER)
+  avatar            String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  themePreference   UserUiTheme        @default(LIGHT)
   activities        Activity[]
-  tasks             Task[]
-  assignedTickets   SupportTicket[] @relation("AssignedTickets")
-  createdTickets    SupportTicket[] @relation("CreatedTickets")
-
+  customerFlowNotes CustomerFlowNote[]
+  createdDocuments  Document[]
   meetings          MeetingAttendee[]
   notifications     Notification[]
-  teamMember        TeamMember?
-  createdDocuments  Document[]
-  createdReports    Report[]
   createdEmails     OutboundEmail[]
-  taskComments      TaskComment[]
-  ticketComments    TicketComment[]
-  systemLogs        SystemLog[]
-  customerFlowNotes CustomerFlowNote[]
   outreaches        Outreach[]
+  createdReports    Report[]
+  assignedTickets   SupportTicket[]    @relation("AssignedTickets")
+  createdTickets    SupportTicket[]    @relation("CreatedTickets")
+  systemLogs        SystemLog[]
+  taskComments      TaskComment[]
+  tasks             Task[]
+  teamMember        TeamMember?
+  ticketComments    TicketComment[]
 
   @@map("users")
+}
+
+model Customer {
+  id                      String                           @id @default(cuid())
+  name                    String
+  /// Livscykel: SCRAPED = bara pipeline-lista, PROSPECT = säljprospekt, CUSTOMER = kund, ARCHIVED
+  stage                   CustomerStage                    @default(PROSPECT)
+  /// Svenskt org.nr (10 siffror), unikt om satt
+  orgNumber               String?                          @unique
+  industry                String?
+  website                 String?
+  address                 String?
+  city                    String?
+  state                   String?
+  zip                     String?
+  country                 String?
+  phone                   String?
+  email                   String?
+  notes                   String?                          @db.Text
+  createdAt               DateTime                         @default(now())
+  updatedAt               DateTime                         @updatedAt
+  /// Satt när SCRAPED → PROSPECT via pipeline (lyft till prospekt)
+  promotedToProspectAt    DateTime?
+  /// Bolaget bildat (fallback Bolaget registrerat) från Bolagsfakta, yyyy-mm-dd som UTC datum
+  companyFoundedAt        DateTime?
+  activities              Activity[]
+  bolagsfaktaData         BolagsfaktaData?
+  bolagsfaktaForetag      BolagsfaktaForetag[]
+  campaigns               Campaign[]
+  contacts                Contact[]
+  contracts               Contract[]
+  flowNotes               CustomerFlowNote[]
+  flowOccurredAtOverrides CustomerFlowOccurredAtOverride[]
+  documents               Document[]
+  files                   File[]
+  invoices                Invoice[]
+  meetings                Meeting[]
+  outboundEmails          OutboundEmail[]
+  outreaches              Outreach[]
+  projects                ProjectCustomer[]
+  prospectStage           ProspectStageHistory?
+  quotes                  Quote[]
+  supportTickets          SupportTicket[]
+  systemRequirement       SystemRequirement?
+  tasks                   Task[]
+
+  @@map("customers")
+}
+
+model CustomerFlowNote {
+  id          String   @id @default(cuid())
+  customerId  String
+  userId      String?
+  title       String
+  description String?  @db.Text
+  occurredAt  DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([customerId])
+  @@index([userId], map: "customer_flow_notes_userId_fkey")
+  @@map("customer_flow_notes")
+}
+
+model CustomerFlowOccurredAtOverride {
+  id         String                         @id @default(cuid())
+  customerId String
+  sourceType CustomerFlowOverrideSourceType
+  sourceId   String
+  occurredAt DateTime
+  createdAt  DateTime                       @default(now())
+  updatedAt  DateTime                       @updatedAt
+  customer   Customer                       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, sourceType, sourceId])
+  @@map("customer_flow_occurred_at_overrides")
+}
+
+model Contact {
+  id            String            @id @default(cuid())
+  customerId    String
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  title         String?
+  /// Befattning/roll från Bolagsfakta (t.ex. Styrelseledamot, Extern VD)
+  role          String?
+  notes         String?           @db.Text
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  activities    Activity[]
+  customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  emailContacts EmailContact[]
+  meetings      MeetingAttendee[]
+
+  @@index([customerId], map: "contacts_customerId_fkey")
+  @@map("contacts")
+}
+
+model ProspectStage {
+  id          String                 @id @default(cuid())
+  name        String                 @unique
+  order       Int                    @unique
+  description String?                @db.Text
+  color       String?
+  createdAt   DateTime               @default(now())
+  histories   ProspectStageHistory[]
+
+  @@map("prospect_stages")
+}
+
+model ProspectStageHistory {
+  id             String        @id @default(cuid())
+  customerId     String        @unique
+  currentStageId String
+  enteredAt      DateTime      @default(now())
+  notes          String?       @db.Text
+  currentStage   ProspectStage @relation(fields: [currentStageId], references: [id])
+  customer       Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([currentStageId], map: "prospect_stage_history_currentStageId_fkey")
+  @@map("prospect_stage_history")
+}
+
+model Activity {
+  id          String         @id @default(cuid())
+  type        ActivityType
+  title       String
+  description String?        @db.Text
+  userId      String?
+  customerId  String?
+  contactId   String?
+  quoteId     String?
+  contractId  String?
+  invoiceId   String?
+  ticketId    String?
+  metadata    String?        @db.Text
+  createdAt   DateTime       @default(now())
+  contact     Contact?       @relation(fields: [contactId], references: [id])
+  contract    Contract?      @relation(fields: [contractId], references: [id])
+  customer    Customer?      @relation(fields: [customerId], references: [id])
+  invoice     Invoice?       @relation(fields: [invoiceId], references: [id])
+  quote       Quote?         @relation(fields: [quoteId], references: [id])
+  ticket      SupportTicket? @relation(fields: [ticketId], references: [id])
+  user        User?          @relation(fields: [userId], references: [id])
+
+  @@index([contactId], map: "activities_contactId_fkey")
+  @@index([contractId], map: "activities_contractId_fkey")
+  @@index([customerId], map: "activities_customerId_fkey")
+  @@index([invoiceId], map: "activities_invoiceId_fkey")
+  @@index([quoteId], map: "activities_quoteId_fkey")
+  @@index([ticketId], map: "activities_ticketId_fkey")
+  @@index([userId], map: "activities_userId_fkey")
+  @@map("activities")
+}
+
+model SystemLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  details    String?  @db.Text
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "system_logs_userId_fkey")
+  @@map("system_logs")
+}
+
+model Quote {
+  id         String          @id @default(cuid())
+  customerId String
+  number     String          @unique
+  title      String
+  status     QuoteStatus     @default(DRAFT)
+  validUntil DateTime?
+  subtotal   Float           @default(0)
+  tax        Float           @default(0)
+  total      Float           @default(0)
+  notes      String?         @db.Text
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  activities Activity[]
+  contracts  Contract[]
+  invoices   Invoice[]
+  lineItems  QuoteLineItem[]
+  customer   Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId], map: "quotes_customerId_fkey")
+  @@map("quotes")
+}
+
+model QuoteLineItem {
+  id          String   @id @default(cuid())
+  quoteId     String
+  description String   @db.Text
+  quantity    Float    @default(1)
+  unitPrice   Float
+  total       Float
+  createdAt   DateTime @default(now())
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId], map: "quote_line_items_quoteId_fkey")
+  @@map("quote_line_items")
+}
+
+model ContractTemplate {
+  id          String     @id @default(cuid())
+  name        String
+  description String?    @db.Text
+  content     String     @db.LongText
+  variables   String?    @db.Text
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  contracts   Contract[]
+
+  @@map("contract_templates")
+}
+
+model Contract {
+  id         String            @id @default(cuid())
+  customerId String
+  templateId String?
+  quoteId    String?
+  number     String            @unique
+  title      String
+  content    String            @db.LongText
+  status     ContractStatus    @default(DRAFT)
+  signedAt   DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  activities Activity[]
+  customer   Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  quote      Quote?            @relation(fields: [quoteId], references: [id])
+  template   ContractTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([customerId], map: "contracts_customerId_fkey")
+  @@index([quoteId], map: "contracts_quoteId_fkey")
+  @@index([templateId], map: "contracts_templateId_fkey")
+  @@map("contracts")
+}
+
+model File {
+  id         String    @id @default(cuid())
+  customerId String?
+  name       String
+  path       String
+  mimeType   String
+  size       Int
+  folder     String?
+  tags       String?   @db.Text
+  uploadedBy String?
+  createdAt  DateTime  @default(now())
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([customerId], map: "files_customerId_fkey")
+  @@map("files")
+}
+
+model EmailTemplate {
+  id         String     @id @default(cuid())
+  name       String
+  subject    String
+  body       String     @db.LongText
+  variables  String?    @db.Text
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  outreaches Outreach[]
+
+  @@map("email_templates")
+}
+
+model OutboundEmail {
+  id              String         @id @default(cuid())
+  userId          String
+  to              String         @db.Text
+  cc              String?        @db.Text
+  bcc             String?        @db.Text
+  subject         String
+  body            String         @db.LongText
+  status          EmailStatus    @default(QUEUED)
+  sentAt          DateTime?
+  createdAt       DateTime       @default(now())
+  outreachId      String?
+  customerId      String?
+  resendMessageId String?        @unique
+  scheduledAt     DateTime?
+  deliveredAt     DateTime?
+  openedAt        DateTime?
+  openCount       Int            @default(0)
+  clickedAt       DateTime?
+  bouncedAt       DateTime?
+  bounceType      String?
+  errorMessage    String?        @db.Text
+  updatedAt       DateTime       @default(now()) @updatedAt
+  emailContacts   EmailContact[]
+  customer        Customer?      @relation(fields: [customerId], references: [id])
+  outreach        Outreach?      @relation(fields: [outreachId], references: [id])
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([outreachId])
+  @@index([customerId])
+  @@index([resendMessageId])
+  @@index([userId], map: "outbound_emails_userId_fkey")
+  @@map("outbound_emails")
+}
+
+model EmailContact {
+  id        String        @id @default(cuid())
+  emailId   String
+  contactId String
+  type      String
+  createdAt DateTime      @default(now())
+  contact   Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  email     OutboundEmail @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@unique([emailId, contactId, type])
+  @@index([contactId], map: "email_contacts_contactId_fkey")
+  @@map("email_contacts")
+}
+
+model Task {
+  id          String        @id @default(cuid())
+  title       String
+  description String?       @db.Text
+  status      TaskStatus    @default(TODO)
+  priority    TaskPriority  @default(MEDIUM)
+  assignedTo  String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  customerId  String?
+  projectId   String?
+  comments    TaskComment[]
+  assignee    User?         @relation(fields: [assignedTo], references: [id])
+  customer    Customer?     @relation(fields: [customerId], references: [id])
+  project     Project?      @relation(fields: [projectId], references: [id])
+
+  @@index([customerId])
+  @@index([projectId])
+  @@index([assignedTo], map: "tasks_assignedTo_fkey")
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId], map: "task_comments_taskId_fkey")
+  @@index([userId], map: "task_comments_userId_fkey")
+  @@map("task_comments")
+}
+
+model Invoice {
+  id         String            @id @default(cuid())
+  customerId String
+  number     String            @unique
+  title      String
+  status     InvoiceStatus     @default(DRAFT)
+  issueDate  DateTime          @default(now())
+  dueDate    DateTime?
+  subtotal   Float             @default(0)
+  tax        Float             @default(0)
+  total      Float             @default(0)
+  paidAmount Float             @default(0)
+  notes      String?           @db.Text
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  quoteId    String?
+  activities Activity[]
+  lineItems  InvoiceLineItem[]
+  customer   Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  quote      Quote?            @relation(fields: [quoteId], references: [id])
+  payments   Payment[]
+
+  @@index([quoteId])
+  @@index([customerId], map: "invoices_customerId_fkey")
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String   @db.Text
+  quantity    Float    @default(1)
+  unitPrice   Float
+  total       Float
+  createdAt   DateTime @default(now())
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId], map: "invoice_line_items_invoiceId_fkey")
+  @@map("invoice_line_items")
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  invoiceId String
+  amount    Float
+  method    PaymentMethod
+  reference String?
+  paidAt    DateTime      @default(now())
+  notes     String?       @db.Text
+  createdAt DateTime      @default(now())
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId], map: "payments_invoiceId_fkey")
+  @@map("payments")
+}
+
+model SupportTicket {
+  id           String          @id @default(cuid())
+  customerId   String
+  title        String
+  description  String          @db.Text
+  status       TicketStatus    @default(OPEN)
+  priority     TicketPriority  @default(MEDIUM)
+  createdById  String
+  assignedToId String?
+  resolvedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  projectId    String?
+  activities   Activity[]
+  assignee     User?           @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  creator      User            @relation("CreatedTickets", fields: [createdById], references: [id], onDelete: Cascade)
+  customer     Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project      Project?        @relation(fields: [projectId], references: [id])
+  comments     TicketComment[]
+
+  @@index([projectId])
+  @@index([assignedToId], map: "support_tickets_assignedToId_fkey")
+  @@index([createdById], map: "support_tickets_createdById_fkey")
+  @@index([customerId], map: "support_tickets_customerId_fkey")
+  @@map("support_tickets")
+}
+
+model TicketComment {
+  id        String        @id @default(cuid())
+  ticketId  String
+  userId    String
+  content   String        @db.Text
+  createdAt DateTime      @default(now())
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId], map: "ticket_comments_ticketId_fkey")
+  @@index([userId], map: "ticket_comments_userId_fkey")
+  @@map("ticket_comments")
+}
+
+model Meeting {
+  id          String            @id @default(cuid())
+  title       String
+  description String?           @db.Text
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  videoLink   String?
+  notes       String?           @db.Text
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  customerId  String?
+  projectId   String?
+  attendees   MeetingAttendee[]
+  customer    Customer?         @relation(fields: [customerId], references: [id])
+  project     Project?          @relation(fields: [projectId], references: [id])
+
+  @@index([customerId])
+  @@index([projectId])
+  @@map("meetings")
+}
+
+model MeetingAttendee {
+  id        String         @id @default(cuid())
+  meetingId String
+  userId    String?
+  contactId String?
+  status    AttendeeStatus @default(INVITED)
+  createdAt DateTime       @default(now())
+  contact   Contact?       @relation(fields: [contactId], references: [id])
+  meeting   Meeting        @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user      User?          @relation(fields: [userId], references: [id])
+
+  @@index([contactId], map: "meeting_attendees_contactId_fkey")
+  @@index([meetingId], map: "meeting_attendees_meetingId_fkey")
+  @@index([userId], map: "meeting_attendees_userId_fkey")
+  @@map("meeting_attendees")
+}
+
+model Document {
+  id          String    @id @default(cuid())
+  customerId  String?
+  createdById String
+  title       String
+  content     String?   @db.LongText
+  category    String?
+  tags        String?   @db.Text
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  creator     User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  customer    Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([createdById], map: "documents_createdById_fkey")
+  @@index([customerId], map: "documents_customerId_fkey")
+  @@map("documents")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  read      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "notifications_userId_fkey")
+  @@map("notifications")
+}
+
+model Report {
+  id          String     @id @default(cuid())
+  createdById String
+  name        String
+  type        ReportType
+  parameters  String?    @db.Text
+  data        String?    @db.LongText
+  createdAt   DateTime   @default(now())
+  creator     User       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById], map: "reports_createdById_fkey")
+  @@map("reports")
+}
+
+model Integration {
+  id         String   @id @default(cuid())
+  name       String
+  type       String
+  apiKey     String?
+  apiSecret  String?
+  webhookUrl String?
+  config     String?  @db.Text
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("integrations")
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model TeamMember {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  department String?
+  title      String?
+  startDate  DateTime  @default(now())
+  endDate    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("team_members")
+}
+
+model Expense {
+  id          String        @id @default(cuid())
+  projectId   String?
+  category    String
+  description String        @db.Text
+  amount      Float
+  date        DateTime      @default(now())
+  receiptPath String?
+  status      ExpenseStatus @default(PENDING)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  project     Project?      @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("expenses")
+}
+
+model Campaign {
+  id         String         @id @default(cuid())
+  customerId String?
+  name       String
+  type       String
+  startDate  DateTime
+  endDate    DateTime?
+  budget     Float?
+  spent      Float          @default(0)
+  status     CampaignStatus @default(PLANNING)
+  notes      String?        @db.Text
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  customer   Customer?      @relation(fields: [customerId], references: [id])
+
+  @@index([customerId], map: "campaigns_customerId_fkey")
+  @@map("campaigns")
+}
+
+model KnowledgeBase {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.LongText
+  category  String?
+  tags      String?  @db.Text
+  published Boolean  @default(false)
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("knowledge_base")
+}
+
+model SystemRequirement {
+  id          String          @id @default(cuid())
+  customerId  String          @unique
+  designNotes String?         @db.Text
+  colorTheme  String?         @db.Text
+  typography  String?         @db.Text
+  logoPaths   String?         @db.Text
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  features    SystemFeature[]
+  customer    Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  updates     SystemUpdate[]
+
+  @@map("system_requirements")
+}
+
+model SystemFeature {
+  id            String            @id @default(cuid())
+  requirementId String
+  name          String
+  description   String?           @db.Text
+  status        FeatureStatus     @default(PLANNING)
+  priority      FeaturePriority   @default(MEDIUM)
+  order         Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  requirement   SystemRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  subtasks      SystemSubtask[]
+  updates       SystemUpdate[]
+
+  @@index([requirementId], map: "system_features_requirementId_fkey")
+  @@map("system_features")
+}
+
+model SystemSubtask {
+  id          String        @id @default(cuid())
+  featureId   String
+  title       String
+  completed   Boolean       @default(false)
+  completedAt DateTime?
+  order       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  feature     SystemFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@index([featureId], map: "system_subtasks_featureId_fkey")
+  @@map("system_subtasks")
+}
+
+model SystemUpdate {
+  id            String            @id @default(cuid())
+  requirementId String
+  featureId     String?
+  title         String
+  description   String?           @db.Text
+  imagePaths    String?           @db.Text
+  commitLinks   String?           @db.Text
+  createdAt     DateTime          @default(now())
+  feature       SystemFeature?    @relation(fields: [featureId], references: [id])
+  requirement   SystemRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([featureId], map: "system_updates_featureId_fkey")
+  @@index([requirementId], map: "system_updates_requirementId_fkey")
+  @@map("system_updates")
+}
+
+model BolagsfaktaBransch {
+  id           String   @id @default(cuid())
+  kommunSlug   String
+  kommunNamn   String
+  branschNamn  String
+  branschSlug  String
+  branschKod   String
+  /// Antal företag i branschen i kommunen (från Bolagsfakta, t.ex. "(598)" efter länken)
+  foretagCount Int?
+  cachedAt     DateTime @default(now())
+
+  @@unique([kommunSlug, branschKod])
+  @@map("bolagsfakta_branscher")
+}
+
+model BolagsfaktaPipeline {
+  id                      String                    @id @default(cuid())
+  namn                    String
+  kommunSlug              String
+  kommunNamn              String
+  branschSlug             String
+  branschNamn             String
+  branschKod              String
+  /// Antal företag enligt Bolagsfakta vid skapande (samma siffra som i bransch-dropdown)
+  bolagsfaktaForetagCount Int?
+  status                  BolagsfaktaPipelineStatus @default(IDLE)
+  lastScrapedAt           DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  foretag                 BolagsfaktaForetag[]
+
+  @@map("bolagsfakta_pipelines")
+}
+
+model BolagsfaktaForetag {
+  id               String                  @id @default(cuid())
+  pipelineId       String
+  /// Kopplad CRM-kund (samma Customer genom hela livscykeln)
+  customerId       String?
+  /// Flagga om företaget är redlistat (ska kunna synas i pipeline-tabellen)
+  isRedlisted      Boolean                 @default(false)
+  namn             String
+  adress           String?
+  orgNummer        String?
+  bolagsform       String?
+  url              String?
+  createdAt        DateTime                @default(now())
+  detailError      String?                 @db.Text
+  detailFinishedAt DateTime?
+  detailJobId      String?
+  detailQueuedAt   DateTime?
+  detailStartedAt  DateTime?
+  detailStatus     BolagsfaktaDetailStatus @default(IDLE)
+  customer         Customer?               @relation(fields: [customerId], references: [id])
+  pipeline         BolagsfaktaPipeline     @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@index([pipelineId, url])
+  @@index([customerId])
+  @@index([detailJobId])
+  @@map("bolagsfakta_foretag")
+}
+
+/// Global block-/referenslista för företag som inte ska tas vidare via pipeline
+model BolagsfaktaRedlistEntry {
+  id                  String   @id @default(cuid())
+  /// Snapshot av namnet vid redlistning (för UI)
+  namn                String
+  /// Normaliserat org.nr (10 siffror) om känt
+  orgNummerNormalized String?
+  /// Bolagsfakta företags-URL om känt
+  url                 String?  @unique
+  createdAt           DateTime @default(now())
+  /// Om satt: företag vars namn innehåller denna sträng (skiftlägesokänslig) redlistas vid scraping
+  nameContains        String?
+
+  @@index([orgNummerNormalized])
+  @@index([nameContains])
+  @@map("bolagsfakta_redlist")
+}
+
+/// Utökad Bolagsfakta-data per kund (en post per Customer)
+model BolagsfaktaData {
+  id                     String   @id @default(cuid())
+  customerId             String   @unique
+  sourceUrl              String?
+  scrapedAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  orgNumberFormatted     String?
+  phone                  String?
+  sniKodPrimary          String?
+  sniBenamningPrimary    String?
+  verkligHuvudman        String?  @db.Text
+  koncernModerNamn       String?
+  antalAnstalldaText     String?
+  /// Strukturerade fält för UI (ej rå JSON)
+  firmaNamn              String?
+  bolagsformDetail       String?
+  registreringsStatus    String?
+  gatuadress             String?
+  postadress             String?
+  seatLocation           String?
+  bolagetBildatText      String?
+  bolagetRegistreratText String?
+  momsregnr              String?
+  verksamhetsbeskrivning String?  @db.Text
+  omsattningSenaste      String?
+  aretsResultatSenaste   String?
+  ebitdaSenaste          String?
+  utdelningSenaste       String?
+  overviewJson           String?  @db.LongText
+  ansvarigaJson          String?  @db.LongText
+  ekonomiJson            String?  @db.LongText
+  omForetagetJson        String?  @db.LongText
+  fordonJson             String?  @db.LongText
+  arbetsstallenJson      String?  @db.LongText
+  ovrigtJson             String?  @db.LongText
+  /// Hemsida från Google+Ollama-discovery (visas på kundöversikt när satt)
+  discoveredWebsite      String?
+  customer               Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("bolagsfakta_data")
+}
+
+model Project {
+  id             String                @id @default(cuid())
+  name           String
+  description    String?               @db.Text
+  status         ProjectStatus         @default(ACTIVE)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  expenses       Expense[]
+  meetings       Meeting[]
+  boardColumns   ProjectBoardColumn[]
+  customers      ProjectCustomer[]
+  features       ProjectFeature[]
+  financeEntries ProjectFinanceEntry[]
+  links          ProjectLink[]
+  supportTickets SupportTicket[]
+  tasks          Task[]
+
+  @@map("projects")
+}
+
+/// Bokmärken med titel + URL per projekt (t.ex. repo, Figma, dokumentation)
+model ProjectLink {
+  id        String   @id @default(cuid())
+  projektId String
+  title     String
+  url       String   @db.VarChar(2048)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@index([projektId])
+  @@map("project_links")
+}
+
+model ProjectCustomer {
+  id         String   @id @default(cuid())
+  projektId  String
+  customerId String
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project    Project  @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@unique([projektId, customerId])
+  @@index([customerId], map: "project_customers_customerId_fkey")
+  @@map("project_customers")
+}
+
+model ProjectFeature {
+  id          String           @id @default(cuid())
+  projektId   String
+  name        String
+  description String?          @db.Text
+  status      FeatureStatus    @default(PLANNING)
+  priority    FeaturePriority  @default(MEDIUM)
+  order       Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  project     Project          @relation(fields: [projektId], references: [id], onDelete: Cascade)
+  subtasks    ProjectSubtask[]
+
+  @@index([projektId], map: "project_features_projektId_fkey")
+  @@map("project_features")
+}
+
+model ProjectSubtask {
+  id          String         @id @default(cuid())
+  featureId   String
+  title       String
+  completed   Boolean        @default(false)
+  completedAt DateTime?
+  order       Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  feature     ProjectFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@index([featureId], map: "project_subtasks_featureId_fkey")
+  @@map("project_subtasks")
+}
+
+model ProjectBoardColumn {
+  id        String             @id @default(cuid())
+  projektId String
+  name      String
+  order     Int                @default(0)
+  color     String?
+  createdAt DateTime           @default(now())
+  cards     ProjectBoardCard[]
+  project   Project            @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@index([projektId], map: "project_board_columns_projektId_fkey")
+  @@map("project_board_columns")
+}
+
+model ProjectBoardCard {
+  id          String             @id @default(cuid())
+  columnId    String
+  title       String
+  description String?            @db.Text
+  priority    TaskPriority       @default(MEDIUM)
+  dueDate     DateTime?
+  order       Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  column      ProjectBoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@index([columnId], map: "project_board_cards_columnId_fkey")
+  @@map("project_board_cards")
+}
+
+model ProjectFinanceEntry {
+  id          String           @id @default(cuid())
+  projektId   String
+  type        FinanceEntryType
+  category    String?
+  description String
+  amount      Float
+  vatRate     Float            @default(0.25)
+  isRecurring Boolean          @default(false)
+  startDate   DateTime         @default(now())
+  endDate     DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  project     Project          @relation(fields: [projektId], references: [id], onDelete: Cascade)
+
+  @@index([projektId], map: "project_finance_entries_projektId_fkey")
+  @@map("project_finance_entries")
+}
+
+model Outreach {
+  id              String          @id @default(cuid())
+  customerId      String
+  userId          String?
+  title           String
+  type            OutreachType
+  scheduledAt     DateTime
+  recipients      String?         @db.Text
+  body            String?         @db.LongText
+  attachments     String?         @db.Text
+  status          OutreachStatus  @default(PLANNED)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  emailTemplateId String?
+  subject         String?
+  sendAt          DateTime?
+  emailStatus     String?
+  outboundEmails  OutboundEmail[]
+  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  emailTemplate   EmailTemplate?  @relation(fields: [emailTemplateId], references: [id])
+  user            User?           @relation(fields: [userId], references: [id])
+
+  @@index([customerId])
+  @@index([emailTemplateId])
+  @@index([userId], map: "outreach_userId_fkey")
+  @@map("outreach")
 }
 
 enum UserRole {
@@ -57,53 +1031,6 @@ enum UserUiTheme {
   DARK
 }
 
-model Customer {
-  id          String         @id @default(cuid())
-  name        String
-  /// Livscykel: SCRAPED = bara pipeline-lista, PROSPECT = säljprospekt, CUSTOMER = kund, ARCHIVED
-  stage       CustomerStage  @default(PROSPECT)
-  /// Svenskt org.nr (10 siffror), unikt om satt
-  orgNumber   String?        @unique
-  industry    String?
-  website     String?
-  address     String?
-  city        String?
-  state       String?
-  zip         String?
-  country     String?
-  phone       String?
-  email       String?
-  notes       String?        @db.Text
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  /// Satt när SCRAPED → PROSPECT via pipeline (lyft till prospekt)
-  promotedToProspectAt DateTime?
-
-  // Relations
-  contacts        Contact[]
-  projects        ProjectCustomer[]
-  quotes          Quote[]
-  contracts       Contract[]
-  files           File[]
-  activities      Activity[]
-  supportTickets  SupportTicket[]
-  invoices        Invoice[]
-  campaigns       Campaign[]
-  documents       Document[]
-  prospectStage   ProspectStageHistory?
-  systemRequirement SystemRequirement?
-  bolagsfaktaData   BolagsfaktaData?
-  bolagsfaktaForetag BolagsfaktaForetag[]
-  tasks                  Task[]
-  meetings               Meeting[]
-  flowNotes              CustomerFlowNote[]
-  flowOccurredAtOverrides CustomerFlowOccurredAtOverride[]
-  outreaches             Outreach[]
-  outboundEmails         OutboundEmail[]
-
-  @@map("customers")
-}
-
 enum CustomerFlowOverrideSourceType {
   MEETING
   QUOTE
@@ -113,122 +1040,12 @@ enum CustomerFlowOverrideSourceType {
   ACTIVITY
 }
 
-model CustomerFlowNote {
-  id          String   @id @default(cuid())
-  customerId  String
-  userId      String?
-  title       String
-  description String?  @db.Text
-  occurredAt  DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([customerId])
-  @@map("customer_flow_notes")
-}
-
-model CustomerFlowOccurredAtOverride {
-  id          String                       @id @default(cuid())
-  customerId  String
-  sourceType  CustomerFlowOverrideSourceType
-  sourceId    String
-  occurredAt  DateTime
-  createdAt   DateTime                     @default(now())
-  updatedAt   DateTime                     @updatedAt
-
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@unique([customerId, sourceType, sourceId])
-  @@map("customer_flow_occurred_at_overrides")
-}
-
 enum CustomerStage {
   /// Skapad via Bolagsfakta-pipeline; syns i pipeline-listan tills den lyfts till prospekt
   SCRAPED
   PROSPECT
   CUSTOMER
   ARCHIVED
-}
-
-model Contact {
-  id          String   @id @default(cuid())
-  customerId  String
-  firstName   String
-  lastName    String
-  email       String?
-  phone       String?
-  title       String?
-  /// Befattning/roll från Bolagsfakta (t.ex. Styrelseledamot, Extern VD)
-  role        String?
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  activities    Activity[]
-  meetings      MeetingAttendee[]
-  emailContacts EmailContact[]
-
-  @@map("contacts")
-}
-
-model ProspectStage {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  order       Int      @unique
-  description String?  @db.Text
-  color       String?
-  createdAt   DateTime @default(now())
-
-  // Relations
-  histories ProspectStageHistory[]
-
-  @@map("prospect_stages")
-}
-
-model ProspectStageHistory {
-  id              String        @id @default(cuid())
-  customerId      String        @unique
-  currentStageId  String
-  enteredAt       DateTime      @default(now())
-  notes           String?       @db.Text
-
-  // Relations
-  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  currentStage ProspectStage @relation(fields: [currentStageId], references: [id])
-
-  @@map("prospect_stage_history")
-}
-
-model Activity {
-  id          String       @id @default(cuid())
-  type        ActivityType
-  title       String
-  description String?      @db.Text
-  userId      String?
-  customerId  String?
-  contactId   String?
-  quoteId     String?
-  contractId  String?
-  invoiceId   String?
-  ticketId    String?
-  metadata    String?      @db.Text // JSON string for additional data
-  createdAt   DateTime     @default(now())
-
-  // Relations
-  user     User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
-  customer Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  contact  Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  quote    Quote?         @relation(fields: [quoteId], references: [id], onDelete: SetNull)
-  contract Contract?      @relation(fields: [contractId], references: [id], onDelete: SetNull)
-  invoice  Invoice?       @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  ticket   SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
-
-  @@map("activities")
 }
 
 enum ActivityType {
@@ -248,50 +1065,6 @@ enum ActivityType {
   NOTE_ADDED
 }
 
-model SystemLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  action      String
-  entityType  String?
-  entityId    String?
-  details     String?  @db.Text // JSON string
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@map("system_logs")
-}
-
-// ============================================
-// Sales & Contracts
-// ============================================
-
-model Quote {
-  id          String      @id @default(cuid())
-  customerId  String
-  number      String      @unique
-  title       String
-  status      QuoteStatus @default(DRAFT)
-  validUntil  DateTime?
-  subtotal    Float       @default(0)
-  tax         Float       @default(0)
-  total       Float       @default(0)
-  notes       String?     @db.Text
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Relations
-  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  lineItems     QuoteLineItem[]
-  contracts     Contract[]
-  invoices      Invoice[]
-  activities    Activity[]    @relation
-
-  @@map("quotes")
-}
-
 enum QuoteStatus {
   DRAFT
   SENT
@@ -300,157 +1073,12 @@ enum QuoteStatus {
   EXPIRED
 }
 
-model QuoteLineItem {
-  id          String  @id @default(cuid())
-  quoteId     String
-  description String  @db.Text
-  quantity    Float   @default(1)
-  unitPrice   Float
-  total       Float
-  createdAt   DateTime @default(now())
-
-  // Relations
-  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-
-  @@map("quote_line_items")
-}
-
-model ContractTemplate {
-  id          String   @id @default(cuid())
-  name        String
-  description String?  @db.Text
-  content     String   @db.LongText // Template content with variables like {{company_name}}
-  variables   String?  @db.Text // JSON array of available variables
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  contracts Contract[]
-
-  @@map("contract_templates")
-}
-
-model Contract {
-  id          String         @id @default(cuid())
-  customerId  String
-  templateId  String?
-  quoteId     String?
-  number      String         @unique
-  title       String
-  content     String         @db.LongText // Final rendered content
-  status      ContractStatus @default(DRAFT)
-  signedAt    DateTime?
-  expiresAt   DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-
-  // Relations
-  customer     Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  template     ContractTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  quote        Quote?          @relation(fields: [quoteId], references: [id], onDelete: SetNull)
-  activities   Activity[]      @relation
-
-  @@map("contracts")
-}
-
 enum ContractStatus {
   DRAFT
   SENT
   SIGNED
   EXPIRED
   CANCELLED
-}
-
-// ============================================
-// File Storage
-// ============================================
-
-model File {
-  id          String   @id @default(cuid())
-  customerId  String?
-  name        String
-  path        String
-  mimeType    String
-  size        Int
-  folder      String?
-  tags        String?  @db.Text // JSON array
-  uploadedBy  String?
-  createdAt   DateTime @default(now())
-
-  // Relations
-  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  @@map("files")
-}
-
-// ============================================
-// Email System (UI Only)
-// ============================================
-
-model EmailTemplate {
-  id          String   @id @default(cuid())
-  name        String
-  subject     String
-  body        String   @db.LongText // Template content with variables
-  variables   String?  @db.Text // JSON array of available variables
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  outreaches Outreach[]
-
-  @@map("email_templates")
-}
-
-model OutboundEmail {
-  id              String      @id @default(cuid())
-  userId          String
-  outreachId      String?
-  customerId      String?
-  resendMessageId String?     @unique
-  to              String      @db.Text // JSON array of recipients
-  cc              String?     @db.Text // JSON array
-  bcc             String?     @db.Text // JSON array
-  subject         String
-  body            String      @db.LongText
-  status          EmailStatus @default(QUEUED)
-  scheduledAt     DateTime?
-  sentAt          DateTime?
-  deliveredAt     DateTime?
-  openedAt        DateTime?
-  openCount       Int         @default(0)
-  clickedAt       DateTime?
-  bouncedAt       DateTime?
-  bounceType      String?
-  errorMessage    String?     @db.Text
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  // Relations
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  outreach      Outreach?     @relation(fields: [outreachId], references: [id], onDelete: SetNull)
-  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  emailContacts EmailContact[]
-
-  @@index([outreachId])
-  @@index([customerId])
-  @@index([resendMessageId])
-  @@map("outbound_emails")
-}
-
-model EmailContact {
-  id        String   @id @default(cuid())
-  emailId   String
-  contactId String
-  type      String   // "to", "cc", "bcc"
-  createdAt DateTime @default(now())
-
-  // Relations
-  email   OutboundEmail @relation(fields: [emailId], references: [id], onDelete: Cascade)
-  contact Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  @@unique([emailId, contactId, type])
-  @@map("email_contacts")
 }
 
 enum EmailStatus {
@@ -463,35 +1091,6 @@ enum EmailStatus {
   BOUNCED
   FAILED
   CANCELLED
-}
-
-// ============================================
-// Task Management
-// ============================================
-
-model Task {
-  id          String       @id @default(cuid())
-  title       String
-  description String?      @db.Text
-  status      TaskStatus   @default(TODO)
-  priority    TaskPriority @default(MEDIUM)
-  assignedTo  String?
-  customerId  String?
-  projectId   String?
-  dueDate     DateTime?
-  completedAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Relations
-  assignee   User?     @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
-  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  comments   TaskComment[]
-
-  @@index([customerId])
-  @@index([projectId])
-  @@map("tasks")
 }
 
 enum TaskStatus {
@@ -509,89 +1108,12 @@ enum TaskPriority {
   URGENT
 }
 
-model TaskComment {
-  id        String   @id @default(cuid())
-  taskId    String
-  userId    String
-  content   String   @db.Text
-  createdAt DateTime @default(now())
-
-  // Relations
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("task_comments")
-}
-
-// ============================================
-// Invoice & Payments
-// ============================================
-
-model Invoice {
-  id          String        @id @default(cuid())
-  customerId  String
-  quoteId     String?
-  number      String        @unique
-  title       String
-  status      InvoiceStatus @default(DRAFT)
-  issueDate   DateTime      @default(now())
-  dueDate     DateTime?
-  subtotal    Float         @default(0)
-  tax         Float         @default(0)
-  total       Float         @default(0)
-  paidAmount  Float         @default(0)
-  notes       String?       @db.Text
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Relations
-  customer    Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  quote       Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
-  lineItems   InvoiceLineItem[]
-  payments    Payment[]
-  activities  Activity[]    @relation
-
-  @@index([quoteId])
-  @@map("invoices")
-}
-
 enum InvoiceStatus {
   DRAFT
   SENT
   PAID
   OVERDUE
   CANCELLED
-}
-
-model InvoiceLineItem {
-  id          String   @id @default(cuid())
-  invoiceId   String
-  description String   @db.Text
-  quantity    Float    @default(1)
-  unitPrice   Float
-  total       Float
-  createdAt   DateTime @default(now())
-
-  // Relations
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@map("invoice_line_items")
-}
-
-model Payment {
-  id          String        @id @default(cuid())
-  invoiceId   String
-  amount      Float
-  method      PaymentMethod
-  reference   String?
-  paidAt      DateTime      @default(now())
-  notes       String?       @db.Text
-  createdAt   DateTime      @default(now())
-
-  // Relations
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@map("payments")
 }
 
 enum PaymentMethod {
@@ -602,36 +1124,6 @@ enum PaymentMethod {
   PAYPAL
   STRIPE
   OTHER
-}
-
-// ============================================
-// Support Tickets
-// ============================================
-
-model SupportTicket {
-  id          String           @id @default(cuid())
-  customerId  String
-  projectId   String?
-  title       String
-  description String           @db.Text
-  status      TicketStatus     @default(OPEN)
-  priority    TicketPriority   @default(MEDIUM)
-  createdById String
-  assignedToId String?
-  resolvedAt  DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  // Relations
-  customer    Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  project     Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  creator     User             @relation("CreatedTickets", fields: [createdById], references: [id], onDelete: Cascade)
-  assignee    User?            @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
-  comments    TicketComment[]
-  activities  Activity[]       @relation
-
-  @@index([projectId])
-  @@map("support_tickets")
 }
 
 enum TicketStatus {
@@ -648,113 +1140,12 @@ enum TicketPriority {
   URGENT
 }
 
-model TicketComment {
-  id        String   @id @default(cuid())
-  ticketId  String
-  userId    String
-  content   String   @db.Text
-  createdAt DateTime @default(now())
-
-  // Relations
-  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("ticket_comments")
-}
-
-// ============================================
-// Meetings
-// ============================================
-
-model Meeting {
-  id          String   @id @default(cuid())
-  title       String
-  description String?  @db.Text
-  startTime   DateTime
-  endTime     DateTime
-  location    String?
-  videoLink   String?
-  notes       String?  @db.Text
-  customerId  String?
-  projectId   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  attendees MeetingAttendee[]
-
-  @@index([customerId])
-  @@index([projectId])
-  @@map("meetings")
-}
-
-model MeetingAttendee {
-  id        String   @id @default(cuid())
-  meetingId String
-  userId    String?
-  contactId String?
-  status    AttendeeStatus @default(INVITED)
-  createdAt DateTime @default(now())
-
-  // Relations
-  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
-
-  @@map("meeting_attendees")
-}
-
 enum AttendeeStatus {
   INVITED
   ACCEPTED
   DECLINED
   ATTENDED
   NO_SHOW
-}
-
-// ============================================
-// Document Management
-// ============================================
-
-model Document {
-  id          String   @id @default(cuid())
-  customerId  String?
-  createdById String
-  title       String
-  content     String?  @db.LongText
-  category    String?
-  tags        String?  @db.Text // JSON array
-  version     Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  creator   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
-
-  @@map("documents")
-}
-
-// ============================================
-// Notifications
-// ============================================
-
-model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  type      NotificationType
-  title     String
-  message   String           @db.Text
-  read      Boolean          @default(false)
-  link      String?
-  createdAt DateTime         @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
 }
 
 enum NotificationType {
@@ -771,25 +1162,6 @@ enum NotificationType {
   MEETING_REMINDER
 }
 
-// ============================================
-// Analytics & Reporting
-// ============================================
-
-model Report {
-  id          String   @id @default(cuid())
-  createdById String
-  name        String
-  type        ReportType
-  parameters  String?  @db.Text // JSON object
-  data        String?  @db.LongText // JSON object with report data
-  createdAt   DateTime @default(now())
-
-  // Relations
-  creator User @relation(fields: [createdById], references: [id], onDelete: Cascade)
-
-  @@map("reports")
-}
-
 enum ReportType {
   REVENUE
   PROJECTS
@@ -803,113 +1175,11 @@ enum ReportType {
   CUSTOM
 }
 
-// ============================================
-// Integrations
-// ============================================
-
-model Integration {
-  id          String   @id @default(cuid())
-  name        String
-  type        String
-  apiKey      String?
-  apiSecret   String?
-  webhookUrl  String?
-  config      String?  @db.Text // JSON object
-  enabled     Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("integrations")
-}
-
-// ============================================
-// System Settings (company info, number prefixes, etc.)
-// ============================================
-
-model SystemSetting {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("system_settings")
-}
-
-// ============================================
-// Team Management
-// ============================================
-
-model TeamMember {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  department  String?
-  title       String?
-  startDate   DateTime @default(now())
-  endDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("team_members")
-}
-
-// ============================================
-// Expense Management
-// ============================================
-
-model Expense {
-  id          String        @id @default(cuid())
-  projectId   String?
-  category    String
-  description String        @db.Text
-  amount      Float
-  date        DateTime      @default(now())
-  receiptPath String?
-  status      ExpenseStatus @default(PENDING)
-  approvedBy  String?
-  approvedAt  DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Relations
-  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-
-  @@index([projectId])
-  @@map("expenses")
-}
-
 enum ExpenseStatus {
   PENDING
   APPROVED
   REJECTED
   PAID
-}
-
-// ============================================
-// Marketing Campaigns
-// ============================================
-
-model Campaign {
-  id          String   @id @default(cuid())
-  customerId  String?
-  name        String
-  type        String
-  startDate   DateTime
-  endDate     DateTime?
-  budget      Float?
-  spent       Float     @default(0)
-  status      CampaignStatus @default(PLANNING)
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  @@map("campaigns")
 }
 
 enum CampaignStatus {
@@ -918,46 +1188,6 @@ enum CampaignStatus {
   PAUSED
   COMPLETED
   CANCELLED
-}
-
-// ============================================
-// Knowledge Base
-// ============================================
-
-model KnowledgeBase {
-  id          String   @id @default(cuid())
-  title       String
-  content     String   @db.LongText
-  category    String?
-  tags        String?  @db.Text // JSON array
-  published   Boolean  @default(false)
-  views       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("knowledge_base")
-}
-
-// ============================================
-// Systembehov (System Requirements per Customer)
-// ============================================
-
-model SystemRequirement {
-  id                String   @id @default(cuid())
-  customerId        String   @unique
-  designNotes        String?  @db.Text // General design notes / AI context
-  colorTheme         String?  @db.Text // JSON: primary, secondary, accent etc.
-  typography         String?  @db.Text // JSON: font families, sizes
-  logoPaths          String?  @db.Text // JSON array of uploaded logo paths/URLs
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  // Relations
-  customer Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  features SystemFeature[]
-  updates  SystemUpdate[]
-
-  @@map("system_requirements")
 }
 
 enum FeatureStatus {
@@ -975,99 +1205,6 @@ enum FeaturePriority {
   URGENT
 }
 
-model SystemFeature {
-  id          String          @id @default(cuid())
-  requirementId String
-  name        String
-  description String?         @db.Text // AI-prompt / note for agent
-  status      FeatureStatus   @default(PLANNING)
-  priority    FeaturePriority @default(MEDIUM)
-  order       Int             @default(0)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  // Relations
-  requirement SystemRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  subtasks    SystemSubtask[]
-  updates     SystemUpdate[]
-
-  @@map("system_features")
-}
-
-model SystemSubtask {
-  id          String   @id @default(cuid())
-  featureId   String
-  title       String
-  completed   Boolean  @default(false)
-  completedAt DateTime?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  feature SystemFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
-
-  @@map("system_subtasks")
-}
-
-model SystemUpdate {
-  id              String   @id @default(cuid())
-  requirementId   String
-  featureId       String?  // Optional link to a specific feature
-  title           String
-  description     String?  @db.Text // What was done
-  imagePaths      String?  @db.Text // JSON array of image paths/URLs
-  commitLinks     String?  @db.Text // JSON array of commit URLs
-  createdAt       DateTime @default(now())
-
-  // Relations
-  requirement SystemRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  feature     SystemFeature?    @relation(fields: [featureId], references: [id], onDelete: SetNull)
-
-  @@map("system_updates")
-}
-
-// ============================================
-// Bolagsfakta Pipeline
-// ============================================
-
-// Cache för branscher per kommun (hämtas från bolagsfakta.se)
-model BolagsfaktaBransch {
-  id          String   @id @default(cuid())
-  kommunSlug  String   // decoded slug, t.ex. "stockholms-kommun"
-  kommunNamn  String
-  branschNamn String
-  branschSlug String   // decoded slug, t.ex. "livsmedelsframställning"
-  branschKod  String   // SNI-kod, t.ex. "10"
-  /// Antal företag i branschen i kommunen (från Bolagsfakta, t.ex. "(598)" efter länken)
-  foretagCount Int?
-  cachedAt    DateTime @default(now())
-
-  @@unique([kommunSlug, branschKod])
-  @@map("bolagsfakta_branscher")
-}
-
-model BolagsfaktaPipeline {
-  id            String                    @id @default(cuid())
-  namn          String
-  kommunSlug    String
-  kommunNamn    String
-  branschSlug   String
-  branschNamn   String
-  branschKod    String
-  /// Antal företag enligt Bolagsfakta vid skapande (samma siffra som i bransch-dropdown)
-  bolagsfaktaForetagCount Int?
-  status        BolagsfaktaPipelineStatus @default(IDLE)
-  lastScrapedAt DateTime?
-  createdAt     DateTime                  @default(now())
-  updatedAt     DateTime                  @updatedAt
-
-  // Relations
-  foretag BolagsfaktaForetag[]
-
-  @@map("bolagsfakta_pipelines")
-}
-
 enum BolagsfaktaPipelineStatus {
   IDLE
   RUNNING
@@ -1083,255 +1220,16 @@ enum BolagsfaktaDetailStatus {
   ERROR
 }
 
-model BolagsfaktaForetag {
-  id         String   @id @default(cuid())
-  pipelineId String
-  /// Kopplad CRM-kund (samma Customer genom hela livscykeln)
-  customerId String?
-  /// Flagga om företaget är redlistat (ska kunna synas i pipeline-tabellen)
-  isRedlisted Boolean @default(false)
-  namn       String
-  adress     String?
-  orgNummer  String?
-  bolagsform String?
-  url        String?
-  createdAt  DateTime @default(now())
-
-  detailStatus     BolagsfaktaDetailStatus @default(IDLE)
-  detailJobId      String?
-  detailQueuedAt   DateTime?
-  detailStartedAt  DateTime?
-  detailFinishedAt DateTime?
-  detailError      String?                 @db.Text
-
-  // Relations
-  pipeline BolagsfaktaPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  customer Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  @@index([pipelineId, url])
-  @@index([customerId])
-  @@index([detailJobId])
-  @@map("bolagsfakta_foretag")
-}
-
-/// Global block-/referenslista för företag som inte ska tas vidare via pipeline
-model BolagsfaktaRedlistEntry {
-  id                  String   @id @default(cuid())
-  /// Snapshot av namnet vid redlistning (för UI)
-  namn                String
-  /// Normaliserat org.nr (10 siffror) om känt
-  orgNummerNormalized  String?
-  /// Bolagsfakta företags-URL om känt
-  url                 String?
-  createdAt           DateTime @default(now())
-
-  @@index([orgNummerNormalized])
-  @@unique([url])
-  @@map("bolagsfakta_redlist")
-}
-
-/// Utökad Bolagsfakta-data per kund (en post per Customer)
-model BolagsfaktaData {
-  id        String   @id @default(cuid())
-  customerId String  @unique
-  sourceUrl String?
-  scrapedAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  orgNumberFormatted String?
-  phone              String?
-  sniKodPrimary      String?
-  sniBenamningPrimary String?
-  verkligHuvudman    String? @db.Text
-  koncernModerNamn   String?
-  antalAnstalldaText String?
-
-  /// Strukturerade fält för UI (ej rå JSON)
-  firmaNamn              String?
-  bolagsformDetail       String?
-  registreringsStatus    String?
-  gatuadress             String?
-  postadress             String?
-  seatLocation           String?
-  bolagetBildatText      String?
-  bolagetRegistreratText String?
-  momsregnr              String?
-  verksamhetsbeskrivning String? @db.Text
-  omsattningSenaste      String?
-  aretsResultatSenaste   String?
-  ebitdaSenaste          String?
-  utdelningSenaste       String?
-
-  overviewJson    Json?
-  ansvarigaJson   Json?
-  ekonomiJson     Json?
-  omForetagetJson Json?
-  fordonJson      Json?
-  arbetsstallenJson Json?
-  ovrigtJson      Json?
-
-  /// Hemsida från Google+Ollama-discovery (visas på kundöversikt när satt)
-  discoveredWebsite String?
-
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@map("bolagsfakta_data")
-}
-
-// ============================================
-// Projekt (Projekt)
-// ============================================
-
-model Project {
-  id          String        @id @default(cuid())
-  name        String
-  description String?       @db.Text
-  status      ProjectStatus @default(ACTIVE)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Relations
-  customers      ProjectCustomer[]
-  links          ProjectLink[]
-  features       ProjectFeature[]
-  boardColumns   ProjectBoardColumn[]
-  financeEntries ProjectFinanceEntry[]
-  tasks          Task[]
-  meetings       Meeting[]
-  expenses       Expense[]
-  supportTickets SupportTicket[]
-
-  @@map("projects")
-}
-
-/// Bokmärken med titel + URL per projekt (t.ex. repo, Figma, dokumentation)
-model ProjectLink {
-  id        String   @id @default(cuid())
-  projektId String
-  title     String
-  url       String   @db.VarChar(2048)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-
-  project Project @relation(fields: [projektId], references: [id], onDelete: Cascade)
-
-  @@index([projektId])
-  @@map("project_links")
-}
-
-model ProjectCustomer {
-  id        String   @id @default(cuid())
-  projektId String
-  customerId String
-  createdAt DateTime @default(now())
-
-  project Project @relation(fields: [projektId], references: [id], onDelete: Cascade)
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@unique([projektId, customerId])
-  @@map("project_customers")
-}
-
 enum ProjectStatus {
   ACTIVE
   PAUSED
   ARCHIVED
 }
 
-model ProjectFeature {
-  id          String          @id @default(cuid())
-  projektId   String
-  name        String
-  description String?         @db.Text
-  status      FeatureStatus   @default(PLANNING)
-  priority    FeaturePriority @default(MEDIUM)
-  order       Int             @default(0)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  // Relations
-  project  Project          @relation(fields: [projektId], references: [id], onDelete: Cascade)
-  subtasks ProjectSubtask[]
-
-  @@map("project_features")
-}
-
-model ProjectSubtask {
-  id          String    @id @default(cuid())
-  featureId   String
-  title       String
-  completed   Boolean   @default(false)
-  completedAt DateTime?
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  feature ProjectFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
-
-  @@map("project_subtasks")
-}
-
-model ProjectBoardColumn {
-  id        String   @id @default(cuid())
-  projektId String
-  name      String
-  order     Int      @default(0)
-  color     String?
-  createdAt DateTime @default(now())
-
-  // Relations
-  project Project          @relation(fields: [projektId], references: [id], onDelete: Cascade)
-  cards   ProjectBoardCard[]
-
-  @@map("project_board_columns")
-}
-
-model ProjectBoardCard {
-  id          String       @id @default(cuid())
-  columnId    String
-  title       String
-  description String?      @db.Text
-  priority    TaskPriority @default(MEDIUM)
-  dueDate     DateTime?
-  order       Int          @default(0)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  // Relations
-  column ProjectBoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
-
-  @@map("project_board_cards")
-}
-
-model ProjectFinanceEntry {
-  id          String           @id @default(cuid())
-  projektId   String
-  type        FinanceEntryType
-  category    String?
-  description String
-  amount      Float
-  vatRate     Float            @default(0.25)
-  isRecurring Boolean          @default(false)
-  startDate   DateTime         @default(now())
-  endDate     DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  // Relations
-  project Project @relation(fields: [projektId], references: [id], onDelete: Cascade)
-
-  @@map("project_finance_entries")
-}
-
 enum FinanceEntryType {
   INCOME
   EXPENSE
 }
-
-// ============================================
-// Outreach (planerade kontakter per kund/prospekt)
-// ============================================
 
 enum OutreachType {
   EMAIL
@@ -1343,32 +1241,4 @@ enum OutreachType {
 enum OutreachStatus {
   PLANNED
   COMPLETED
-}
-
-model Outreach {
-  id              String         @id @default(cuid())
-  customerId      String
-  userId          String?
-  emailTemplateId String?
-  title           String
-  type            OutreachType
-  scheduledAt     DateTime
-  recipients      String?        @db.Text   // JSON array of recipient strings
-  body            String?        @db.LongText
-  subject         String?        // Email subject line
-  sendAt          DateTime?      // Exact send time for email
-  emailStatus     String?        // draft|queued|scheduled|sent|delivered|opened|bounced
-  attachments     String?        @db.Text   // JSON array of attachment file names
-  status          OutreachStatus @default(PLANNED)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
-  emailTemplate  EmailTemplate?  @relation(fields: [emailTemplateId], references: [id], onDelete: SetNull)
-  outboundEmails OutboundEmail[]
-
-  @@index([customerId])
-  @@index([emailTemplateId])
-  @@map("outreach")
 }

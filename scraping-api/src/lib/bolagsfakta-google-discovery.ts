@@ -1,3 +1,6 @@
+import { appendFile, mkdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { BolagsfaktaDisplayFields } from './bolagsfakta-display-fields.js'
 import type { BolagsfaktaDebugLogger } from './bolagsfakta-debug-logger.js'
 import { formatSwedishOrgNumber, locationFromPostadressAndSeat } from './bolagsfakta-overview.js'
@@ -12,6 +15,10 @@ import {
 } from './bolagsfakta-scraper.js'
 
 export type { CompanyEnrichmentFromAI, WebsiteDiscoveryResult } from './website-discovery-types.js'
+
+const SCRAPING_API_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+/** Fast loggfil under paketroten: `scraping-api/logs/` (gitignored). */
+const DISCOVERY_PROMPT_LOG_FILE = join(SCRAPING_API_ROOT, 'logs', 'google-discovery-prompts.log')
 
 /** Minimalt underlag för söksträng. */
 export type DiscoveryFlatInput = {
@@ -93,75 +100,71 @@ function trimSerpText(raw: string, maxLen: number): string {
   return `${collapsed.slice(0, maxLen)}… [truncated ${maxLen} chars]`
 }
 
+/**
+ * Måste vara ren JS-sträng till `page.evaluate` — TS-kompilerade funktioner kan injicera t.ex. `__name`
+ * som inte finns i webbläsaren (ReferenceError).
+ */
+const GOOGLE_ORGANIC_SERP_EXTRACTOR = `(() => {
+  function skipGoogleOrInternal(u) {
+    return /google\\.(com|se)\\/(search|url|aclk)|\\/\\/www\\.google\\./i.test(u);
+  }
+  const rso = document.querySelector("#rso");
+  if (!rso) return "";
+  const blocks = [];
+  const seen = new Set();
+  const cards = rso.querySelectorAll(
+    "div.g, div[jscontroller][data-hveid], div[data-sokoban-container]",
+  );
+  cards.forEach((card) => {
+    if (card.querySelector("[data-text-ad], [data-ad-slot], [aria-label='Annonser']")) return;
+    const h3 = card.querySelector("h3");
+    const a = card.querySelector("a[href^='http']") || card.querySelector("a[ping]");
+    if (!h3 && !a) return;
+    const title = (h3 && h3.textContent && h3.textContent.replace(/\\s+/g, " ").trim()) || "";
+    let href = (a && a.href) || "";
+    if (skipGoogleOrInternal(href)) href = "";
+    const cite = card.querySelector("cite, .VuuXrf, .NJjxre");
+    const citeT = (cite && cite.textContent && cite.textContent.replace(/\\s+/g, " ").trim()) || "";
+    const snEl =
+      card.querySelector(".VwiC3b") ||
+      card.querySelector(".s") ||
+      card.querySelector(".st") ||
+      card.querySelector("span[style*='-webkit-line-clamp']");
+    const snippet =
+      (snEl && snEl.textContent && snEl.textContent.replace(/\\s+/g, " ").trim().slice(0, 600)) || "";
+    const parts = [];
+    if (title) parts.push("TITLE: " + title);
+    if (href) parts.push("URL: " + href);
+    if (citeT) parts.push("CITE: " + citeT);
+    if (snippet) parts.push("SNIPPET: " + snippet);
+    if (parts.length < 2) return;
+    const key = title + "|" + href;
+    if (seen.has(key)) return;
+    seen.add(key);
+    blocks.push(parts.join("\\n"));
+  });
+  if (blocks.length > 0) {
+    return blocks.join("\\n\\n---\\n\\n");
+  }
+  const fallback = [];
+  rso.querySelectorAll("a[href^='http']").forEach((node) => {
+    const el = node;
+    const h = el.querySelector("h3");
+    if (!h) return;
+    const u = el.href;
+    if (skipGoogleOrInternal(u)) return;
+    const line =
+      "TITLE: " + (h.textContent && h.textContent.replace(/\\s+/g, " ").trim() || "") + "\\nURL: " + u;
+    if (!seen.has(line)) {
+      seen.add(line);
+      fallback.push(line);
+    }
+  });
+  return fallback.slice(0, 12).join("\\n\\n---\\n\\n");
+})()`
+
 async function extractOrganicSerpFromPage(page: Page): Promise<string> {
-  const text = await page.evaluate(() => {
-    function skipGoogleOrInternal(u: string): boolean {
-      return /google\.(com|se)\/(search|url|aclk)|\/\/www\.google\./i.test(u)
-    }
-
-    const rso = document.querySelector("#rso")
-    if (!rso) return ""
-
-    const blocks: string[] = []
-    const seen = new Set<string>()
-
-    const cards = rso.querySelectorAll(
-      "div.g, div[jscontroller][data-hveid], div[data-sokoban-container]",
-    )
-    cards.forEach((card) => {
-      if (card.querySelector("[data-text-ad], [data-ad-slot], [aria-label='Annonser']")) return
-      const h3 = card.querySelector("h3")
-      const a =
-        (card.querySelector("a[href^='http']") as HTMLAnchorElement | null) ||
-        (card.querySelector("a[ping]") as HTMLAnchorElement | null)
-      if (!h3 && !a) return
-      const title = h3?.textContent?.replace(/\s+/g, " ").trim() ?? ""
-      let href = a?.href ?? ""
-      if (skipGoogleOrInternal(href)) href = ""
-
-      const cite = card.querySelector("cite, .VuuXrf, .NJjxre")
-      const citeT = cite?.textContent?.replace(/\s+/g, " ").trim() ?? ""
-
-      const snEl =
-        card.querySelector(".VwiC3b") ||
-        card.querySelector(".s") ||
-        card.querySelector(".st") ||
-        card.querySelector("span[style*='-webkit-line-clamp']")
-      const snippet = snEl?.textContent?.replace(/\s+/g, " ").trim().slice(0, 600) ?? ""
-
-      const parts: string[] = []
-      if (title) parts.push(`TITLE: ${title}`)
-      if (href) parts.push(`URL: ${href}`)
-      if (citeT) parts.push(`CITE: ${citeT}`)
-      if (snippet) parts.push(`SNIPPET: ${snippet}`)
-      if (parts.length < 2) return
-
-      const key = `${title}|${href}`
-      if (seen.has(key)) return
-      seen.add(key)
-      blocks.push(parts.join("\n"))
-    })
-
-    if (blocks.length > 0) {
-      return blocks.join("\n\n---\n\n")
-    }
-
-    const fallback: string[] = []
-    rso.querySelectorAll("a[href^='http']").forEach((node) => {
-      const el = node as HTMLAnchorElement
-      const h = el.querySelector("h3")
-      if (!h) return
-      const u = el.href
-      if (skipGoogleOrInternal(u)) return
-      const line = `TITLE: ${h.textContent?.replace(/\s+/g, " ").trim() ?? ""}\nURL: ${u}`
-      if (!seen.has(line)) {
-        seen.add(line)
-        fallback.push(line)
-      }
-    })
-    return fallback.slice(0, 12).join("\n\n---\n\n")
-  })
-
+  const text = await page.evaluate(GOOGLE_ORGANIC_SERP_EXTRACTOR)
   return typeof text === "string" ? text : ""
 }
 
@@ -255,8 +258,10 @@ function buildCompanyContextForDiscovery(
   add("Street", display.gatuadress)
   add("Postal", display.postadress)
   add("Seat", display.seatLocation)
+  add("Bolaget bildat", display.bolagetBildatText)
+  add("Bolaget registrerat", display.bolagetRegistreratText)
   const primaryBransch = [flat.sniKodPrimary, flat.sniBenamningPrimary].filter(Boolean).join(" – ")
-  if (primaryBransch.trim()) add("Primär bransch", primaryBransch)
+  if (primaryBransch.trim()) add("Primär bransch (SNI)", primaryBransch)
   return rows.length ? rows.join("\n") : "(no extra fields)"
 }
 
@@ -344,6 +349,34 @@ const emptyResult = (partial: Partial<WebsiteDiscoveryResult>): WebsiteDiscovery
   ...partial,
 })
 
+/** Appendar hela Cursor CLI-promten till den fasta loggfilen under `logs/`. */
+async function appendDiscoveryPromptToLogFile(
+  logPath: string,
+  args: { searchQuery: string; prompt: string },
+  logger?: BolagsfaktaDebugLogger,
+): Promise<void> {
+  const iso = new Date().toISOString()
+  const block = [
+    "",
+    "=".repeat(80),
+    `[${iso}] google_discovery_prompt → cursor -p`,
+    `searchQuery: ${args.searchQuery}`,
+    "=".repeat(80),
+    args.prompt,
+    "=".repeat(80),
+    "",
+  ].join("\n")
+
+  try {
+    await mkdir(dirname(logPath), { recursive: true })
+    await appendFile(logPath, block, "utf8")
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    console.warn("[bolagsfakta-google-discovery] Kunde inte skriva prompt-logg:", message)
+    await logger?.error("google_discovery_prompt_log_failed", { path: logPath, message })
+  }
+}
+
 /**
  * Google-sök, brusfilter, sedan Cursor CLI med JSON-svar.
  * Kastar inte — returnerar status.
@@ -402,10 +435,12 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
       trimmedSerp = await extractOrganicSerpFromPage(page)
       if (trimmedSerp.length < 80) {
         trimmedSerp =
-          (await page.evaluate(() => {
-            const el = document.querySelector("#rso") || document.querySelector("#center_col")
-            return el instanceof HTMLElement ? el.innerText : (el?.textContent ?? "")
-          })) ?? ""
+          (await page.evaluate(
+            `(() => {
+  const el = document.querySelector("#rso") || document.querySelector("#center_col");
+  return el instanceof HTMLElement ? el.innerText : (el && el.textContent) || "";
+})()`,
+          )) ?? ""
       }
 
       trimmedSerp = stripNoiseFromSerpText(trimmedSerp)
@@ -437,6 +472,8 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
     console.log("\n========== BOLAGSFAKTA → GOOGLE DISCOVERY (prompt → Cursor CLI) ==========\n")
     console.log(prompt)
     console.log("\n========== END PROMPT ==========\n")
+
+    await appendDiscoveryPromptToLogFile(DISCOVERY_PROMPT_LOG_FILE, { searchQuery, prompt }, logger)
 
     await logger?.info("google_discovery_ai_request", {
       serpLength: trimmedSerp.length,

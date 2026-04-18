@@ -42,7 +42,7 @@ const navGroups = [
       { href: '/prospects', label: 'Prospekts', icon: Filter },
       { href: '/outreach-planning', label: 'Outreach-plan', icon: Send },
       { href: '/contacts', label: 'Kontakter', icon: UserCircle2 },
-      { href: '/pipelines', label: 'Bolagsfakta Pipeline', icon: Users },
+      { href: '/pipelines', label: 'Pipeline', icon: Users },
     ],
   },
   {

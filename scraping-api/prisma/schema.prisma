@@ -25,6 +25,8 @@ model Customer {
   createdAt                           DateTime                              @default(now())
   updatedAt                           DateTime                              @updatedAt
   promotedToProspectAt                DateTime?
+  /// Bolaget bildat (fallback Bolaget registrerat), yyyy-mm-dd lagrat som UTC midnatt
+  companyFoundedAt                    DateTime?
   activities                          activities[]
   bolagsfaktaData                     BolagsfaktaData?
   bolagsfaktaForetag                  BolagsfaktaForetag[]
@@ -37,6 +39,7 @@ model Customer {
   files                               files[]
   invoices                            invoices[]
   meetings                            meetings[]
+  outbound_emails                     outbound_emails[]
   outreach                            outreach[]
   project_customers                   project_customers[]
   prospect_stage_history              prospect_stage_history?
@@ -133,8 +136,10 @@ model BolagsfaktaRedlistEntry {
   orgNummerNormalized String?
   url                 String?  @unique
   createdAt           DateTime @default(now())
+  nameContains        String?
 
   @@index([orgNummerNormalized])
+  @@index([nameContains])
   @@map("bolagsfakta_redlist")
 }
 
@@ -482,39 +487,60 @@ model notifications {
 }
 
 model outbound_emails {
-  id             String                 @id
-  userId         String
-  to             String                 @db.Text
-  cc             String?                @db.Text
-  bcc            String?                @db.Text
-  subject        String
-  body           String                 @db.LongText
-  status         outbound_emails_status @default(LOGGED)
-  sentAt         DateTime?
-  createdAt      DateTime               @default(now())
-  email_contacts email_contacts[]
-  users          users                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String                 @id
+  userId          String
+  to              String                 @db.Text
+  cc              String?                @db.Text
+  bcc             String?                @db.Text
+  subject         String
+  body            String                 @db.LongText
+  status          outbound_emails_status @default(QUEUED)
+  sentAt          DateTime?
+  createdAt       DateTime               @default(now())
+  outreachId      String?
+  customerId      String?
+  resendMessageId String?                @unique
+  scheduledAt     DateTime?
+  deliveredAt     DateTime?
+  openedAt        DateTime?
+  openCount       Int                    @default(0)
+  clickedAt       DateTime?
+  bouncedAt       DateTime?
+  bounceType      String?
+  errorMessage    String?                @db.Text
+  updatedAt       DateTime               @default(now())
+  email_contacts  email_contacts[]
+  customers       Customer?              @relation(fields: [customerId], references: [id])
+  outreach        outreach?              @relation(fields: [outreachId], references: [id])
+  users           users                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "outbound_emails_userId_fkey")
+  @@index([customerId])
+  @@index([outreachId])
+  @@index([resendMessageId])
 }
 
 model outreach {
-  id              String           @id
+  id              String            @id
   customerId      String
   userId          String?
   title           String
   type            outreach_type
   scheduledAt     DateTime
-  recipients      String?          @db.Text
-  body            String?          @db.LongText
-  attachments     String?          @db.Text
-  status          outreach_status  @default(PLANNED)
-  createdAt       DateTime         @default(now())
+  recipients      String?           @db.Text
+  body            String?           @db.LongText
+  attachments     String?           @db.Text
+  status          outreach_status   @default(PLANNED)
+  createdAt       DateTime          @default(now())
   updatedAt       DateTime
   emailTemplateId String?
-  customers       Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  email_templates email_templates? @relation(fields: [emailTemplateId], references: [id])
-  users           users?           @relation(fields: [userId], references: [id])
+  subject         String?
+  sendAt          DateTime?
+  emailStatus     String?
+  outbound_emails outbound_emails[]
+  customers       Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  email_templates email_templates?  @relation(fields: [emailTemplateId], references: [id])
+  users           users?            @relation(fields: [userId], references: [id])
 
   @@index([customerId])
   @@index([emailTemplateId])
@@ -1127,13 +1153,6 @@ enum expenses_status {
   PAID
 }
 
-enum outbound_emails_status {
-  QUEUED
-  LOGGED
-  SENT
-  FAILED
-}
-
 enum contracts_status {
   DRAFT
   SENT
@@ -1158,4 +1177,16 @@ enum campaigns_status {
 enum outreach_status {
   PLANNED
   COMPLETED
+}
+
+enum outbound_emails_status {
+  QUEUED
+  LOGGED
+  SCHEDULED
+  SENT
+  DELIVERED
+  OPENED
+  BOUNCED
+  FAILED
+  CANCELLED
 }

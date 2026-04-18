@@ -1,11 +1,13 @@
 import type { BolagsfaktaData } from "@prisma/client"
+import { normalizeOrgNumber } from "@/lib/swedish-org-number"
 
-/** Visningsformat ######-#### om 10 siffror, annars oförändrat. */
+/** Visningsformat ######-#### eller ######-XXXX (maskerat) när det går att tolka. */
 export function formatSwedishOrgNumber(s: string | null | undefined): string | null {
   if (!s) return null
-  const d = s.replace(/\D/g, "")
-  if (d.length !== 10) return s.trim()
-  return `${d.slice(0, 6)}-${d.slice(6)}`
+  const t = s.trim()
+  const n = normalizeOrgNumber(t)
+  if (n) return n
+  return t || null
 }
 
 function formatPostnummer(digits: string): string {

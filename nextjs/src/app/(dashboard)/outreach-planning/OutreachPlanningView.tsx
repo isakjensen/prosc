@@ -21,6 +21,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { useConfirm } from '@/components/confirm/ConfirmProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -151,6 +152,7 @@ function dateKey(dateStr: string): string {
 }
 
 export default function OutreachPlanningView({ outreaches, prospects, filters }: Props) {
+  const confirm = useConfirm()
   const router = useRouter()
   const [bulkOpen, setBulkOpen] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
@@ -269,7 +271,14 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
   }
 
   async function deleteItem(id: string) {
-    if (!confirm('Ta bort den här outreachen?')) return
+    const ok = await confirm({
+      title: 'Ta bort outreach?',
+      description: 'Ta bort den här outreachen? Detta går inte att ångra.',
+      variant: 'danger',
+      confirmLabel: 'Ta bort',
+      cancelLabel: 'Avbryt',
+    })
+    if (!ok) return
     try {
       const res = await fetch(`/api/outreach/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()

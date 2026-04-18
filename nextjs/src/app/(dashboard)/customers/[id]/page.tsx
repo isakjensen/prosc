@@ -11,7 +11,7 @@ import KundOutreachTab from "./KundOutreachTab"
 import KundTabs from "./KundTabs"
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { ReactNode } from 'react'
+import KundOversiktPanels, { KundCrmOnlyCompanyCard } from "./KundOversiktPanels"
 import { ChevronRight } from 'lucide-react'
 import type { CustomerStage } from '@prisma/client'
 
@@ -59,7 +59,7 @@ function listBreadcrumb(stage: CustomerStage): { href: string; label: string } {
     case 'PROSPECT':
       return { href: '/prospects', label: 'Prospekts' }
     case 'SCRAPED':
-      return { href: '/pipelines', label: 'Bolagsfakta Pipeline' }
+      return { href: '/pipelines', label: 'Pipeline' }
     case 'ARCHIVED':
       return { href: '/customers', label: 'Kunder' }
     default:
@@ -70,8 +70,13 @@ function listBreadcrumb(stage: CustomerStage): { href: string; label: string } {
 export default async function KundDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params
   const sp = await searchParams
-  const rawTab = sp.tab ?? "oversikt"
-  const tab = rawTab === "aktivitet" ? "flode" : rawTab
+  const rawTab = sp.tab ?? "bolagsfakta"
+  const tab =
+    rawTab === "aktivitet"
+      ? "flode"
+      : rawTab === "oversikt"
+        ? "bolagsfakta"
+        : rawTab
 
   const customer = await prisma.customer.findUnique({
     where: { id },
@@ -132,6 +137,38 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
   const overviewZip = bfLoc.zip ?? customer.zip
   const overviewCountry = bfLoc.country ?? customer.country
   const discoveredWebsite = bf?.discoveredWebsite?.trim() || ""
+  const manualWebsite = customer.website?.trim() || ""
+  const overviewWebsite = manualWebsite || discoveredWebsite
+  const overviewWebsiteHref =
+    overviewWebsite &&
+    (overviewWebsite.startsWith("http://") || overviewWebsite.startsWith("https://")
+      ? overviewWebsite
+      : `https://${overviewWebsite}`)
+
+  const bolagsfaktaCrmMerge = {
+    customerName: customer.name,
+    customerEmail: customer.email,
+    overviewOrgNr,
+    overviewWebsite,
+    overviewWebsiteHref:
+      typeof overviewWebsiteHref === "string" ? overviewWebsiteHref : undefined,
+    overviewPhone,
+    overviewAddress,
+    overviewCity,
+    overviewZip,
+    overviewCountry,
+    createdAt: customer.createdAt,
+  }
+
+  const bolagsfaktaSummaryStats = [
+    { label: "Projekt", value: linkedProjects.length },
+    { label: "Kontakter", value: customer.contacts.length },
+    { label: "Offerter", value: customer.quotes.length },
+    ...(showFinanceTabs ? [{ label: "Fakturor", value: customer.invoices.length }] : []),
+  ]
+
+  const bolagsfaktaToolbarSourceUrlWhenEmpty =
+    customer.bolagsfaktaForetag[0]?.url?.trim() || null
 
   const stageBadge: Record<string, { label: string; variant: 'success' | 'info' | 'gray' | 'warning' }> = {
     CUSTOMER: { label: 'Kund', variant: 'success' },
@@ -144,7 +181,6 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
   const showOutreach = customer.stage === 'PROSPECT' || customer.stage === 'CUSTOMER'
 
   const baseTabs = [
-    { key: 'oversikt', label: 'Översikt' },
     { key: 'bolagsfakta', label: 'Bolagsfakta' },
     { key: 'projekt', label: 'Projekt' },
     { key: 'kontakter', label: 'Kontakter' },
@@ -206,87 +242,6 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
       <KundTabs tabs={baseTabs} activeTab={tab} customerId={id} />
 
       {/* Tab content */}
-      {tab === 'oversikt' && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="panel-surface">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">Företagsinformation</h2>
-            </div>
-            <div className="p-6 space-y-3">
-              {[
-                { label: 'Organisationsnummer', value: overviewOrgNr },
-                ...(discoveredWebsite
-                  ? ([
-                      {
-                        label: 'Hemsida',
-                        value: discoveredWebsite,
-                        href: discoveredWebsite,
-                      },
-                    ] as const)
-                  : []),
-                { label: 'Telefon', value: overviewPhone },
-                { label: 'E-post', value: customer.email },
-                { label: 'Adress', value: overviewAddress },
-                { label: 'Stad', value: overviewCity },
-                { label: 'Postnummer', value: overviewZip },
-                { label: 'Land', value: overviewCountry },
-                { label: 'Skapad', value: formatDate(customer.createdAt) },
-              ].map((row) => (
-                <div key={row.label} className="flex justify-between text-sm gap-4">
-                  <span className="text-gray-500 shrink-0">{row.label}</span>
-                  <span className="text-gray-900 font-medium text-right min-w-0 break-all">
-                    {'href' in row && row.href ? (
-                      <a
-                        href={row.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-zinc-800 hover:underline"
-                      >
-                        {row.value}
-                      </a>
-                    ) : (
-                      (row.value ?? '–') as ReactNode
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="panel-surface">
-              <div className="px-6 py-4 border-b border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-900">Sammanfattning</h2>
-              </div>
-              <div className="p-6 space-y-3">
-                {[
-                  { label: 'Projekt', value: linkedProjects.length },
-                  { label: 'Kontakter', value: customer.contacts.length },
-                  { label: 'Offerter', value: customer.quotes.length },
-                  ...(showFinanceTabs ? [{ label: 'Fakturor', value: customer.invoices.length }] : []),
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between text-sm">
-                    <span className="text-gray-500">{label}</span>
-                    <span className="font-semibold text-gray-900">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {customer.notes && (
-              <div className="panel-surface">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h2 className="text-sm font-semibold text-gray-900">Anteckningar</h2>
-                </div>
-                <div className="p-6">
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{customer.notes}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {tab === 'projekt' && (
         <KundProjektTab
           customerId={customer.id}
@@ -297,31 +252,58 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
       )}
 
       {tab === 'bolagsfakta' && (
-        <div>
+        <div className="space-y-6">
           {customer.bolagsfaktaData ? (
             <BolagsfaktaKundView
               customerId={customer.id}
               data={customer.bolagsfaktaData}
               contacts={customer.contacts}
+              crmMerge={bolagsfaktaCrmMerge}
+              summaryStats={bolagsfaktaSummaryStats}
+              notes={customer.notes}
             />
           ) : (
-            <div className="panel-surface p-8 text-center text-sm text-gray-500">
-              <p>Ingen Bolagsfakta-data är hämtad för det här bolaget ännu.</p>
-              {canFetchBolagsfaktaWithoutStoredData ? (
-                <div className="mt-6 flex flex-col items-center gap-3">
-                  <BolagsfaktaRefreshButton
-                    customerId={customer.id}
-                    label="Hämta från Bolagsfakta"
-                  />
-                  <p className="max-w-md text-xs text-gray-400">
-                    Vi använder organisationsnummer, Bolagsfakta-URL (Redigera företag) eller pipeline-länk och hämtar företagsdata.
+            <div className="space-y-6">
+              <BolagsfaktaRefreshButton
+                customerId={customer.id}
+                label="Hämta från Bolagsfakta"
+                toolbar={{
+                  sourceUrl: bolagsfaktaToolbarSourceUrlWhenEmpty,
+                  scrapedAt: null,
+                  summaryStats: bolagsfaktaSummaryStats,
+                }}
+              />
+              <KundOversiktPanels notes={customer.notes} />
+              <KundCrmOnlyCompanyCard
+                customerName={customer.name}
+                overviewOrgNr={overviewOrgNr}
+                overviewWebsite={overviewWebsite}
+                overviewWebsiteHref={
+                  typeof overviewWebsiteHref === "string" ? overviewWebsiteHref : undefined
+                }
+                overviewPhone={overviewPhone}
+                customerEmail={customer.email}
+                overviewAddress={overviewAddress}
+                overviewCity={overviewCity}
+                overviewZip={overviewZip}
+                overviewCountry={overviewCountry}
+                createdAt={customer.createdAt}
+              />
+              <div className="panel-surface p-8 text-center text-sm text-gray-500">
+                <p>Ingen Bolagsfakta-data är hämtad för det här bolaget ännu.</p>
+                {canFetchBolagsfaktaWithoutStoredData ? (
+                  <p className="mt-4 mx-auto max-w-md text-xs text-gray-400">
+                    Använd knappen ovan. Vi använder organisationsnummer, Bolagsfakta-URL (Redigera
+                    företag) eller pipeline-länk och hämtar företagsdata.
                   </p>
-                </div>
-              ) : (
-                <p className="mt-2 text-xs text-gray-400">
-                  Lägg till organisationsnummer eller Bolagsfakta-URL under <span className="font-medium text-gray-500">Redigera</span> för att kunna hämta data.
-                </p>
-              )}
+                ) : (
+                  <p className="mt-2 text-xs text-gray-400">
+                    Lägg till organisationsnummer eller Bolagsfakta-URL under{" "}
+                    <span className="font-medium text-gray-500">Redigera</span> för att kunna hämta
+                    data.
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

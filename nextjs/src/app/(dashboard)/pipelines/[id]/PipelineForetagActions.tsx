@@ -4,35 +4,51 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
+import { showWebsiteDiscoveryToasts } from "@/components/bolagsfakta/showWebsiteDiscoveryToasts"
+import type { WebsiteDiscoveryResult } from "@/lib/website-discovery-types"
 
 const MENU_WIDTH = 224
 const MENU_VIEW_MARGIN = 8
 const MENU_GAP = 4
 /** Fallback om höjd inte hunnit mätas (≈ 4 knappar + separator + padding). */
-const MENU_HEIGHT_FALLBACK = 260
+const MENU_HEIGHT_FALLBACK = 308
 
 interface Props {
   pipelineId: string
   foretagId: string
   hasCustomer: boolean
+  /** null om ingen kund; SCRAPED = pipeline-rad, PROSPECT = prospekt osv. */
+  customerStage: string | null
   isRedlisted: boolean
+  bolagsfaktaUrl: string | null
+  detailStatus: "IDLE" | "QUEUED" | "RUNNING" | "SUCCESS" | "ERROR"
+  /** Meddelar tabellen att en en-rads webbsökning pågår (BF-data-kolumnen visar annan text). */
+  onSoloWebsiteDiscoverLoading?: (foretagId: string, loading: boolean) => void
 }
 
 export default function PipelineForetagActions({
   pipelineId,
   foretagId,
   hasCustomer,
+  customerStage,
   isRedlisted,
+  bolagsfaktaUrl,
+  detailStatus,
+  onSoloWebsiteDiscoverLoading,
 }: Props) {
+  const confirm = useConfirm()
   const router = useRouter()
   const anchorRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
-  const [loading, setLoading] = useState<"fetch" | "promote" | "remove" | "redlist" | null>(null)
+  const [loading, setLoading] = useState<
+    "fetch" | "discover" | "promote" | "demote" | "remove" | "redlist" | null
+  >(null)
   const [error, setError] = useState("")
 
   useEffect(() => {
@@ -94,6 +110,38 @@ export default function PipelineForetagActions({
     }
   }, [open])
 
+  const detailBusy = detailStatus === "QUEUED" || detailStatus === "RUNNING"
+
+  async function discoverWebsite() {
+    setLoading("discover")
+    setError("")
+    onSoloWebsiteDiscoverLoading?.(foretagId, true)
+    try {
+      const res = await fetch(
+        `/api/pipelines/${pipelineId}/companies/${foretagId}/discover-website`,
+        { method: "POST" },
+      )
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string
+        websiteDiscovery?: WebsiteDiscoveryResult | null
+      }
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`)
+      }
+      toast.success("Webbplats-sökning klar")
+      showWebsiteDiscoveryToasts(body.websiteDiscovery ?? undefined)
+      setOpen(false)
+      router.refresh()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Kunde inte söka webbplats."
+      setError(msg)
+      console.error("[PipelineForetagActions] discover-website failed", e)
+    } finally {
+      onSoloWebsiteDiscoverLoading?.(foretagId, false)
+      setLoading(null)
+    }
+  }
+
   async function fetchDetail() {
     setLoading("fetch")
     setError("")
@@ -129,11 +177,15 @@ export default function PipelineForetagActions({
   }
 
   async function removeFromPipeline() {
-    const ok = window.confirm(
-      hasCustomer
-        ? "Hela kunden tas bort från systemet: kontakter, Bolagsfakta-data och övrig kopplad information. Detta går inte att ångra. Fortsätt?"
-        : "Raden tas bort från pipelinen. Fortsätt?",
-    )
+    const ok = await confirm({
+      title: hasCustomer ? "Ta bort kund helt?" : "Ta bort från pipelinen?",
+      description: hasCustomer
+        ? "Hela kunden tas bort från systemet: kontakter, Bolagsfakta-data och övrig kopplad information. Detta går inte att ångra."
+        : "Raden tas bort från pipelinen.",
+      variant: "danger",
+      confirmLabel: "Ta bort",
+      cancelLabel: "Avbryt",
+    })
     if (!ok) return
 
     setLoading("remove")
@@ -176,6 +228,36 @@ export default function PipelineForetagActions({
     }
   }
 
+  async function demoteToPipeline() {
+    const ok = await confirm({
+      title: "Lägg tillbaka i pipeline?",
+      description:
+        "Bolaget flyttas tillbaka till pipeline (stadie: skrapad). Det visas som pipeline-rad igen, inte som aktivt prospekt.",
+      confirmLabel: "Lägg tillbaka",
+      cancelLabel: "Avbryt",
+    })
+    if (!ok) return
+
+    setLoading("demote")
+    setError("")
+    try {
+      const res = await fetch(`/api/pipelines/${pipelineId}/companies/${foretagId}/demote`, {
+        method: "POST",
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
+      toast.success("Bolaget är tillbaka i pipeline.")
+      setOpen(false)
+      router.refresh()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Kunde inte lägga tillbaka i pipeline."
+      setError(msg)
+      console.error("[PipelineForetagActions] demote failed", e)
+    } finally {
+      setLoading(null)
+    }
+  }
+
   async function addToRedlist() {
     setLoading("redlist")
     setError("")
@@ -198,6 +280,11 @@ export default function PipelineForetagActions({
       setLoading(null)
     }
   }
+
+  const canPromoteToProspect = hasCustomer && customerStage === "SCRAPED"
+  const canReturnToPipeline = hasCustomer && customerStage === "PROSPECT"
+  const canDiscoverWebsite =
+    hasCustomer && Boolean(bolagsfaktaUrl?.trim()) && !isRedlisted && !detailBusy
 
   const menuPortal =
     mounted &&
@@ -227,11 +314,38 @@ export default function PipelineForetagActions({
           <Button
             variant="ghost"
             className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto"
-            disabled={!hasCustomer || loading !== null}
-            onClick={() => void promote()}
+            disabled={!canDiscoverWebsite || loading !== null}
+            title={
+              detailBusy
+                ? "Vänta tills pågående detaljhämtning är klar"
+                : !bolagsfaktaUrl?.trim()
+                  ? "Saknar Bolagsfakta-URL"
+                  : undefined
+            }
+            onClick={() => void discoverWebsite()}
           >
-            {loading === "promote" ? "Sparar…" : "Ta vidare som prospekt"}
+            {loading === "discover" ? "Söker…" : "Sök webbplats (AI + Google)"}
           </Button>
+          {canPromoteToProspect ? (
+            <Button
+              variant="ghost"
+              className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto"
+              disabled={loading !== null}
+              onClick={() => void promote()}
+            >
+              {loading === "promote" ? "Sparar…" : "Ta vidare som prospekt"}
+            </Button>
+          ) : null}
+          {canReturnToPipeline ? (
+            <Button
+              variant="ghost"
+              className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto"
+              disabled={loading !== null}
+              onClick={() => void demoteToPipeline()}
+            >
+              {loading === "demote" ? "Uppdaterar…" : "Lägg tillbaka i pipeline"}
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto"

@@ -23,6 +23,7 @@ export function RedlistAddForm() {
   const [namn, setNamn] = useState("")
   const [orgNummer, setOrgNummer] = useState("")
   const [url, setUrl] = useState("")
+  const [nameContains, setNameContains] = useState("")
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -41,6 +42,7 @@ export function RedlistAddForm() {
           namn: trimmed,
           orgNummer: orgNummer.trim() || undefined,
           url: url.trim() || undefined,
+          nameContains: nameContains.trim() || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -53,12 +55,13 @@ export function RedlistAddForm() {
       if (data.ok && data.entry) {
         toast.success(
           data.duplicate
-            ? "Fanns redan i listan (samma org.nr eller URL)"
+            ? "Fanns redan i listan (samma värde)"
             : "Sparat",
         )
         setNamn("")
         setOrgNummer("")
         setUrl("")
+        setNameContains("")
         router.refresh()
       } else {
         toast.error("Oväntat svar från servern")
@@ -72,14 +75,17 @@ export function RedlistAddForm() {
 
   return (
     <form onSubmit={onSubmit} className="panel-surface p-6 space-y-4">
-      <h2 className="text-sm font-semibold text-gray-900">Lägg till företag</h2>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <h2 className="text-sm font-semibold text-gray-900">Lägg till företag eller regel</h2>
+      <p className="text-xs text-gray-500 -mt-2">
+        Fyll i minst ett av org.nr, URL eller &quot;Namn innehåller&quot; (skiftlägesokänslig match vid scraping).
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <FieldLabel required>Namn</FieldLabel>
+          <FieldLabel required>Namn / etikett</FieldLabel>
           <Input
             value={namn}
             onChange={(e) => setNamn(e.target.value)}
-            placeholder="Företagsnamn"
+            placeholder="Visas i listan"
             disabled={loading}
           />
         </div>
@@ -100,6 +106,15 @@ export function RedlistAddForm() {
             placeholder="https://www.bolagsfakta.se/..."
             disabled={loading}
             type="url"
+          />
+        </div>
+        <div>
+          <FieldLabel>Namn innehåller</FieldLabel>
+          <Input
+            value={nameContains}
+            onChange={(e) => setNameContains(e.target.value)}
+            placeholder="t.ex. ekonomi"
+            disabled={loading}
           />
         </div>
       </div>

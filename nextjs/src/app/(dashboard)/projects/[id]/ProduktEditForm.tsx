@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useConfirm } from '@/components/confirm/ConfirmProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -26,6 +27,7 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
 }
 
 export default function ProjektEditForm({ project }: Props) {
+  const confirm = useConfirm()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -54,7 +56,14 @@ export default function ProjektEditForm({ project }: Props) {
   }
 
   async function handleDelete() {
-    if (!confirm('Är du säker på att du vill ta bort projektet? Detta går inte att ångra.')) return
+    const ok = await confirm({
+      title: 'Ta bort projekt?',
+      description: 'Är du säker på att du vill ta bort projektet? Detta går inte att ångra.',
+      variant: 'danger',
+      confirmLabel: 'Ta bort',
+      cancelLabel: 'Avbryt',
+    })
+    if (!ok) return
 
     try {
       const res = await fetch(`/api/projects/${project.id}`, { method: 'DELETE' })
