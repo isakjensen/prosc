@@ -94,29 +94,41 @@ async function getJobStatus(jobId: string): Promise<{ ok: true; data: JobStatusP
   }
 }
 
+type PollFailureKind = "job_failed" | "status_error" | "timeout"
+
 async function pollJobUntilComplete(
   jobId: string,
   options: { timeoutMs: number; intervalMs: number },
 ): Promise<
   | { ok: true; returnvalue: JobStatusPayload["returnvalue"] }
-  | { ok: false; error: string; status: number }
+  | { ok: false; error: string; status: number; kind: PollFailureKind }
 > {
   const start = Date.now()
   while (Date.now() - start < options.timeoutMs) {
     const st = await getJobStatus(jobId)
     if (!st.ok) {
-      return { ok: false, error: st.error, status: 502 }
+      return { ok: false, error: st.error, status: 502, kind: "status_error" }
     }
     const { state, failedReason, returnvalue } = st.data
     if (state === "completed") {
       return { ok: true, returnvalue }
     }
     if (state === "failed") {
-      return { ok: false, error: failedReason ?? "Scraper-jobb misslyckades", status: 500 }
+      return {
+        ok: false,
+        error: failedReason ?? "Scraper-jobb misslyckades",
+        status: 500,
+        kind: "job_failed",
+      }
     }
     await new Promise((r) => setTimeout(r, options.intervalMs))
   }
-  return { ok: false, error: "Timeout: scraper-jobbet blev inte klart i tid", status: 504 }
+  return {
+    ok: false,
+    error: "Timeout: scraper-jobbet blev inte klart i tid",
+    status: 504,
+    kind: "timeout",
+  }
 }
 
 /** POST /api/pipelines/:id/scrape */
@@ -159,8 +171,14 @@ async function runQueuedDetailJobThenRespond(
   const done = await pollJobUntilComplete(jobId, pollOptions)
 
   if (!done.ok) {
+    const userError =
+      done.kind === "job_failed"
+        ? `Scrapern misslyckades: ${done.error}`
+        : done.kind === "timeout"
+          ? "Scrapern hann inte klart i tid — försök igen."
+          : SCRAPER_TROUBLE_MESSAGE
     return NextResponse.json(
-      { error: SCRAPER_TROUBLE_MESSAGE, detail: done.error, sessionId: jobId },
+      { error: userError, detail: done.error, sessionId: jobId },
       { status: done.status >= 500 ? 502 : done.status },
     )
   }
