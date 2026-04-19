@@ -3,7 +3,7 @@
 import { useState, type MouseEvent } from "react"
 import { useRouter } from "next/navigation"
 import { Trash2 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
 

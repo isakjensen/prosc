@@ -84,7 +84,7 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
       <div className="flex gap-4 mb-4 text-xs">
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-500" /> Möten</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-orange-500" /> Uppgifter</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-violet-500" /> Outreach</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-brand-brown" /> Outreach</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500" /> Fakturor</span>
       </div>
 

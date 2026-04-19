@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { PasswordInput } from '@/components/ui/password-input'
-import { DEFAULT_AVATAR_URL } from '@/lib/avatar'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -37,27 +36,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fafafa] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950 px-4">
       <div className="w-full max-w-sm">
         <div className="panel-surface overflow-hidden">
           {/* Brand header */}
-          <div className="border-b border-gray-100 px-6 py-5">
-            <div className="flex items-center gap-3">
-              <Image
-                src={DEFAULT_AVATAR_URL}
-                alt="BCRM"
-                width={36}
-                height={36}
-                className="h-9 w-9 shrink-0 rounded-md object-cover"
-                priority
-              />
-              <div>
-                <h1 className="text-sm font-bold text-gray-900 tracking-tight">
-                  BCRM
-                </h1>
-                <p className="text-xs text-gray-500">Logga in för att fortsätta</p>
-              </div>
-            </div>
+          <div className="border-b border-brand-gray dark:border-zinc-800 px-6 py-5">
+            <Image
+              src="/bitrate-crm-logo-transparent.png"
+              alt="Bitrate CRM"
+              width={220}
+              height={52}
+              className="h-10 w-auto max-w-full object-contain object-left dark:brightness-110 dark:contrast-95"
+              priority
+            />
+            <p className="mt-3 text-xs text-gray-500 dark:text-zinc-500">Logga in för att fortsätta</p>
           </div>
 
           <div className="p-6">

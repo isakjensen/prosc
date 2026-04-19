@@ -85,7 +85,7 @@ export default async function UppgifterPage() {
                         {task.project && (
                           <Link
                             href={`/projects/${task.project.id}`}
-                            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-cyan-50 text-cyan-700 rounded hover:bg-cyan-100 transition-colors dark:bg-cyan-950/30 dark:text-cyan-400"
+                            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-brand-green/12 text-brand-green rounded hover:bg-brand-green/20 transition-colors dark:bg-brand-green/20 dark:text-brand-beige"
                           >
                             {task.project.name}
                           </Link>

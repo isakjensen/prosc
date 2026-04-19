@@ -551,7 +551,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
                     <p className="text-xs text-gray-400">Inga öppna ärenden</p>
                   ) : openTickets.slice(0, 5).map((t) => (
                     <div key={t.id} className="flex items-center justify-between text-sm">
-                      <Link href={`/support/${t.id}`} className="text-gray-700 hover:text-blue-600 truncate">{t.title}</Link>
+                      <Link href={`/support/${t.id}`} className="text-gray-700 hover:text-brand-brown truncate">{t.title}</Link>
                       <Badge variant={t.priority === 'URGENT' ? 'danger' : t.priority === 'HIGH' ? 'warning' : 'gray'}>
                         {t.status}
                       </Badge>

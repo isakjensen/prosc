@@ -75,7 +75,7 @@ interface Props {
 
 function rowAccentClass(f: PipelineForetagRow, status?: BatchStatus) {
   if (status === "success") {
-    return "border-l-4 border-l-emerald-500 bg-emerald-50/60 hover:bg-emerald-50/80 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30"
+    return "border-l-4 border-l-brand-green bg-brand-green/10 hover:bg-brand-green/15 dark:bg-brand-green/15 dark:hover:bg-brand-green/20"
   }
   if (status === "error") {
     return "border-l-4 border-l-red-500 bg-red-50/60 hover:bg-red-50/80 dark:bg-red-950/20 dark:hover:bg-red-950/30"
@@ -87,7 +87,7 @@ function rowAccentClass(f: PipelineForetagRow, status?: BatchStatus) {
     return "border-l-4 border-l-red-600 bg-red-50/90 hover:bg-red-100/90 dark:bg-red-950/25 dark:hover:bg-red-950/40"
   }
   if (f.customerStage === "PROSPECT" || f.customerStage === "CUSTOMER") {
-    return "border-l-4 border-l-emerald-600 bg-emerald-50/90 hover:bg-emerald-100/90 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40"
+    return "border-l-4 border-l-brand-green bg-brand-green/15 hover:bg-brand-green/20 dark:bg-brand-green/20 dark:hover:bg-brand-green/25"
   }
   return "hover:bg-gray-50"
 }
@@ -121,7 +121,7 @@ function StatusIndicator({ status, error }: { status?: BatchStatus; error?: stri
     case "running":
       return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" aria-label="Hämtar..." />
     case "success":
-      return <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-label="Klar" />
+      return <CheckCircle2 className="h-4 w-4 text-brand-green" aria-label="Klar" />
     case "error":
       return (
         <span className="inline-flex items-center gap-1" title={error}>
@@ -157,7 +157,7 @@ function DetailScrapeStatusCell({
     return (
       <div className="flex justify-center">
         <span
-          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-violet-600"
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-brand-brown"
           title="Webbplats-sökning är köad"
         >
           <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -171,7 +171,7 @@ function DetailScrapeStatusCell({
     return (
       <div className="flex justify-center">
         <span
-          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-violet-700"
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-brand-brown"
           title="Söker företagets webbplats (Google + AI)"
         >
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
@@ -193,7 +193,7 @@ function DetailScrapeStatusCell({
   switch (s) {
     case "SUCCESS":
       Icon = CheckCircle2
-      textClass = "text-emerald-700"
+      textClass = "text-brand-green"
       break
     case "ERROR":
       Icon = AlertCircle
@@ -201,7 +201,7 @@ function DetailScrapeStatusCell({
       break
     case "RUNNING":
       Icon = Loader2
-      textClass = "text-blue-600"
+      textClass = "text-brand-brown"
       break
     case "QUEUED":
       Icon = Clock
@@ -315,13 +315,13 @@ export default function PipelineForetagTable({
           const rowStatus = siteStatuses?.get(f.id) ?? statuses?.get(f.id)
           const rowError = siteErrors?.get(f.id) ?? errors?.get(f.id)
           const nameClass = f.hasBolagsfakta
-            ? "font-medium text-emerald-700 hover:text-emerald-800 transition-colors inline-block max-w-full break-words"
+            ? "font-medium text-brand-green hover:opacity-90 transition-colors inline-block max-w-full break-words"
             : "font-medium text-gray-900 hover:text-zinc-600 transition-colors inline-block max-w-full break-words"
 
           const nameInner = (
             <span className="inline-flex flex-wrap items-center gap-1.5">
               {f.hasBolagsfakta && (
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-green" aria-hidden />
               )}
               <span>{f.namn}</span>
             </span>

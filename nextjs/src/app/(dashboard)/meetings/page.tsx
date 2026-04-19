@@ -64,7 +64,7 @@ export default async function MotenPage() {
               {meeting.project && (
                 <Link
                   href={`/projects/${meeting.project.id}`}
-                  className="inline-flex text-[10px] px-1.5 py-0.5 bg-cyan-50 text-cyan-700 rounded hover:bg-cyan-100 transition-colors"
+                  className="inline-flex text-[10px] px-1.5 py-0.5 bg-brand-green/12 text-brand-green rounded hover:bg-brand-green/20 transition-colors"
                 >
                   {meeting.project.name}
                 </Link>

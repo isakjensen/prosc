@@ -40,22 +40,22 @@ const kindMeta: Record<
   custom_note: {
     label: "Anteckning",
     icon: MessageSquare,
-    accent: "bg-violet-100 text-violet-800 ring-violet-200/80",
+    accent: "bg-brand-beige text-brand-brown ring-brand-brown/20",
   },
   meeting: {
     label: "Möte",
     icon: Users,
-    accent: "bg-sky-100 text-sky-800 ring-sky-200/80",
+    accent: "bg-brand-gray text-brand-green ring-brand-green/25",
   },
   quote: {
     label: "Offert",
     icon: FileText,
-    accent: "bg-amber-100 text-amber-900 ring-amber-200/80",
+    accent: "bg-brand-beige text-brand-brown ring-brand-brown/20",
   },
   bolagsfakta_scrape: {
     label: "Bolagsfakta",
     icon: Sparkles,
-    accent: "bg-emerald-100 text-emerald-900 ring-emerald-200/80",
+    accent: "bg-brand-green/15 text-brand-green ring-brand-green/30",
   },
   customer_record: {
     label: "Kundpost",
@@ -65,12 +65,12 @@ const kindMeta: Record<
   prospect_milestone: {
     label: "Prospekt",
     icon: TrendingUp,
-    accent: "bg-indigo-100 text-indigo-900 ring-indigo-200/80",
+    accent: "bg-brand-gray text-brand-brown ring-brand-brown/15",
   },
   activity: {
     label: "Aktivitet",
     icon: Calendar,
-    accent: "bg-orange-100 text-orange-900 ring-orange-200/80",
+    accent: "bg-brand-beige text-brand-brown ring-brand-brown/25",
   },
 }
 

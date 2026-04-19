@@ -44,7 +44,7 @@ export default function PipelineForetagPanelHeading({
         Företag (<span className="tabular-nums">{count}</span>)
       </span>
       {pipelineStatus === "RUNNING" ? (
-        <span className="inline-flex items-center gap-1.5 text-xs font-normal text-emerald-700">
+        <span className="inline-flex items-center gap-1.5 text-xs font-normal text-brand-green">
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
           Listskrapning…
         </span>

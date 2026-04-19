@@ -4,7 +4,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { DEFAULT_AVATAR_URL } from '@/lib/avatar'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
@@ -79,24 +78,22 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full flex-col bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800">
+    <div className="flex h-full flex-col bg-white dark:bg-zinc-900 border-r border-brand-gray dark:border-zinc-800">
       {/* Logo */}
-      <div className="flex h-14 shrink-0 items-center px-5 border-b border-gray-200 dark:border-zinc-800">
+      <div className="flex h-14 shrink-0 items-center px-5 border-b border-brand-gray dark:border-zinc-800">
         <Link
           href="/dashboard"
           onClick={onClose}
           className="flex items-center gap-2.5 min-w-0"
         >
           <Image
-            src={DEFAULT_AVATAR_URL}
-            alt="BCRM"
-            width={32}
-            height={32}
-            className="h-8 w-8 rounded-lg object-cover shrink-0"
+            src="/bitrate-crm-logo-transparent.png"
+            alt="Bitrate CRM"
+            width={168}
+            height={40}
+            className="h-8 w-auto max-w-[9.5rem] object-contain object-left shrink-0 dark:brightness-110 dark:contrast-95"
+            priority
           />
-          <span className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight truncate">
-            BCRM
-          </span>
         </Link>
       </div>
 
@@ -118,18 +115,18 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                     className={cn(
                       "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-normal transition-colors",
                       active
-                        ? "bg-gray-100 text-gray-900 dark:bg-zinc-800 dark:text-white font-medium"
-                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-zinc-500 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200",
+                        ? "bg-brand-beige text-brand-brown dark:bg-brand-brown/35 dark:text-brand-beige font-medium"
+                        : "text-gray-500 hover:bg-brand-gray/80 hover:text-brand-foreground dark:text-zinc-500 dark:hover:bg-zinc-800/60 dark:hover:text-brand-beige",
                     )}
                   >
                     {active && (
                       <motion.div
                         layoutId="sidebar-active"
-                        className="absolute inset-0 rounded-md bg-gray-100 dark:bg-zinc-800"
+                        className="absolute inset-0 rounded-md bg-brand-beige dark:bg-brand-brown/35"
                         transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                       />
                     )}
-                    <Icon className={cn('relative h-4 w-4 shrink-0', active ? 'text-gray-700 dark:text-zinc-300' : 'text-gray-400 dark:text-zinc-600')} />
+                    <Icon className={cn('relative h-4 w-4 shrink-0', active ? 'text-brand-brown dark:text-brand-beige' : 'text-gray-400 dark:text-zinc-600')} />
                     <span className="relative">{label}</span>
                   </Link>
                 )

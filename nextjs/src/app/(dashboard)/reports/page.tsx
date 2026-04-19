@@ -168,7 +168,12 @@ export default async function RapporterPage() {
               ticketStats.map((s) => {
                 const totalTickets = ticketStats.reduce((sum, x) => sum + x._count, 0)
                 const pct = totalTickets > 0 ? (s._count / totalTickets) * 100 : 0
-                const colors: Record<string, string> = { OPEN: 'bg-red-400', IN_PROGRESS: 'bg-[#93c5fd]', RESOLVED: 'bg-green-400', CLOSED: 'bg-gray-400' }
+                const colors: Record<string, string> = {
+                  OPEN: "bg-brand-brown",
+                  IN_PROGRESS: "bg-brand-green",
+                  RESOLVED: "bg-brand-green/70",
+                  CLOSED: "bg-brand-gray",
+                }
                 return (
                   <div key={s.status}>
                     <div className="flex justify-between text-xs mb-1.5">

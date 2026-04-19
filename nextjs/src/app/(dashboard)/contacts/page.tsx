@@ -1,6 +1,8 @@
+import { Fragment } from 'react'
 import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
+import { ContactsDeduplicateButton } from './ContactsDeduplicateButton'
 import { ContactsFilterSheet } from './ContactsFilterSheet'
 
 interface PageProps {
@@ -30,7 +32,7 @@ export default async function KontakterPage({ searchParams }: PageProps) {
         ],
       },
       include: { customer: { select: { id: true, name: true } } },
-      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      orderBy: [{ customer: { name: 'asc' } }, { firstName: 'asc' }, { lastName: 'asc' }],
     }),
     prisma.customer.findMany({
       select: { id: true, name: true },
@@ -62,6 +64,16 @@ export default async function KontakterPage({ searchParams }: PageProps) {
   if (hasEmail === '1') activeFilters.push({ label: 'Har e-post', removeUrl: buildUrl('hasEmail') })
   if (hasPhone === '1') activeFilters.push({ label: 'Har telefon', removeUrl: buildUrl('hasPhone') })
 
+  const contactsByCompany: { customer: (typeof contacts)[0]['customer']; rows: typeof contacts }[] = []
+  for (const c of contacts) {
+    const last = contactsByCompany[contactsByCompany.length - 1]
+    if (last && last.customer.id === c.customer.id) {
+      last.rows.push(c)
+    } else {
+      contactsByCompany.push({ customer: c.customer, rows: [c] })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="page-hero pb-5 flex items-start justify-between gap-4">
@@ -70,15 +82,18 @@ export default async function KontakterPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mt-0.5">Kontakter</h1>
           <p className="text-sm text-gray-500 mt-0.5">{contacts.length} kontakter totalt</p>
         </div>
-        <ContactsFilterSheet
-          companies={companies}
-          currentName={name}
-          currentEmail={email}
-          currentPhone={phone}
-          currentCustomerId={customerId}
-          currentHasEmail={hasEmail === '1'}
-          currentHasPhone={hasPhone === '1'}
-        />
+        <div className="flex items-center gap-2 shrink-0">
+          <ContactsDeduplicateButton />
+          <ContactsFilterSheet
+            companies={companies}
+            currentName={name}
+            currentEmail={email}
+            currentPhone={phone}
+            currentCustomerId={customerId}
+            currentHasEmail={hasEmail === '1'}
+            currentHasPhone={hasPhone === '1'}
+          />
+        </div>
       </div>
 
       {/* Aktiva filter-pills */}
@@ -119,29 +134,43 @@ export default async function KontakterPage({ searchParams }: PageProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {contacts.map((contact) => (
-                <tr key={contact.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <Link
-                      href={`/contacts/${contact.id}`}
-                      className="font-medium text-gray-900 hover:text-zinc-600 transition-colors"
-                    >
-                      {contact.firstName} {contact.lastName}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    <Link
-                      href={`/customers/${contact.customer.id}`}
-                      className="hover:underline text-gray-700"
-                    >
-                      {contact.customer.name}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">{contact.title ?? '–'}</td>
-                  <td className="px-6 py-4 text-gray-600">{contact.email ?? '–'}</td>
-                  <td className="px-6 py-4 text-gray-600">{contact.phone ?? '–'}</td>
-                  <td className="px-6 py-4 text-gray-500">{formatDate(contact.createdAt)}</td>
-                </tr>
+              {contactsByCompany.map(({ customer, rows }) => (
+                <Fragment key={customer.id}>
+                  <tr className="bg-zinc-100/80 dark:bg-zinc-800/60 border-y border-zinc-200/80 dark:border-zinc-700">
+                    <td colSpan={6} className="px-6 py-2.5">
+                      <Link
+                        href={`/customers/${customer.id}`}
+                        className="text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                      >
+                        {customer.name}
+                      </Link>
+                    </td>
+                  </tr>
+                  {rows.map((contact) => (
+                    <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <Link
+                          href={`/contacts/${contact.id}`}
+                          className="font-medium text-gray-900 dark:text-zinc-100 hover:text-zinc-600 transition-colors"
+                        >
+                          {contact.firstName} {contact.lastName}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-zinc-300">
+                        <Link
+                          href={`/customers/${contact.customer.id}`}
+                          className="hover:underline text-gray-700 dark:text-zinc-300"
+                        >
+                          {contact.customer.name}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-zinc-300">{contact.title ?? '–'}</td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-zinc-300">{contact.email ?? '–'}</td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-zinc-300">{contact.phone ?? '–'}</td>
+                      <td className="px-6 py-4 text-gray-500 dark:text-zinc-400">{formatDate(contact.createdAt)}</td>
+                    </tr>
+                  ))}
+                </Fragment>
               ))}
             </tbody>
           </table>

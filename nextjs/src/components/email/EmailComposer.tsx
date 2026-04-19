@@ -214,7 +214,7 @@ export default function EmailComposer({
           </label>
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-blue-600 hover:text-blue-700"
+            className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-brand-brown hover:opacity-90"
             onClick={() => setShowPreview(!showPreview)}
           >
             <Eye className="h-3 w-3" />
@@ -249,7 +249,7 @@ export default function EmailComposer({
       {/* Preview */}
       {showPreview && (
         <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-brand-brown">
             Förhandsgranskning
           </h4>
           <div className="space-y-1">
@@ -301,7 +301,7 @@ export default function EmailComposer({
             }`}
             onClick={() => handleSendModeChange("scheduled")}
           >
-            <Clock className={`h-4 w-4 ${sendMode === "scheduled" ? "text-blue-600" : "text-zinc-400"}`} />
+            <Clock className={`h-4 w-4 ${sendMode === "scheduled" ? "text-brand-brown" : "text-zinc-400"}`} />
             <div>
               <p className={`text-sm font-medium ${sendMode === "scheduled" ? "text-blue-900" : "text-zinc-700"}`}>
                 Schemalägg

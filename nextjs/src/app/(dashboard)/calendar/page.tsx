@@ -61,7 +61,7 @@ export default async function KalenderPage() {
       title: o.title,
       date: o.scheduledAt.toISOString(),
       type: 'outreach' as const,
-      color: 'bg-violet-500',
+      color: "bg-brand-brown",
       sub: o.customer?.name ?? undefined,
     })),
     ...invoices.map((i) => ({

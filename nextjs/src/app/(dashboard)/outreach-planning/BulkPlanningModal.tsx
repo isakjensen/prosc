@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { AVAILABLE_VARIABLES } from '@/lib/email-variables'
 
 type OutreachType = 'EMAIL' | 'PHONE' | 'SMS' | 'PHYSICAL'
@@ -257,7 +257,7 @@ export default function BulkPlanningModal({ isOpen, onClose, onCreated, prospect
               <button
                 type="button"
                 onClick={selectAll}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                className="text-xs text-brand-brown hover:opacity-90 font-medium"
               >
                 Markera alla
               </button>
@@ -304,8 +304,8 @@ export default function BulkPlanningModal({ isOpen, onClose, onCreated, prospect
                     <div className={cn(
                       'flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors',
                       isChecked
-                        ? 'bg-blue-600 border-blue-600'
-                        : 'border-zinc-300 bg-white',
+                        ? "bg-brand-brown border-brand-brown"
+                        : "border-zinc-300 bg-white",
                     )}>
                       {isChecked && <Check className="h-3 w-3 text-white" />}
                     </div>
@@ -520,7 +520,7 @@ export default function BulkPlanningModal({ isOpen, onClose, onCreated, prospect
                 {totalDistributed} prospekts fördelas över {distribution.length} dag{distribution.length !== 1 ? 'ar' : ''}
               </p>
               {overflow > 0 && (
-                <p className="text-xs text-amber-600 font-medium">
+                <p className="text-xs text-brand-brown font-medium">
                   {overflow} prospekts ryms inte i valt intervall. Utöka datumintervallet eller öka antalet per dag.
                 </p>
               )}

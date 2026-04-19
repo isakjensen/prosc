@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
 import { Loader2, Play, Square, RotateCcw, Globe } from "lucide-react"
@@ -448,6 +448,11 @@ export default function PipelineForetagBatchPanel({
     siteAbortRef.current = null
     router.refresh()
 
+    // Return to "normal" state after a run so user can re-run immediately.
+    // (We still show the toast summary for feedback.)
+    setSiteStatuses(new Map())
+    setSiteErrors(new Map())
+
     if (controller.signal.aborted) {
       toast.info(`Webbplats-sökning avbruten — ${succeeded} klara, ${failed} misslyckades`)
     } else if (failed === 0) {
@@ -772,7 +777,7 @@ export default function PipelineForetagBatchPanel({
                 Visar <span className="font-medium text-gray-700">{visibleRows.length}</span> av{" "}
                 <span className="font-medium text-gray-700 tabular-nums">{liveListTotal}</span>
                 {pipelineStatus === "RUNNING" ? (
-                  <span className="ml-1.5 inline-flex items-center gap-1 text-emerald-700">
+                  <span className="ml-1.5 inline-flex items-center gap-1 text-brand-green">
                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                     Uppdateras…
                   </span>
@@ -810,7 +815,7 @@ export default function PipelineForetagBatchPanel({
                   <span className="font-semibold">{totalBatch}</span>
                 </span>
                 {completedCount > 0 && (
-                  <span className="text-emerald-600 font-medium">{completedCount} klar</span>
+                  <span className="text-brand-green font-medium">{completedCount} klar</span>
                 )}
                 {failedCount > 0 && (
                   <span className="text-red-600 font-medium">{failedCount} fel</span>
@@ -818,13 +823,13 @@ export default function PipelineForetagBatchPanel({
               </>
             ) : siteBatchRunning ? (
               <>
-                <Loader2 className="h-4 w-4 text-violet-500 animate-spin shrink-0" />
+                <Loader2 className="h-4 w-4 text-brand-brown animate-spin shrink-0" />
                 <span className="text-gray-700">
                   Skannar webbplatser... <span className="font-semibold">{siteProcessedCount}</span> av{" "}
                   <span className="font-semibold">{siteTotalBatch}</span>
                 </span>
                 {siteCompletedCount > 0 && (
-                  <span className="text-emerald-600 font-medium">{siteCompletedCount} klar</span>
+                  <span className="text-brand-green font-medium">{siteCompletedCount} klar</span>
                 )}
                 {siteFailedCount > 0 && (
                   <span className="text-red-600 font-medium">{siteFailedCount} fel</span>
@@ -833,7 +838,7 @@ export default function PipelineForetagBatchPanel({
             ) : statuses.size > 0 ? (
               <span className="text-gray-700">
                 Bolagsdata klar:{" "}
-                <span className="font-semibold text-emerald-600">{completedCount} lyckades</span>
+                <span className="font-semibold text-brand-green">{completedCount} lyckades</span>
                 {failedCount > 0 && (
                   <>
                     , <span className="font-semibold text-red-600">{failedCount} misslyckades</span>
@@ -843,7 +848,7 @@ export default function PipelineForetagBatchPanel({
             ) : siteStatuses.size > 0 ? (
               <span className="text-gray-700">
                 Webbplats-sökning klar:{" "}
-                <span className="font-semibold text-emerald-600">{siteCompletedCount} lyckades</span>
+                <span className="font-semibold text-brand-green">{siteCompletedCount} lyckades</span>
                 {siteFailedCount > 0 && (
                   <>
                     , <span className="font-semibold text-red-600">{siteFailedCount} misslyckades</span>
@@ -898,7 +903,7 @@ export default function PipelineForetagBatchPanel({
                 Avbryt
               </Button>
             ) : siteBatchRunning ? (
-              <Button variant="destructive" size="sm" onClick={handleAbortWebsite}>
+              <Button variant="outline" size="sm" onClick={handleAbortWebsite}>
                 <Square className="h-3.5 w-3.5" />
                 Avbryt
               </Button>

@@ -17,8 +17,8 @@ import {
 export type { CompanyEnrichmentFromAI, WebsiteDiscoveryResult } from './website-discovery-types.js'
 
 const SCRAPING_API_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-/** Fast loggfil under paketroten: `scraping-api/logs/` (gitignored). */
-const DISCOVERY_PROMPT_LOG_FILE = join(SCRAPING_API_ROOT, 'logs', 'google-discovery-prompts.log')
+/** Prompt + AI-svar under paketroten: `scraping-api/logs/` (gitignored). */
+const DISCOVERY_PROMPT_LOG_FILE = join(SCRAPING_API_ROOT, "logs", "google-discovery-prompts.log")
 
 /** Minimalt underlag för söksträng. */
 export type DiscoveryFlatInput = {
@@ -210,6 +210,7 @@ export function stripNoiseFromSerpText(raw: string): string {
   return s.replace(/\s+/g, " ").trim()
 }
 
+/** Business directories / registries — never use as the company website; omit from AI prompt. */
 function isDirectoryListingHost(hostname: string): boolean {
   const h = hostname.replace(/^www\./i, "").toLowerCase()
   const blocked = [
@@ -225,6 +226,59 @@ function isDirectoryListingHost(hostname: string): boolean {
     "kreditrapporten.se",
   ]
   return blocked.some((b) => h === b || h.endsWith(`.${b}`))
+}
+
+const SERP_BLOCK_SEPARATOR = "\n\n---\n\n"
+
+/**
+ * Removes whole Google result blocks whose primary URL points at a directory/registry host.
+ * Call before stripNoiseFromSerpText so "---" separators are still present.
+ */
+function filterDirectoryListingBlocksFromSerp(serp: string): string {
+  const t = serp.trim()
+  if (!t) return serp
+  if (!t.includes(SERP_BLOCK_SEPARATOR)) {
+    return filterDirectoryListingUrlsInUnstructuredSerp(t)
+  }
+  const blocks = t.split(SERP_BLOCK_SEPARATOR)
+  const kept: string[] = []
+  for (const block of blocks) {
+    const m = block.match(/\bURL:\s*(https?:\/\/[^\s›"'<>[\]()]+)/i)
+    if (!m) {
+      kept.push(block)
+      continue
+    }
+    try {
+      const u = new URL(m[1].replace(/[›.,;)\]}]+$/, ""))
+      if (isDirectoryListingHost(u.hostname)) continue
+    } catch {
+      kept.push(block)
+      continue
+    }
+    kept.push(block)
+  }
+  return kept.join(SERP_BLOCK_SEPARATOR)
+}
+
+/** Fallback when SERP has no "---" blocks (e.g. innerText): strip blocked URLs and drop lines that become empty noise. */
+function filterDirectoryListingUrlsInUnstructuredSerp(text: string): string {
+  const withoutBadUrls = text.replace(/https?:\/\/[^\s›"'<>[\]()]+/gi, (raw) => {
+    try {
+      const u = new URL(raw.replace(/[›.,;)\]}]+$/, ""))
+      return isDirectoryListingHost(u.hostname) ? "" : raw
+    } catch {
+      return raw
+    }
+  })
+  const lines = withoutBadUrls.split(/\r?\n/)
+  const kept: string[] = []
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    if (/^URL:\s*$/i.test(trimmed)) continue
+    kept.push(line)
+  }
+  return kept.join("\n").trim()
 }
 
 function sanitizeWebsiteFromModel(raw: string): string {
@@ -268,12 +322,14 @@ function buildCompanyContextForDiscovery(
 function buildDedupedUrlListFromSerp(serp: string): string {
   const seen = new Set<string>()
   const lines: string[] = []
-  for (const line of serp.split(/\n/)) {
-    const m = line.match(/^URL:\s*(https?:\/\/\S+)/i)
-    if (!m) continue
+  // Match anywhere — stripNoiseFromSerpText collapses newlines so URL: may not be at line start.
+  const re = /\bURL:\s*(https?:\/\/[^\s›"'<>[\]()]+)/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(serp)) !== null) {
     const href = m[1].replace(/[›.,;)\]}]+$/, "")
     try {
       const u = new URL(href)
+      if (isDirectoryListingHost(u.hostname)) continue
       const key = `${u.hostname.toLowerCase()}${u.pathname}`
       if (seen.has(key)) continue
       seen.add(key)
@@ -293,9 +349,9 @@ function buildDiscoveryJsonPrompt(args: {
   urlList: string
   trimmedSerp: string
 }): string {
-  return `Task: From the Google results below, choose the ONE URL that is most likely this company's own public website (their domain). If there is no good match, use an empty string for "website".
+  return `Task: From the Google results below, pick the ONE URL that is this company's own official public website (the site they operate for customers: product/service, contact, or brand). If none of the remaining results fit, use an empty string for "website".
 
-Ignore directory and registry sites (never pick these as the company site): hitta.se, eniro.se, allabolag.se, bolagsfakta.se, ratsit.se, merinfo.se, proff.se, syna.se, uc.se, and similar.
+Directory, phonebook, and business-registry pages (hitta.se, allabolag.se, bolagsfakta.se, etc.) have already been removed from the list below. Prefer the real company domain (often matches company name or brand); avoid Facebook/LinkedIn unless it is clearly the only web presence.
 
 Company (background):
 ${args.companyContext}
@@ -303,10 +359,10 @@ ${args.companyContext}
 Search: ${args.searchQuery}
 Approx. location: ${args.city ?? "?"}, ${args.country ?? "?"}
 
-Candidate URLs (deduplicated):
+Candidate URLs (deduplicated, directories excluded):
 ${args.urlList}
 
-Full lines (TITLE / URL / CITE / SNIPPET per result):
+Result details (TITLE / URL / CITE / SNIPPET — same filtering as above):
 ${args.trimmedSerp}
 
 Also set email and phone only if they clearly appear for this company in the text above; otherwise "".
@@ -359,7 +415,7 @@ async function appendDiscoveryPromptToLogFile(
   const block = [
     "",
     "=".repeat(80),
-    `[${iso}] google_discovery_prompt → cursor -p`,
+    `[${iso}] google_discovery_prompt → agent -p`,
     `searchQuery: ${args.searchQuery}`,
     "=".repeat(80),
     args.prompt,
@@ -377,6 +433,91 @@ async function appendDiscoveryPromptToLogFile(
   }
 }
 
+/** Appendar AI-svar (rå stdout, parsad JSON, normaliserad enrichment) till samma loggfil. */
+async function appendDiscoveryAiResponseToLogFile(
+  logPath: string,
+  args: {
+    searchQuery: string
+    ok: boolean
+    raw?: string
+    parsed?: unknown
+    enrichment?: CompanyEnrichmentFromAI | null
+    aiError?: string | null
+  },
+  logger?: BolagsfaktaDebugLogger,
+): Promise<void> {
+  const iso = new Date().toISOString()
+  const lines: string[] = [
+    "",
+    "=".repeat(80),
+    `[${iso}] google_discovery_ai_response`,
+    `searchQuery: ${args.searchQuery}`,
+    `status: ${args.ok ? "ok" : "error"}`,
+    "=".repeat(80),
+  ]
+  if (args.ok) {
+    lines.push("--- raw stdout ---")
+    lines.push(args.raw ?? "")
+    lines.push("--- parsed JSON ---")
+    lines.push(JSON.stringify(args.parsed ?? null, null, 2))
+    lines.push("--- normalized enrichment (website/email/phone/confidence/notes) ---")
+    lines.push(JSON.stringify(args.enrichment ?? null, null, 2))
+  } else {
+    lines.push(args.aiError ?? "(unknown error)")
+  }
+  lines.push("=".repeat(80), "")
+  const block = lines.join("\n")
+
+  try {
+    await mkdir(dirname(logPath), { recursive: true })
+    await appendFile(logPath, block, "utf8")
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    console.warn("[bolagsfakta-google-discovery] Kunde inte skriva AI-svarslogg:", message)
+    await logger?.error("google_discovery_ai_response_log_failed", { path: logPath, message })
+  }
+}
+
+/** Appendar en tydlig skip-block (t.ex. inga kandidat-URLer) till samma loggfil. */
+async function appendDiscoverySkipToLogFile(
+  logPath: string,
+  args: {
+    searchQuery: string
+    reason: string
+    googleError?: string | null
+    urlList?: string
+    trimmedSerp?: string
+  },
+  logger?: BolagsfaktaDebugLogger,
+): Promise<void> {
+  const iso = new Date().toISOString()
+  const block = [
+    "",
+    "=".repeat(80),
+    `[${iso}] google_discovery_skip`,
+    `searchQuery: ${args.searchQuery}`,
+    `reason: ${args.reason}`,
+    `googleError: ${args.googleError ?? ""}`,
+    "=".repeat(80),
+    "Candidate URLs:",
+    args.urlList ?? "(none)",
+    "",
+    "SERP text (trimmed):",
+    args.trimmedSerp ?? "",
+    "=".repeat(80),
+    "",
+  ].join("\n")
+
+  try {
+    await mkdir(dirname(logPath), { recursive: true })
+    await appendFile(logPath, block, "utf8")
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    console.warn("[bolagsfakta-google-discovery] Kunde inte skriva skip-logg:", message)
+    await logger?.error("google_discovery_skip_log_failed", { path: logPath, message })
+  }
+}
+
 /**
  * Google-sök, brusfilter, sedan Cursor CLI med JSON-svar.
  * Kastar inte — returnerar status.
@@ -390,6 +531,11 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
     const searchQuery = buildSearchQuery(display, flat)
     if (!searchQuery || searchQuery.length < 6) {
       await logger?.info("google_discovery_skip", { reason: "tom eller för kort sökfråga" })
+      await appendDiscoverySkipToLogFile(
+        DISCOVERY_PROMPT_LOG_FILE,
+        { searchQuery, reason: "tom eller för kort sökfråga" },
+        logger,
+      )
       return {
         skipped: true,
         skipReason: "För lite data för Google-sök (saknar firmanamn/adress/orgnr eller för kort sträng).",
@@ -410,6 +556,7 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
     })
 
     let trimmedSerp = ""
+    let serpForUrlList = ""
     let googleError: string | null = null
     const searchUrl = `https://www.google.com/search?hl=sv&gl=se&num=12&q=${encodeURIComponent(searchQuery)}`
 
@@ -432,9 +579,10 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
         }
       }
 
-      trimmedSerp = await extractOrganicSerpFromPage(page)
-      if (trimmedSerp.length < 80) {
-        trimmedSerp =
+      const extracted = await extractOrganicSerpFromPage(page)
+      let serpRaw = extracted
+      if (serpRaw.length < 80) {
+        serpRaw =
           (await page.evaluate(
             `(() => {
   const el = document.querySelector("#rso") || document.querySelector("#center_col");
@@ -443,8 +591,16 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
           )) ?? ""
       }
 
-      trimmedSerp = stripNoiseFromSerpText(trimmedSerp)
+      serpRaw = filterDirectoryListingBlocksFromSerp(serpRaw)
+      serpForUrlList = serpRaw
+
+      trimmedSerp = stripNoiseFromSerpText(serpRaw)
       trimmedSerp = trimSerpText(trimmedSerp, 12_000)
+
+      if (trimmedSerp.length < 40) {
+        googleError = "No organic results extracted from Google (empty SERP text)."
+        trimmedSerp = "(No organic results extracted from Google.)"
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       googleError = message
@@ -456,7 +612,35 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
     }
 
     const companyContext = buildCompanyContextForDiscovery(display, flat)
-    const urlList = buildDedupedUrlListFromSerp(trimmedSerp)
+    const urlList = buildDedupedUrlListFromSerp(serpForUrlList || trimmedSerp)
+
+    if (urlList === "(none)") {
+      await logger?.info("google_discovery_skip", {
+        reason: "inga kandidat-URLer efter filtrering eller tom SERP",
+        searchQuery,
+        googleError,
+      })
+      await appendDiscoverySkipToLogFile(
+        DISCOVERY_PROMPT_LOG_FILE,
+        {
+          searchQuery,
+          reason: "inga kandidat-URLer efter filtrering eller tom SERP",
+          googleError,
+          urlList,
+          trimmedSerp,
+        },
+        logger,
+      )
+      return {
+        skipped: true,
+        skipReason:
+          "Inga kandidat-URLer hittades i Google-resultaten (efter filtrering) — hoppar över AI-anrop.",
+        googleError,
+        aiError: null,
+        enrichment: null,
+      }
+    }
+
     const prompt = buildDiscoveryJsonPrompt({
       companyContext,
       searchQuery,
@@ -493,12 +677,29 @@ export async function logGoogleDiscoveryWebsiteSearchHint(
       console.log(JSON.stringify(enrichment ?? parsed, null, 2))
       console.log("\n========== END CURSOR CLI ==========\n")
 
+      await appendDiscoveryAiResponseToLogFile(
+        DISCOVERY_PROMPT_LOG_FILE,
+        {
+          searchQuery,
+          ok: true,
+          raw,
+          parsed,
+          enrichment,
+        },
+        logger,
+      )
+
       await logger?.info("google_discovery_ai_ok", {
         enrichment: enrichment ?? parsed,
       })
     } catch (cursorErr) {
       aiError = cursorErr instanceof Error ? cursorErr.message : String(cursorErr)
       console.error("[bolagsfakta-google-discovery] Cursor CLI failed:", aiError)
+      await appendDiscoveryAiResponseToLogFile(
+        DISCOVERY_PROMPT_LOG_FILE,
+        { searchQuery, ok: false, aiError },
+        logger,
+      )
       await logger?.error("google_discovery_ai_failed", { message: aiError })
     }
 

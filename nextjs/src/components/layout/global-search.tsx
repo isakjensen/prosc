@@ -13,13 +13,13 @@ interface SearchResult {
 }
 
 const typeConfig: Record<string, { label: string; icon: typeof Building2; color: string }> = {
-  customer: { label: 'Kund', icon: Building2, color: 'text-blue-600' },
-  contact: { label: 'Kontakt', icon: UserCircle2, color: 'text-violet-600' },
-  quote: { label: 'Offert', icon: FileText, color: 'text-amber-600' },
-  invoice: { label: 'Faktura', icon: Banknote, color: 'text-green-600' },
-  project: { label: 'Projekt', icon: Box, color: 'text-cyan-600' },
-  task: { label: 'Uppgift', icon: CheckSquare, color: 'text-orange-600' },
-  ticket: { label: 'Support', icon: LifeBuoy, color: 'text-rose-600' },
+  customer: { label: 'Kund', icon: Building2, color: 'text-brand-green' },
+  contact: { label: 'Kontakt', icon: UserCircle2, color: 'text-brand-brown' },
+  quote: { label: 'Offert', icon: FileText, color: 'text-brand-brown' },
+  invoice: { label: 'Faktura', icon: Banknote, color: 'text-brand-green' },
+  project: { label: 'Projekt', icon: Box, color: 'text-brand-foreground' },
+  task: { label: 'Uppgift', icon: CheckSquare, color: 'text-brand-green' },
+  ticket: { label: 'Support', icon: LifeBuoy, color: 'text-brand-brown' },
 }
 
 export function GlobalSearch() {

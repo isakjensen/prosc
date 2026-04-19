@@ -108,7 +108,7 @@ export default async function PipelineDetailPage({ params }: PageProps) {
                 <h1 className="text-2xl font-bold text-gray-900">{pipeline.namn}</h1>
                 <div className="flex items-center gap-2">
                   {pipeline.status === 'RUNNING' && (
-                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-green animate-pulse" />
                   )}
                   <Badge variant={statusVariant[pipeline.status] ?? 'gray'}>
                     {statusLabel[pipeline.status] ?? pipeline.status}

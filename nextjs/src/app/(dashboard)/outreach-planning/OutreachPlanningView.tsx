@@ -31,7 +31,7 @@ import { Modal, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { PageHeader } from '@/components/ui/page-header'
 import { FilterDrawer } from '@/components/ui/filter-drawer'
 import { cn, formatDate } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import BulkPlanningModal from './BulkPlanningModal'
 import EmailComposer from '@/components/email/EmailComposer'
 import EmailStatusBadge from '@/components/email/EmailStatusBadge'
@@ -117,16 +117,16 @@ const typeIcons: Record<OutreachType, typeof Mail> = {
 
 const typeAccents: Record<OutreachType, string> = {
   EMAIL: 'bg-blue-100 text-blue-800 ring-blue-200/80',
-  PHONE: 'bg-amber-100 text-amber-800 ring-amber-200/80',
-  SMS: 'bg-violet-100 text-violet-800 ring-violet-200/80',
-  PHYSICAL: 'bg-emerald-100 text-emerald-800 ring-emerald-200/80',
+  PHONE: "bg-brand-beige text-brand-brown ring-brand-brown/20",
+  SMS: "bg-brand-gray text-brand-brown ring-brand-brown/15",
+  PHYSICAL: "bg-brand-green/15 text-brand-green ring-brand-green/30",
 }
 
 const typeFilterColors: Record<OutreachType, { active: string; inactive: string }> = {
   EMAIL: { active: 'bg-blue-100 text-blue-800 border-blue-300', inactive: 'bg-white text-zinc-500 border-zinc-200 hover:border-blue-200 hover:text-blue-700' },
-  PHONE: { active: 'bg-amber-100 text-amber-800 border-amber-300', inactive: 'bg-white text-zinc-500 border-zinc-200 hover:border-amber-200 hover:text-amber-700' },
-  SMS: { active: 'bg-violet-100 text-violet-800 border-violet-300', inactive: 'bg-white text-zinc-500 border-zinc-200 hover:border-violet-200 hover:text-violet-700' },
-  PHYSICAL: { active: 'bg-emerald-100 text-emerald-800 border-emerald-300', inactive: 'bg-white text-zinc-500 border-zinc-200 hover:border-emerald-200 hover:text-emerald-700' },
+  PHONE: { active: "bg-brand-beige text-brand-brown border-brand-brown/35", inactive: "bg-white text-zinc-500 border-zinc-200 hover:border-brand-brown/25 hover:text-brand-brown" },
+  SMS: { active: "bg-brand-gray text-brand-brown border-brand-brown/25", inactive: "bg-white text-zinc-500 border-zinc-200 hover:border-brand-brown/20 hover:text-brand-brown" },
+  PHYSICAL: { active: "bg-brand-green/15 text-brand-green border-brand-green/40", inactive: "bg-white text-zinc-500 border-zinc-200 hover:border-brand-green/30 hover:text-brand-green" },
 }
 
 function formatDayHeader(dateStr: string): string {
@@ -523,8 +523,8 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                   filters.status === 'COMPLETED'
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-emerald-200 hover:text-emerald-700',
+                    ? "bg-brand-green/15 text-brand-green border-brand-green/40"
+                    : "bg-white text-zinc-500 border-zinc-200 hover:border-brand-green/30 hover:text-brand-green",
                 )}
               >
                 Genomförda
@@ -667,7 +667,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                             className={cn(
                               'group transition-colors',
                               isPast
-                                ? 'bg-amber-50/40 hover:bg-amber-50/60'
+                                ? "bg-brand-beige/50 hover:bg-brand-beige/70"
                                 : 'hover:bg-zinc-50/60',
                               item.status === 'COMPLETED' && 'opacity-60',
                             )}
@@ -726,7 +726,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    className="h-8 w-8 p-0 text-brand-brown hover:opacity-90 hover:bg-brand-gray/80"
                                     onClick={() => handleSendEmail(item.id)}
                                     disabled={sendingId === item.id}
                                     title="Skicka e-post"
@@ -760,7 +760,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                   {togglingId === item.id ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                   ) : (
-                                    <CheckCircle2 className={cn('h-3.5 w-3.5', item.status === 'COMPLETED' ? 'text-zinc-400' : 'text-emerald-600')} />
+                                    <CheckCircle2 className={cn('h-3.5 w-3.5', item.status === "COMPLETED" ? "text-zinc-400" : "text-brand-green")} />
                                   )}
                                 </Button>
                                 <Button
@@ -812,7 +812,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                         key={item.id}
                         className={cn(
                           'panel-surface p-4 flex items-start gap-3',
-                          isPast && 'border-amber-200 bg-amber-50/30',
+                          isPast && "border-brand-brown/25 bg-brand-beige/35",
                           item.status === 'COMPLETED' && 'opacity-60',
                         )}
                       >
@@ -861,7 +861,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  className="h-8 w-8 p-0 text-brand-brown hover:opacity-90 hover:bg-brand-gray/80"
                                   onClick={() => handleSendEmail(item.id)}
                                   disabled={sendingId === item.id}
                                   title="Skicka e-post"
@@ -884,7 +884,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                                 {togglingId === item.id ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
-                                  <CheckCircle2 className={cn('h-3.5 w-3.5', item.status === 'COMPLETED' ? 'text-zinc-400' : 'text-emerald-600')} />
+                                  <CheckCircle2 className={cn('h-3.5 w-3.5', item.status === "COMPLETED" ? "text-zinc-400" : "text-brand-green")} />
                                 )}
                               </Button>
                               <Button
@@ -1270,7 +1270,7 @@ export default function OutreachPlanningView({ outreaches, prospects, filters }:
                   variant="outline"
                   onClick={() => handleSendEmail(detailItem.id)}
                   disabled={sendingId === detailItem.id}
-                  className="gap-2 rounded-lg text-blue-600 border-blue-200 hover:bg-blue-50"
+                  className="gap-2 rounded-lg text-brand-brown border-brand-brown/25 hover:bg-brand-gray/80"
                 >
                   {sendingId === detailItem.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

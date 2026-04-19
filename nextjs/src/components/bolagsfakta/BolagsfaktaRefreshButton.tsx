@@ -5,7 +5,7 @@ import { showWebsiteDiscoveryToasts } from "@/components/bolagsfakta/showWebsite
 import type { WebsiteDiscoveryResult } from "@/lib/website-discovery-types"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import { ExternalLink, RefreshCw } from "lucide-react"
 
 export type BolagsfaktaSummaryStat = { label: string; value: number }
@@ -38,9 +38,9 @@ function RefreshAlert({
   const box =
     variant === "error"
       ? "border-red-200 bg-red-50 text-red-950"
-      : "border-emerald-200 bg-emerald-50 text-emerald-950"
-  const titleCls = variant === "error" ? "text-red-900" : "text-emerald-900"
-  const bodyCls = variant === "error" ? "text-red-800" : "text-emerald-800"
+      : "border-brand-green/35 bg-brand-green/10 text-brand-foreground"
+  const titleCls = variant === "error" ? "text-red-900" : "text-brand-green"
+  const bodyCls = variant === "error" ? "text-red-800" : "text-brand-foreground/90"
 
   return (
     <div

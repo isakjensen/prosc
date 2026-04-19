@@ -23,7 +23,7 @@ import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { cn, formatDate } from "@/lib/utils"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import EmailComposer from "@/components/email/EmailComposer"
 import EmailStatusBadge from "@/components/email/EmailStatusBadge"
 import type { VariableData } from "@/lib/email-variables"
@@ -63,9 +63,9 @@ const typeIcons: Record<OutreachType, typeof Mail> = {
 
 const typeAccents: Record<OutreachType, string> = {
   EMAIL: "bg-blue-100 text-blue-800 ring-blue-200/80",
-  PHONE: "bg-amber-100 text-amber-800 ring-amber-200/80",
-  SMS: "bg-violet-100 text-violet-800 ring-violet-200/80",
-  PHYSICAL: "bg-emerald-100 text-emerald-800 ring-emerald-200/80",
+  PHONE: "bg-brand-beige text-brand-brown ring-brand-brown/20",
+  SMS: "bg-brand-gray text-brand-brown ring-brand-brown/15",
+  PHYSICAL: "bg-brand-green/15 text-brand-green ring-brand-green/30",
 }
 
 function toDateValue(d: Date) {
@@ -571,7 +571,7 @@ export default function KundOutreachTab({
                       className={cn(
                         "group flex items-start gap-4 rounded-xl border p-4 transition-colors hover:bg-zinc-50/50",
                         isPast
-                          ? "border-amber-200 bg-amber-50/30"
+                          ? "border-brand-brown/25 bg-brand-beige/40"
                           : "border-zinc-200 bg-white",
                       )}
                     >
@@ -594,7 +594,7 @@ export default function KundOutreachTab({
                                 {formatDate(item.scheduledAt)}
                               </time>
                               {isPast && (
-                                <span className="text-[10px] font-semibold uppercase text-amber-600">
+                                <span className="text-[10px] font-semibold uppercase text-brand-brown">
                                   Försenad
                                 </span>
                               )}
@@ -623,7 +623,7 @@ export default function KundOutreachTab({
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 px-2 gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                className="h-8 px-2 gap-1 text-brand-brown hover:opacity-90 hover:bg-brand-gray/80"
                                 onClick={() => handleSendEmail(item.id)}
                                 disabled={sending === item.id}
                                 title="Skicka e-post"
@@ -882,7 +882,7 @@ export default function KundOutreachTab({
                   variant="outline"
                   onClick={() => handleSendEmail(detailItem.id)}
                   disabled={sending === detailItem.id}
-                  className="gap-2 rounded-lg text-blue-600 border-blue-200 hover:bg-blue-50"
+                  className="gap-2 rounded-lg text-brand-brown border-brand-brown/25 hover:bg-brand-gray/80"
                 >
                   {sending === detailItem.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

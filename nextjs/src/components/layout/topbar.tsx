@@ -31,7 +31,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const showBack = !ROOT_PATHS.includes(pathname)
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 lg:px-6">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-brand-gray dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 lg:px-6">
       <div className="flex items-center gap-1 lg:hidden">
         <button
           onClick={onMenuClick}

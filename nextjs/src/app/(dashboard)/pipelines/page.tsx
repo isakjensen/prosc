@@ -115,7 +115,7 @@ export default async function PipelinesPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {pipeline.status === 'RUNNING' && (
-                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="inline-block h-2 w-2 rounded-full bg-brand-green animate-pulse" />
                       )}
                       <Badge variant={statusVariant[pipeline.status] ?? 'gray'}>
                         {statusLabel[pipeline.status] ?? pipeline.status}

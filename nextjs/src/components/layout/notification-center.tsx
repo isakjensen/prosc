@@ -101,7 +101,7 @@ export function NotificationCenter() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                className="text-xs text-brand-brown hover:opacity-90 dark:text-brand-beige"
               >
                 Markera alla som lästa
               </button>

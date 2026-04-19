@@ -9,7 +9,7 @@ const PasswordInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInput
     const [show, setShow] = useState(false)
 
     return (
-      <div className="flex h-10 w-full items-center rounded-md border border-gray-200 bg-gray-50/50 hover:bg-gray-50 focus-within:bg-white focus-within:border-zinc-500 focus-within:ring-2 focus-within:ring-zinc-500/20 transition-all dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 dark:focus-within:bg-zinc-900 dark:focus-within:border-zinc-500">
+      <div className="flex h-10 w-full items-center rounded-md border border-gray-200 bg-gray-50/50 hover:bg-gray-50 focus-within:bg-white focus-within:border-brand-brown focus-within:ring-2 focus-within:ring-brand-brown/20 transition-all dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 dark:focus-within:bg-zinc-900 dark:focus-within:border-brand-beige dark:focus-within:ring-brand-beige/25">
         <input
           ref={ref}
           type={show ? 'text' : 'password'}

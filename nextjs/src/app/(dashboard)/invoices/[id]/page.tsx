@@ -89,7 +89,7 @@ export default async function FakturaDetailPage({ params }: PageProps) {
             {invoice.quote && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Kopplad offert</span>
-                <Link href={`/quotes/${invoice.quote.id}`} className="text-blue-600 hover:text-blue-800 font-medium">
+                <Link href={`/quotes/${invoice.quote.id}`} className="text-brand-brown hover:opacity-90 font-medium">
                   {invoice.quote.number}
                 </Link>
               </div>

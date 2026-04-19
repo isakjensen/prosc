@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import Link from 'next/link'
 import { ChevronRight, Trash2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'

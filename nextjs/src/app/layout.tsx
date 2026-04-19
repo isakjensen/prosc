@@ -19,20 +19,33 @@ const ubuntuMono = Ubuntu_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "BCRM",
-  description: "BCRM – Affärssystem",
+  title: "Bitrate CRM",
+  description: "Bitrate CRM – affärssystem",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/bitrate-crm-favicon.png", type: "image/png", sizes: "32x32" },
+      { url: "/bitrate-crm-favicon.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/bitrate-crm-favicon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: "/bitrate-crm-favicon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "BCRM",
+    title: "Bitrate CRM",
   },
 }
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#593c34" },
+  ],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

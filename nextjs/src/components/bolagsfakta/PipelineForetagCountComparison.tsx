@@ -80,7 +80,7 @@ export function PipelineForetagCountComparison({
           <span className="text-gray-500 font-normal">Scrapeade: </span>
           {scrapedCount.toLocaleString('sv-SE')}
           {match ? (
-            <span className="text-emerald-600 ml-1.5 font-medium">Stämmer</span>
+            <span className="text-brand-green ml-1.5 font-medium">Stämmer</span>
           ) : (
             <span className="ml-1.5">Avviker</span>
           )}
@@ -104,7 +104,7 @@ export function PipelineForetagCountComparison({
     <div
       className={`w-full rounded-lg border px-4 py-3 text-sm sm:px-5 sm:py-4 ${
         match
-          ? "border-emerald-200 bg-emerald-50/80 text-gray-800"
+          ? "border-brand-green/35 bg-brand-green/10 text-gray-800"
           : "border-red-200 bg-red-50 text-red-900"
       }`}
     >
@@ -121,7 +121,7 @@ export function PipelineForetagCountComparison({
         </div>
         <div className="min-w-0 flex-1 space-y-2 md:border-l md:border-current/10 md:pl-6 lg:pl-10">
           <p
-            className={`text-xs leading-relaxed ${match ? "text-emerald-800" : "text-red-800 font-medium"}`}
+            className={`text-xs leading-relaxed ${match ? "text-brand-green" : "text-red-800 font-medium"}`}
           >
             {match
               ? "Antalen stämmer överens."

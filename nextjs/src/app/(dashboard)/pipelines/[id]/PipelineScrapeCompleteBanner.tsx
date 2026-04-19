@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 /**
  * Visas när listskrapningen går från RUNNING till COMPLETED (upptäcks via router.refresh-pollning).
@@ -31,10 +31,10 @@ export default function PipelineScrapeCompleteBanner({
     <div
       role="status"
       aria-live="polite"
-      className="w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 sm:px-5 sm:py-4"
+      className="w-full rounded-lg border border-brand-green/35 bg-brand-green/10 px-4 py-3 text-sm text-brand-foreground sm:px-5 sm:py-4 dark:text-brand-beige"
     >
-      <span className="font-medium text-emerald-900">Listskrapning klar.</span>{" "}
-      <span className="text-emerald-800">{listForetagCount} företag finns nu i listan.</span>
+      <span className="font-medium text-brand-green">Listskrapning klar.</span>{" "}
+      <span className="text-brand-foreground/90 dark:text-zinc-300">{listForetagCount} företag finns nu i listan.</span>
     </div>
   )
 }

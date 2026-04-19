@@ -70,6 +70,41 @@ function parsePersonName(raw: string): { firstName: string; lastName: string } {
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') }
 }
 
+function addUniqueRole(roles: string[], raw: string) {
+  const t = raw.trim()
+  if (!t) return
+  if (!roles.some(r => r.toLowerCase() === t.toLowerCase())) roles.push(t)
+}
+
+/** En rad per person: flera roller från Bolagsfakta slås ihop till en titel/rad istället för dubbletter. */
+function groupAnsvarigaByPerson(ansvariga: AnsvarigPerson[]): Array<{
+  firstName: string
+  lastName: string
+  roles: string[]
+}> {
+  const map = new Map<string, { firstName: string; lastName: string; roles: string[] }>()
+  for (const p of ansvariga) {
+    const { firstName, lastName } = parsePersonName(p.name)
+    if (firstName === '—' && lastName === '—') continue
+    const fn = firstName || '—'
+    const ln = lastName || '—'
+    const key = `${fn}\0${ln}`
+    let entry = map.get(key)
+    if (!entry) {
+      entry = { firstName: fn, lastName: ln, roles: [] }
+      map.set(key, entry)
+    }
+    addUniqueRole(entry.roles, p.role)
+  }
+  return [...map.values()]
+}
+
+function combinedRoleTitle(roles: string[]): { title: string | null; role: string | null } {
+  if (roles.length === 0) return { title: null, role: null }
+  const text = roles.length > 1 ? roles.join(' · ') : roles[0]
+  return { title: text, role: text }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractTableKeyValues($: cheerio.CheerioAPI, $ctx: any): Record<string, string> {
   const out: Record<string, string> = {}
@@ -409,9 +444,12 @@ export async function persistBolagsfaktaDetail(
   }
 
   let contactsCreated = 0
-  for (const p of parsed.ansvariga) {
-    const { firstName, lastName } = parsePersonName(p.name)
-    if (firstName === '—' && lastName === '—') continue
+  let contactsUpdated = 0
+  const grouped = groupAnsvarigaByPerson(parsed.ansvariga)
+  for (const person of grouped) {
+    const { firstName, lastName, roles } = person
+    if (roles.length === 0) continue
+    const { title, role } = combinedRoleTitle(roles)
     const existing = await prisma.contact.findFirst({
       where: {
         customerId,
@@ -419,17 +457,24 @@ export async function persistBolagsfaktaDetail(
         lastName,
       },
     })
-    if (existing) continue
-    await prisma.contact.create({
-      data: {
-        customerId,
-        firstName: firstName || '—',
-        lastName: lastName || '—',
-        role: p.role,
-        title: p.role,
-      },
-    })
-    contactsCreated += 1
+    if (existing) {
+      await prisma.contact.update({
+        where: { id: existing.id },
+        data: { title, role },
+      })
+      contactsUpdated += 1
+    } else {
+      await prisma.contact.create({
+        data: {
+          customerId,
+          firstName,
+          lastName,
+          role,
+          title,
+        },
+      })
+      contactsCreated += 1
+    }
   }
-  await logger?.info("persist_done", { customerId, contactsCreated })
+  await logger?.info("persist_done", { customerId, contactsCreated, contactsUpdated })
 }
