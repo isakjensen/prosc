@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client"
+import type { ExtendedPrisma } from "@/lib/db"
 
 export type DeletePipelineCascadeResult =
   | { ok: true; deletedCustomerCount: number }
@@ -10,7 +10,7 @@ export type DeletePipelineCascadeResult =
  * kontakter, uppgifter, möten m.m. enligt transaktionen nedan.
  */
 export async function deletePipelineCascade(
-  prisma: Omit<PrismaClient, "$on" | "$use">,
+  prisma: ExtendedPrisma,
   pipelineId: string,
 ): Promise<DeletePipelineCascadeResult> {
   const pipeline = await prisma.bolagsfaktaPipeline.findUnique({
