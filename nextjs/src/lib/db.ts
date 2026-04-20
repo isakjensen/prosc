@@ -188,7 +188,7 @@ function createPrismaClient() {
   })
 }
 
-type ExtendedPrisma = ReturnType<typeof createPrismaClient>
+export type ExtendedPrisma = ReturnType<typeof createPrismaClient>
 
 const globalForPrisma = globalThis as unknown as { prisma: ExtendedPrisma }
 
