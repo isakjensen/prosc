@@ -10,7 +10,7 @@ export type DeletePipelineCascadeResult =
  * kontakter, uppgifter, möten m.m. enligt transaktionen nedan.
  */
 export async function deletePipelineCascade(
-  prisma: PrismaClient,
+  prisma: Omit<PrismaClient, "$on" | "$use">,
   pipelineId: string,
 ): Promise<DeletePipelineCascadeResult> {
   const pipeline = await prisma.bolagsfaktaPipeline.findUnique({
