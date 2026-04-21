@@ -50,6 +50,9 @@ export type PipelineForetagRow = {
   detailStartedAt: string | null
   detailFinishedAt: string | null
   detailError: string | null
+  omsattning: string | null
+  ebitda: string | null
+  aretsResultat: string | null
 }
 
 export type BatchStatus = "pending" | "running" | "success" | "error"
@@ -94,6 +97,15 @@ interface Props {
   /** När webbplats-sökning pågår: annan text i BF-data-kolumnen än vid vanlig detaljskrapning. */
   websiteBfLoadingByRow?: Map<string, "pending" | "running">
   onSoloWebsiteDiscoverLoading?: (foretagId: string, loading: boolean) => void
+}
+
+function parseResultatSign(aretsResultat: string | null): "positive" | "negative" | null {
+  if (!aretsResultat) return null
+  const stripped = aretsResultat.replace(/\s/g, "")
+  if (stripped.startsWith("-") && stripped.length > 1) return "negative"
+  const num = parseFloat(stripped.replace(/[^\d.-]/g, ""))
+  if (!isNaN(num)) return num < 0 ? "negative" : "positive"
+  return null
 }
 
 function rowAccentClass(f: PipelineForetagRow, status?: BatchStatus) {
@@ -317,7 +329,10 @@ export default function PipelineForetagTable({
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[11rem] whitespace-nowrap">
             Org.nr
           </th>
-          <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[12rem]">
+          <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[11rem]">
+            Ekonomi
+          </th>
+          <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 whitespace-nowrap">
             Bolagsform
           </th>
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[10rem]">
@@ -423,6 +438,33 @@ export default function PipelineForetagTable({
                 {f.adress ?? "–"}
               </td>
               <td className="px-6 py-3 align-middle text-gray-500 whitespace-nowrap">{f.orgNummer ?? "–"}</td>
+              <td className="px-6 py-3 align-middle">
+                {f.omsattning || f.ebitda || f.aretsResultat ? (
+                  <div className="flex flex-col gap-0.5 text-xs">
+                    {f.omsattning && (
+                      <span className="text-gray-600 whitespace-nowrap">
+                        <span className="text-gray-400">Oms </span>{f.omsattning}
+                      </span>
+                    )}
+                    {f.ebitda && (
+                      <span className="text-gray-600 whitespace-nowrap">
+                        <span className="text-gray-400">EBITDA </span>{f.ebitda}
+                      </span>
+                    )}
+                    {(() => {
+                      const sign = parseResultatSign(f.aretsResultat)
+                      if (!sign) return null
+                      return (
+                        <span className={sign === "positive" ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                          {sign === "positive" ? "▲ Vinst" : "▼ Förlust"}
+                        </span>
+                      )
+                    })()}
+                  </div>
+                ) : (
+                  <span className="text-gray-300 text-xs">–</span>
+                )}
+              </td>
               <td className="px-6 py-3 align-middle text-gray-500 whitespace-nowrap">
                 {abbreviateBolagsform(f.bolagsform)}
               </td>
