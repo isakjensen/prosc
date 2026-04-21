@@ -18,6 +18,12 @@ import PipelineForetagTable, {
   rowMissingWebsite,
 } from "./PipelineForetagTable"
 
+function parseNumeric(s: string | null | undefined): number | null {
+  if (!s) return null
+  const n = parseFloat(s.replace(/\s/g, "").replace(",", ".").replace(/[^\d.-]/g, ""))
+  return isNaN(n) ? null : n
+}
+
 interface Props {
   pipelineId: string
   pipelineStatus: string
@@ -47,7 +53,7 @@ export default function PipelineForetagBatchPanel({
   useEffect(() => setLiveListTotal(listForetagTotal), [listForetagTotal])
 
   const [query, setQuery] = useState("")
-  const [sortBy, setSortBy] = useState<"name" | "org" | "stage" | "fetched">("name")
+  const [sortBy, setSortBy] = useState<"name" | "org" | "stage" | "fetched" | "omsattning" | "ebitda">("name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [stageFilter, setStageFilter] = useState<
     "all" | "PIPELINE" | "SCRAPED" | "PROSPECT" | "CUSTOMER" | "ARCHIVED"
@@ -136,6 +142,13 @@ export default function PipelineForetagBatchPanel({
         if (cmp === 0) {
           cmp = (a.namn ?? "").localeCompare(b.namn ?? "", "sv")
         }
+      } else if (sortBy === "omsattning" || sortBy === "ebitda") {
+        const aV = parseNumeric(a[sortBy])
+        const bV = parseNumeric(b[sortBy])
+        if (aV === null && bV === null) cmp = 0
+        else if (aV === null) return 1
+        else if (bV === null) return -1
+        else cmp = aV - bV
       } else {
         cmp = (a.namn ?? "").localeCompare(b.namn ?? "", "sv")
       }
@@ -665,8 +678,8 @@ export default function PipelineForetagBatchPanel({
                 value={sortBy}
                 onChange={(e) => {
                   const v = e.target.value
-                  if (v === "fetched") {
-                    setSortBy("fetched")
+                  if (v === "fetched" || v === "omsattning" || v === "ebitda") {
+                    setSortBy(v)
                     setSortOrder("desc")
                   } else {
                     setSortBy(v === "org" ? "org" : v === "stage" ? "stage" : "name")
@@ -677,6 +690,8 @@ export default function PipelineForetagBatchPanel({
                 <option value="org">Org.nr</option>
                 <option value="stage">Status</option>
                 <option value="fetched">Senast hämtad</option>
+                <option value="omsattning">Omsättning</option>
+                <option value="ebitda">EBITDA</option>
               </Select>
             </div>
 
