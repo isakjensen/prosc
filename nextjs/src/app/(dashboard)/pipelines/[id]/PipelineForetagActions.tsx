@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ExternalLink } from "lucide-react"
 import { showWebsiteDiscoveryToasts } from "@/components/bolagsfakta/showWebsiteDiscoveryToasts"
 import type { WebsiteDiscoveryResult } from "@/lib/website-discovery-types"
 
@@ -303,6 +303,21 @@ export default function PipelineForetagActions({
           className="fixed z-[9999] min-w-[14rem] rounded-md border border-gray-200 bg-white py-1 shadow-xl"
           style={{ top: menuPos.top, left: menuPos.left, width: MENU_WIDTH }}
         >
+          {bolagsfaktaUrl && (
+            <>
+              <a
+                href={bolagsfaktaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center gap-2 rounded-none px-3 py-2 text-xs font-normal text-gray-700 hover:bg-gray-100"
+                onClick={() => setOpen(false)}
+              >
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Öppna på Bolagsfakta
+              </a>
+              <div className="my-1 border-t border-gray-100" role="separator" />
+            </>
+          )}
           <Button
             variant="ghost"
             className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto"

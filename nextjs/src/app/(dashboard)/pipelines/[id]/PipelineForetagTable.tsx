@@ -1,11 +1,34 @@
 "use client"
 
 import Link from "next/link"
-import { CheckCircle2, ExternalLink, Loader2, AlertCircle, Clock } from "lucide-react"
+import { CheckCircle2, Loader2, AlertCircle, Clock } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import PipelineForetagActions from "./PipelineForetagActions"
+
+const BOLAGSFORM_ABBREV: Record<string, string> = {
+  "aktiebolag": "AB",
+  "privat aktiebolag": "AB",
+  "publikt aktiebolag": "AB (publ)",
+  "handelsbolag": "HB",
+  "kommanditbolag": "KB",
+  "enskild firma": "EF",
+  "enskild näringsidkare": "EF",
+  "ekonomisk förening": "Ek.för.",
+  "bostadsrättsförening": "Brf",
+  "ideell förening": "Ideell för.",
+  "stiftelse": "Stift.",
+  "europabolag": "SE",
+  "enkelt bolag": "EB",
+  "samfällighetsförening": "Samf.för.",
+  "filial": "Filial",
+}
+
+function abbreviateBolagsform(bolagsform: string | null): string {
+  if (!bolagsform) return "–"
+  return BOLAGSFORM_ABBREV[bolagsform.toLowerCase()] ?? bolagsform
+}
 
 export type PipelineForetagRow = {
   id: string
@@ -300,9 +323,6 @@ export default function PipelineForetagTable({
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[10rem]">
             Webbplats
           </th>
-          <th className="px-2 py-3 align-middle text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-12" title="Öppna bolagsfakta.se">
-            BF
-          </th>
           <th className="px-6 py-3 align-middle text-right text-xs font-semibold uppercase tracking-wide text-gray-400 w-[10rem]">
             {" "}
           </th>
@@ -403,8 +423,8 @@ export default function PipelineForetagTable({
                 {f.adress ?? "–"}
               </td>
               <td className="px-6 py-3 align-middle text-gray-500 whitespace-nowrap">{f.orgNummer ?? "–"}</td>
-              <td className="px-6 py-3 align-middle text-gray-500 whitespace-normal break-words min-w-[12rem]">
-                {f.bolagsform ?? "–"}
+              <td className="px-6 py-3 align-middle text-gray-500 whitespace-nowrap">
+                {abbreviateBolagsform(f.bolagsform)}
               </td>
               <td className="px-6 py-3 align-middle text-gray-500 min-w-[10rem] max-w-[14rem]">
                 {f.website ? (
@@ -422,22 +442,6 @@ export default function PipelineForetagTable({
                   </a>
                 ) : (
                   <span className="text-gray-400">Ingen webbplats</span>
-                )}
-              </td>
-              <td className="px-2 py-3 align-middle text-center">
-                {f.url ? (
-                  <a
-                    href={f.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                    title="Öppna på Bolagsfakta"
-                  >
-                    <ExternalLink className="h-4 w-4" aria-hidden />
-                    <span className="sr-only">Öppna på Bolagsfakta</span>
-                  </a>
-                ) : (
-                  <span className="text-gray-300">–</span>
                 )}
               </td>
               <td className="px-6 py-3 align-middle text-right">
