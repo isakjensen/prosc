@@ -606,6 +606,10 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
   if (!pipeline) throw new Error('Pipeline hittades inte')
 
   const { kommunSlug, branschSlug, branschKod } = pipeline
+  if (!kommunSlug || !branschSlug || !branschKod) {
+    await prisma.bolagsfaktaPipeline.update({ where: { id: pipelineId }, data: { status: 'COMPLETED' } })
+    return
+  }
   const basePageUrl = `${BASE_URL}/bransch/${encodeURIComponent(kommunSlug)}/${encodeURIComponent(branschSlug)}/${branschKod}`
 
   const browser = await launchStealthBrowser()

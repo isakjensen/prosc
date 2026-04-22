@@ -759,11 +759,15 @@ model BolagsfaktaBransch {
 model BolagsfaktaPipeline {
   id                      String                    @id @default(cuid())
   namn                    String
-  kommunSlug              String
-  kommunNamn              String
-  branschSlug             String
-  branschNamn             String
-  branschKod              String
+  /// Manuell pipeline saknar Bolagsfakta-koppling (kommunSlug, branschSlug etc. är null)
+  isManual                Boolean                   @default(false)
+  /// Fritext stad för manuella pipelines (kan vara null)
+  stad                    String?
+  kommunSlug              String?
+  kommunNamn              String?
+  branschSlug             String?
+  branschNamn             String?
+  branschKod              String?
   /// Antal företag enligt Bolagsfakta vid skapande (samma siffra som i bransch-dropdown)
   bolagsfaktaForetagCount Int?
   status                  BolagsfaktaPipelineStatus @default(IDLE)

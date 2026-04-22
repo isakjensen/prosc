@@ -3,6 +3,8 @@ import { prisma } from '../lib/db.js'
 import { deletePipelineCascade } from '../lib/delete-pipeline-cascade.js'
 import { reconcileAllBolagsfaktaStaleStatuses, reconcileStalePipelineRunningStatus } from '../lib/bolagsfakta-status-reconcile.js'
 import { scrapePipelineQueue, fetchDetailQueue } from '../lib/queue.js'
+import { normalizeOrgNumber, orgNumberLookupVariants } from '../lib/swedish-org-number.js'
+import { searchBolagsfaktaByOrgNumber } from '../lib/bolagsfakta-search.js'
 import type { CreatePipelineBody, FetchDetailBody } from '../types/api.js'
 
 export async function pipelineRoutes(app: FastifyInstance) {
@@ -191,6 +193,97 @@ export async function pipelineRoutes(app: FastifyInstance) {
       })
 
       return reply.status(202).send({ jobId: job.id, foretagId, status: 'queued' })
+    },
+  )
+
+  // Lägg till ett specifikt företag via organisationsnummer (söker på Bolagsfakta)
+  app.post<{ Params: { id: string }; Body: { orgNummer: string } }>(
+    '/api/pipelines/:id/companies/add-by-org-number',
+    async (request, reply) => {
+      const { id } = request.params
+      const { orgNummer } = request.body ?? {}
+
+      if (!orgNummer) {
+        return reply.status(400).send({ error: 'orgNummer krävs' })
+      }
+
+      const normalized = normalizeOrgNumber(orgNummer)
+      if (!normalized || /XXXX/i.test(normalized)) {
+        return reply.status(400).send({ error: 'Ogiltigt organisationsnummer. Ange 10 siffror (t.ex. 556123-4567).' })
+      }
+
+      const pipeline = await prisma.bolagsfaktaPipeline.findUnique({ where: { id } })
+      if (!pipeline) {
+        return reply.status(404).send({ error: 'Pipeline hittades inte' })
+      }
+
+      // Kontrollera om företaget redan finns i pipelinen
+      const variants = orgNumberLookupVariants(normalized)
+      const existing = await prisma.bolagsfaktaForetag.findFirst({
+        where: { pipelineId: id, orgNummer: { in: variants } },
+      })
+      if (existing) {
+        return reply.status(409).send({ error: 'Företaget finns redan i denna pipeline', foretagId: existing.id })
+      }
+
+      // Sök upp Bolagsfakta-URL för org.nr
+      const digits = normalized.replace(/\D/g, '')
+      const bolagsfaktaUrl = await searchBolagsfaktaByOrgNumber(digits)
+      if (!bolagsfaktaUrl) {
+        return reply.status(404).send({
+          error: 'Företaget hittades inte på Bolagsfakta. Kontrollera att organisationsnumret är korrekt.',
+        })
+      }
+
+      // Extrahera namn från URL-slug (t.ex. /5561234567-foretaget-ab → "Foretaget Ab")
+      const urlPath = new URL(bolagsfaktaUrl).pathname
+      const slug = urlPath.split('/').pop() ?? ''
+      const nameFromSlug = slug
+        .replace(/^\d{10}-/, '')
+        .split('-')
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ') || `Företag ${normalized}`
+
+      // Koppla till befintlig kund eller skapa ny
+      const existingCustomer = await prisma.customer.findFirst({
+        where: { orgNumber: { in: variants } },
+      })
+
+      let customerId: string
+      if (existingCustomer) {
+        customerId = existingCustomer.id
+      } else {
+        const customer = await prisma.customer.create({
+          data: { name: nameFromSlug, stage: 'SCRAPED', orgNumber: normalized },
+        })
+        customerId = customer.id
+      }
+
+      // Skapa pipeline-rad
+      const foretag = await prisma.bolagsfaktaForetag.create({
+        data: { pipelineId: id, customerId, namn: nameFromSlug, orgNummer: normalized, url: bolagsfaktaUrl },
+      })
+
+      // Köa detaljhämtning direkt
+      const job = await fetchDetailQueue.add(
+        'fetch-detail',
+        { pipelineId: id, foretagId: foretag.id, customerId, bolagsfaktaUrl },
+        { jobId: `detail-${foretag.id}-${Date.now()}` },
+      )
+
+      await prisma.bolagsfaktaForetag.update({
+        where: { id: foretag.id },
+        data: { detailStatus: 'QUEUED', detailJobId: job.id!, detailQueuedAt: new Date() },
+      })
+
+      return reply.status(201).send({
+        foretagId: foretag.id,
+        customerId,
+        bolagsfaktaUrl,
+        namn: nameFromSlug,
+        orgNummer: normalized,
+      })
     },
   )
 }

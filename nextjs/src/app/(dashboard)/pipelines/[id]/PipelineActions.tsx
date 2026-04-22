@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { SlidersHorizontal } from "lucide-react"
+import { SlidersHorizontal, Plus } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
+import AddCustomCompanyModal from "./AddCustomCompanyModal"
 
 interface Props {
   pipelineId: string
   status: string
+  isManual: boolean
 }
 
 function PipelineScrapeErrorAlert({ title, children }: { title: string; children: React.ReactNode }) {
@@ -24,7 +26,7 @@ function PipelineScrapeErrorAlert({ title, children }: { title: string; children
   )
 }
 
-export default function PipelineActions({ pipelineId, status }: Props) {
+export default function PipelineActions({ pipelineId, status, isManual }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -34,6 +36,7 @@ export default function PipelineActions({ pipelineId, status }: Props) {
   const filtersOpen = mounted && searchParams.get("filters") === "1"
   const [loading, setLoading] = useState<"scrape" | "stop" | null>(null)
   const [error, setError] = useState("")
+  const [addModalOpen, setAddModalOpen] = useState(false)
 
   function toggleFilters() {
     const next = new URLSearchParams(searchParams.toString())
@@ -87,31 +90,50 @@ export default function PipelineActions({ pipelineId, status }: Props) {
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:max-w-md sm:items-end">
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" onClick={toggleFilters} disabled={loading !== null}>
-          <SlidersHorizontal className="h-4 w-4" />
-          {filtersOpen ? "Stäng filter" : "Filter"}
-        </Button>
-        {status !== "RUNNING" && loading !== "scrape" ? (
-          <Button onClick={handleScrape} disabled={loading !== null}>
-            Starta scraping
+    <>
+      <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:max-w-md sm:items-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" onClick={toggleFilters} disabled={loading !== null}>
+            <SlidersHorizontal className="h-4 w-4" />
+            {filtersOpen ? "Stäng filter" : "Filter"}
           </Button>
-        ) : loading === "scrape" && status !== "RUNNING" ? (
-          <span className="inline-flex h-10 items-center px-1 text-sm text-gray-500">Startar…</span>
-        ) : null}
-        {status === "RUNNING" && (
+
           <Button
-            variant="destructive"
-            onClick={handleStop}
+            variant="outline"
+            onClick={() => setAddModalOpen(true)}
             disabled={loading !== null}
-            className="bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500"
           >
-            {loading === "stop" ? "Stoppar..." : "Stoppa"}
+            <Plus className="h-4 w-4" />
+            Lägg till företag
           </Button>
-        )}
+
+          {!isManual && status !== "RUNNING" && loading !== "scrape" ? (
+            <Button onClick={handleScrape} disabled={loading !== null}>
+              Starta scraping
+            </Button>
+          ) : !isManual && loading === "scrape" && status !== "RUNNING" ? (
+            <span className="inline-flex h-10 items-center px-1 text-sm text-gray-500">Startar…</span>
+          ) : null}
+
+          {!isManual && status === "RUNNING" && (
+            <Button
+              variant="destructive"
+              onClick={handleStop}
+              disabled={loading !== null}
+              className="bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500"
+            >
+              {loading === "stop" ? "Stoppar..." : "Stoppa"}
+            </Button>
+          )}
+        </div>
+        {error ? <PipelineScrapeErrorAlert title="Något gick fel">{error}</PipelineScrapeErrorAlert> : null}
       </div>
-      {error ? <PipelineScrapeErrorAlert title="Något gick fel">{error}</PipelineScrapeErrorAlert> : null}
-    </div>
+
+      <AddCustomCompanyModal
+        pipelineId={pipelineId}
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+      />
+    </>
   )
 }
