@@ -22,12 +22,14 @@ interface Bransch {
   branschNamn: string
   branschSlug: string
   branschKod: string
-  /** Antal företag i kommunen för branschen (Bolagsfakta) */
   foretagCount?: number | null
 }
 
+type Mode = 'bolagsfakta' | 'manual'
+
 export default function NyPipelinePage() {
   const router = useRouter()
+  const [mode, setMode] = useState<Mode>('bolagsfakta')
   const [loading, setLoading] = useState(false)
   const [loadingBranscher, setLoadingBranscher] = useState(false)
   const [refetchingBranscher, setRefetchingBranscher] = useState(false)
@@ -37,9 +39,10 @@ export default function NyPipelinePage() {
   const [branscher, setBranscher] = useState<Bransch[]>([])
   const [selectedBransch, setSelectedBransch] = useState<Bransch | null>(null)
   const [namn, setNamn] = useState('')
+  const [stad, setStad] = useState('')
 
   useEffect(() => {
-    if (!selectedKommunSlug) {
+    if (!selectedKommunSlug || mode !== 'bolagsfakta') {
       setBranscher([])
       setSelectedBransch(null)
       return
@@ -59,7 +62,7 @@ export default function NyPipelinePage() {
       })
       .catch(() => toast.error('Kunde inte ladda branscher'))
       .finally(() => setLoadingBranscher(false))
-  }, [selectedKommunSlug])
+  }, [selectedKommunSlug, mode])
 
   async function refetchBranscherForKommun() {
     if (!selectedKommunSlug) return
@@ -90,25 +93,32 @@ export default function NyPipelinePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedBransch || !selectedKommunSlug) {
+
+    if (mode === 'bolagsfakta' && (!selectedBransch || !selectedKommunSlug)) {
       toast.error('Välj kommun och bransch')
       return
     }
+
     setLoading(true)
     try {
+      const body =
+        mode === 'manual'
+          ? { namn, isManual: true, stad: stad.trim() || null }
+          : {
+              namn: namn || `${selectedBransch!.branschNamn} – ${selectedKommunNamn}`,
+              kommunSlug: selectedKommunSlug,
+              kommunNamn: selectedKommunNamn,
+              branschSlug: selectedBransch!.branschSlug,
+              branschNamn: selectedBransch!.branschNamn,
+              branschKod: selectedBransch!.branschKod,
+              bolagsfaktaForetagCount:
+                selectedBransch!.foretagCount != null ? selectedBransch!.foretagCount : null,
+            }
+
       const res = await fetch('/api/pipelines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          namn: namn || `${selectedBransch.branschNamn} – ${selectedKommunNamn}`,
-          kommunSlug: selectedKommunSlug,
-          kommunNamn: selectedKommunNamn,
-          branschSlug: selectedBransch.branschSlug,
-          branschNamn: selectedBransch.branschNamn,
-          branschKod: selectedBransch.branschKod,
-          bolagsfaktaForetagCount:
-            selectedBransch.foretagCount != null ? selectedBransch.foretagCount : null,
-        }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
       router.push('/pipelines')
@@ -128,7 +138,42 @@ export default function NyPipelinePage() {
           <span className="text-gray-600">Ny pipeline</span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Ny pipeline</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Välj kommun och bransch att scrapea från Bolagsfakta</p>
+        <p className="text-sm text-gray-500 mt-0.5">Välj typ och fyll i uppgifter för den nya pipelinen</p>
+      </div>
+
+      {/* Typ-väljare */}
+      <div className="panel-surface">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900">Typ av pipeline</h2>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setMode('bolagsfakta')}
+              className={`rounded-lg border-2 p-4 text-left transition-colors ${
+                mode === 'bolagsfakta'
+                  ? 'border-zinc-900 bg-zinc-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <p className="font-semibold text-gray-900 text-sm">Bolagsfakta-pipeline</p>
+              <p className="text-xs text-gray-500 mt-0.5">Scrapa en hel bransch och kommun från Bolagsfakta</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('manual')}
+              className={`rounded-lg border-2 p-4 text-left transition-colors ${
+                mode === 'manual'
+                  ? 'border-zinc-900 bg-zinc-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <p className="font-semibold text-gray-900 text-sm">Manuell pipeline</p>
+              <p className="text-xs text-gray-500 mt-0.5">Lägg till enskilda företag manuellt via org.nr</p>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="panel-surface">
@@ -138,87 +183,108 @@ export default function NyPipelinePage() {
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Välj kommun */}
+            {/* Namn */}
             <div>
-              <FieldLabel required>Kommun</FieldLabel>
-              <select
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                value={selectedKommunSlug}
-                onChange={e => {
-                  const slug = e.target.value
-                  const k = KOMMUNER.find(k => k.slug === slug)
-                  setSelectedKommunSlug(slug)
-                  setSelectedKommunNamn(k?.namn ?? '')
-                }}
-                required
-              >
-                <option value="">Välj en kommun…</option>
-                {KOMMUNER.map(k => (
-                  <option key={k.slug} value={k.slug}>{k.namn}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Välj bransch */}
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                <FieldLabel required>Bransch</FieldLabel>
-                {selectedKommunSlug ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 text-xs h-8"
-                    disabled={loadingBranscher || refetchingBranscher}
-                    onClick={() => void refetchBranscherForKommun()}
-                  >
-                    {refetchingBranscher ? 'Hämtar om…' : 'Hämta om branscher'}
-                  </Button>
-                ) : null}
-              </div>
-              {loadingBranscher ? (
-                <p className="text-sm text-gray-400">Laddar branscher…</p>
-              ) : !selectedKommunSlug ? (
-                <p className="text-sm text-gray-400">Välj en kommun först</p>
-              ) : branscher.length === 0 ? (
-                <p className="text-sm text-gray-400">Inga branscher hittades</p>
-              ) : (
-                <select
-                  className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                  value={selectedBransch?.branschKod ?? ''}
-                  onChange={e => {
-                    const b = branscher.find(b => b.branschKod === e.target.value)
-                    setSelectedBransch(b ?? null)
-                  }}
-                  required
-                >
-                  <option value="">Välj en bransch…</option>
-                  {branscher.map(b => (
-                    <option key={b.branschKod} value={b.branschKod}>
-                      {b.branschKod} – {b.branschNamn}
-                      {b.foretagCount != null ? ` (${b.foretagCount.toLocaleString('sv-SE')})` : ''}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Valfritt namn */}
-            <div>
-              <FieldLabel>Namn (valfritt)</FieldLabel>
+              <FieldLabel required={mode === 'manual'}>
+                {mode === 'manual' ? 'Titel' : 'Namn (valfritt)'}
+              </FieldLabel>
               <Input
                 value={namn}
                 onChange={e => setNamn(e.target.value)}
+                required={mode === 'manual'}
                 placeholder={
-                  selectedBransch && selectedKommunNamn
-                    ? `${selectedBransch.branschNamn} – ${selectedKommunNamn}`
-                    : 'Lämna tomt för automatiskt namn'
+                  mode === 'manual'
+                    ? 'Namn på pipelinen'
+                    : selectedBransch && selectedKommunNamn
+                      ? `${selectedBransch.branschNamn} – ${selectedKommunNamn}`
+                      : 'Lämna tomt för automatiskt namn'
                 }
               />
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button type="submit" disabled={loading || !selectedBransch}>
+            {mode === 'manual' ? (
+              /* Manuell pipeline: bara stad */
+              <div>
+                <FieldLabel>Stad (valfritt)</FieldLabel>
+                <Input
+                  value={stad}
+                  onChange={e => setStad(e.target.value)}
+                  placeholder="T.ex. Stockholm"
+                />
+              </div>
+            ) : (
+              /* Bolagsfakta-pipeline: kommun + bransch */
+              <>
+                <div>
+                  <FieldLabel required>Kommun</FieldLabel>
+                  <select
+                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                    value={selectedKommunSlug}
+                    onChange={e => {
+                      const slug = e.target.value
+                      const k = KOMMUNER.find(k => k.slug === slug)
+                      setSelectedKommunSlug(slug)
+                      setSelectedKommunNamn(k?.namn ?? '')
+                    }}
+                    required
+                  >
+                    <option value="">Välj en kommun…</option>
+                    {KOMMUNER.map(k => (
+                      <option key={k.slug} value={k.slug}>{k.namn}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                    <FieldLabel required>Bransch</FieldLabel>
+                    {selectedKommunSlug ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 text-xs h-8"
+                        disabled={loadingBranscher || refetchingBranscher}
+                        onClick={() => void refetchBranscherForKommun()}
+                      >
+                        {refetchingBranscher ? 'Hämtar om…' : 'Hämta om branscher'}
+                      </Button>
+                    ) : null}
+                  </div>
+                  {loadingBranscher ? (
+                    <p className="text-sm text-gray-400">Laddar branscher…</p>
+                  ) : !selectedKommunSlug ? (
+                    <p className="text-sm text-gray-400">Välj en kommun först</p>
+                  ) : branscher.length === 0 ? (
+                    <p className="text-sm text-gray-400">Inga branscher hittades</p>
+                  ) : (
+                    <select
+                      className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                      value={selectedBransch?.branschKod ?? ''}
+                      onChange={e => {
+                        const b = branscher.find(b => b.branschKod === e.target.value)
+                        setSelectedBransch(b ?? null)
+                      }}
+                      required
+                    >
+                      <option value="">Välj en bransch…</option>
+                      {branscher.map(b => (
+                        <option key={b.branschKod} value={b.branschKod}>
+                          {b.branschKod} – {b.branschNamn}
+                          {b.foretagCount != null ? ` (${b.foretagCount.toLocaleString('sv-SE')})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button
+                type="submit"
+                disabled={loading || (mode === 'bolagsfakta' && !selectedBransch) || (mode === 'manual' && !namn.trim())}
+              >
                 {loading ? 'Skapar…' : 'Skapa pipeline'}
               </Button>
               <Button type="button" variant="outline" onClick={() => router.push('/pipelines')}>

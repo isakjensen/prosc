@@ -57,6 +57,8 @@ export default async function PipelineDetailPage({ params }: PageProps) {
 
   if (!pipeline) notFound()
 
+  const isManual = Boolean(pipeline.isManual)
+
   const foretagRows: PipelineForetagRow[] = pipeline.foretag.map((f) => ({
     id: f.id,
     namn: f.namn,
@@ -132,63 +134,71 @@ export default async function PipelineDetailPage({ params }: PageProps) {
                     <span className="text-gray-400">–</span>
                   )}
                 </span>
-                <span
-                  className="hidden text-gray-300 sm:inline sm:shrink-0"
-                  aria-hidden
-                >
-                  ·
-                </span>
-                <span className="min-w-0 sm:max-w-[min(100%,28rem)]">
-                  <span className="text-gray-400">Kommun:</span>{" "}
-                  <span className="text-gray-600">{pipeline.kommunNamn}</span>
-                </span>
-                <span
-                  className="hidden text-gray-300 sm:inline sm:shrink-0"
-                  aria-hidden
-                >
-                  ·
-                </span>
-                <span className="min-w-0 basis-full sm:basis-auto sm:max-w-none">
-                  <span className="text-gray-400">Bransch:</span>{" "}
-                  <span className="text-gray-600">
-                    {pipeline.branschKod} – {pipeline.branschNamn}
-                  </span>
-                </span>
-                {bolagsfaktaListUrl ? (
+                {isManual ? (
                   <>
-                    <span
-                      className="hidden text-gray-300 sm:inline sm:shrink-0"
-                      aria-hidden
-                    >
-                      ·
+                    <span className="hidden text-gray-300 sm:inline sm:shrink-0" aria-hidden>·</span>
+                    <span className="min-w-0">
+                      <span className="text-gray-400">Typ:</span>{" "}
+                      <span className="text-gray-600">Manuell pipeline</span>
                     </span>
-                    <a
-                      href={bolagsfaktaListUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex basis-full items-center gap-1.5 font-medium text-gray-700 underline decoration-gray-400 underline-offset-2 hover:text-gray-900 hover:decoration-gray-600 sm:basis-auto"
-                    >
-                      Öppna fullständig företagslista på Bolagsfakta
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    </a>
+                    {pipeline.stad ? (
+                      <>
+                        <span className="hidden text-gray-300 sm:inline sm:shrink-0" aria-hidden>·</span>
+                        <span className="min-w-0">
+                          <span className="text-gray-400">Stad:</span>{" "}
+                          <span className="text-gray-600">{pipeline.stad}</span>
+                        </span>
+                      </>
+                    ) : null}
                   </>
-                ) : null}
+                ) : (
+                  <>
+                    <span className="hidden text-gray-300 sm:inline sm:shrink-0" aria-hidden>·</span>
+                    <span className="min-w-0 sm:max-w-[min(100%,28rem)]">
+                      <span className="text-gray-400">Kommun:</span>{" "}
+                      <span className="text-gray-600">{pipeline.kommunNamn ?? '–'}</span>
+                    </span>
+                    <span className="hidden text-gray-300 sm:inline sm:shrink-0" aria-hidden>·</span>
+                    <span className="min-w-0 basis-full sm:basis-auto sm:max-w-none">
+                      <span className="text-gray-400">Bransch:</span>{" "}
+                      <span className="text-gray-600">
+                        {pipeline.branschKod ?? '–'} – {pipeline.branschNamn ?? '–'}
+                      </span>
+                    </span>
+                    {bolagsfaktaListUrl ? (
+                      <>
+                        <span className="hidden text-gray-300 sm:inline sm:shrink-0" aria-hidden>·</span>
+                        <a
+                          href={bolagsfaktaListUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex basis-full items-center gap-1.5 font-medium text-gray-700 underline decoration-gray-400 underline-offset-2 hover:text-gray-900 hover:decoration-gray-600 sm:basis-auto"
+                        >
+                          Öppna fullständig företagslista på Bolagsfakta
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        </a>
+                      </>
+                    ) : null}
+                  </>
+                )}
               </div>
             </div>
-            <PipelineActions pipelineId={id} status={pipeline.status} />
+            <PipelineActions pipelineId={id} status={pipeline.status} isManual={isManual} />
           </div>
-          <div className="flex w-full min-w-0 flex-col gap-1.5">
-            <PipelineScrapeCompleteBanner
-              status={pipeline.status}
-              listForetagCount={pipeline._count.foretag}
-            />
-            <PipelineForetagCountComparison
-              bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
-              scrapedCount={pipeline._count.foretag}
-              bolagsfaktaListUrl={bolagsfaktaListUrl}
-              showBolagsfaktaListLink={false}
-            />
-          </div>
+          {!isManual && (
+            <div className="flex w-full min-w-0 flex-col gap-1.5">
+              <PipelineScrapeCompleteBanner
+                status={pipeline.status}
+                listForetagCount={pipeline._count.foretag}
+              />
+              <PipelineForetagCountComparison
+                bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
+                scrapedCount={pipeline._count.foretag}
+                bolagsfaktaListUrl={bolagsfaktaListUrl}
+                showBolagsfaktaListLink={false}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -206,7 +216,9 @@ export default async function PipelineDetailPage({ params }: PageProps) {
         </div>
         {pipeline.foretag.length === 0 && pipeline.status !== "RUNNING" ? (
           <p className="px-6 py-6 text-sm text-gray-400">
-            Inga företag ännu. Starta scraping för att hämta företag från Bolagsfakta.
+            {isManual
+              ? 'Inga företag ännu. Lägg till ett företag via "Lägg till företag".'
+              : 'Inga företag ännu. Starta scraping för att hämta företag från Bolagsfakta.'}
           </p>
         ) : (
           <div className="overflow-x-auto">
