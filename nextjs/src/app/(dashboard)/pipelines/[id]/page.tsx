@@ -57,6 +57,8 @@ export default async function PipelineDetailPage({ params }: PageProps) {
 
   if (!pipeline) notFound()
 
+  const isManual = Boolean(pipeline.isManual)
+
   const foretagRows: PipelineForetagRow[] = pipeline.foretag.map((f) => ({
     id: f.id,
     namn: f.namn,
@@ -132,7 +134,7 @@ export default async function PipelineDetailPage({ params }: PageProps) {
                     <span className="text-gray-400">–</span>
                   )}
                 </span>
-                {pipeline.isManual ? (
+                {isManual ? (
                   <>
                     <span className="hidden text-gray-300 sm:inline sm:shrink-0" aria-hidden>·</span>
                     <span className="min-w-0">
@@ -160,7 +162,7 @@ export default async function PipelineDetailPage({ params }: PageProps) {
                     <span className="min-w-0 basis-full sm:basis-auto sm:max-w-none">
                       <span className="text-gray-400">Bransch:</span>{" "}
                       <span className="text-gray-600">
-                        {pipeline.branschKod} – {pipeline.branschNamn}
+                        {pipeline.branschKod ?? '–'} – {pipeline.branschNamn ?? '–'}
                       </span>
                     </span>
                     {bolagsfaktaListUrl ? (
@@ -181,9 +183,9 @@ export default async function PipelineDetailPage({ params }: PageProps) {
                 )}
               </div>
             </div>
-            <PipelineActions pipelineId={id} status={pipeline.status} isManual={pipeline.isManual} />
+            <PipelineActions pipelineId={id} status={pipeline.status} isManual={isManual} />
           </div>
-          {!pipeline.isManual && (
+          {!isManual && (
             <div className="flex w-full min-w-0 flex-col gap-1.5">
               <PipelineScrapeCompleteBanner
                 status={pipeline.status}
@@ -214,7 +216,7 @@ export default async function PipelineDetailPage({ params }: PageProps) {
         </div>
         {pipeline.foretag.length === 0 && pipeline.status !== "RUNNING" ? (
           <p className="px-6 py-6 text-sm text-gray-400">
-            {pipeline.isManual
+            {isManual
               ? 'Inga företag ännu. Lägg till ett företag via "Lägg till företag".'
               : 'Inga företag ännu. Starta scraping för att hämta företag från Bolagsfakta.'}
           </p>

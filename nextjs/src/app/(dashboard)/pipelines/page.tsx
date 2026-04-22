@@ -99,6 +99,7 @@ export default async function PipelinesPage() {
                   listCount === 0
                     ? "Inga företag i listan ännu"
                     : `${listCount} företag i listan. BF-detalj klar: ${detailOk}/${listCount}.`
+                const isManual = Boolean(pipeline.isManual)
 
                 return (
                 <tr key={pipeline.id} className="hover:bg-gray-50 transition-colors">
@@ -111,12 +112,12 @@ export default async function PipelinesPage() {
                     </Link>
                   </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {pipeline.isManual
+                    {isManual
                       ? <span className="inline-flex items-center gap-1.5"><span className="text-gray-400 text-xs">Manuell</span>{pipeline.stad ? <span>· {pipeline.stad}</span> : null}</span>
                       : (pipeline.kommunNamn ?? '–')}
                   </td>
                   <td className="px-6 py-4 text-gray-600 max-w-xs">
-                    <span className="line-clamp-1">{pipeline.isManual ? '–' : (pipeline.branschNamn ?? '–')}</span>
+                    <span className="line-clamp-1">{isManual ? '–' : (pipeline.branschNamn ?? '–')}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -144,7 +145,7 @@ export default async function PipelinesPage() {
                     </Link>
                   </td>
                   <td className="px-6 py-4">
-                    {pipeline.isManual ? (
+                    {isManual ? (
                       <span className="text-gray-400 text-xs">–</span>
                     ) : (
                       <PipelineForetagCountComparison
