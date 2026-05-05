@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RadixSelect } from '@/components/ui/radix-select'
 import { Modal, ModalBody, ModalFooter } from '@/components/ui/modal'
 
 interface Props {
@@ -86,29 +87,27 @@ export default function CreateMeetingButton({ customers, projects }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kund</label>
-                <select
+                <RadixSelect
                   value={form.customerId}
-                  onChange={(e) => update('customerId', e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100"
-                >
-                  <option value="">Ingen kund</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                  onChange={(v) => update('customerId', v)}
+                  options={[
+                    { value: '', label: 'Ingen kund' },
+                    ...customers.map(c => ({ value: c.id, label: c.name })),
+                  ]}
+                  placeholder="Välj kund…"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Projekt</label>
-                <select
+                <RadixSelect
                   value={form.projectId}
-                  onChange={(e) => update('projectId', e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100"
-                >
-                  <option value="">Inget projekt</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                  onChange={(v) => update('projectId', v)}
+                  options={[
+                    { value: '', label: 'Inget projekt' },
+                    ...projects.map(p => ({ value: p.id, label: p.name })),
+                  ]}
+                  placeholder="Välj projekt…"
+                />
               </div>
             </div>
             <div>

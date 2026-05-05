@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { motion } from 'framer-motion'
+import { motion, LayoutGroup } from 'framer-motion'
 import {
   LayoutDashboard,
   Building2,
@@ -99,41 +99,44 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto no-scrollbar py-4 px-3 space-y-5">
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-zinc-600">
-              {group.label}
-            </p>
-            <div className="space-y-0.5">
-              {group.items.map(({ href, label, icon: Icon }) => {
-                const active = pathname === href || pathname.startsWith(href + '/')
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={onClose}
-                    className={cn(
-                      "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-normal transition-colors",
-                      active
-                        ? "bg-brand-beige text-brand-brown dark:bg-brand-brown/35 dark:text-brand-beige font-medium"
-                        : "text-gray-500 hover:bg-brand-gray/80 hover:text-brand-foreground dark:text-zinc-500 dark:hover:bg-zinc-800/60 dark:hover:text-brand-beige",
-                    )}
-                  >
-                    {active && (
-                      <motion.div
-                        layoutId="sidebar-active"
-                        className="absolute inset-0 rounded-md bg-brand-beige dark:bg-brand-brown/35"
-                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                      />
-                    )}
-                    <Icon className={cn('relative h-4 w-4 shrink-0', active ? 'text-brand-brown dark:text-brand-beige' : 'text-gray-400 dark:text-zinc-600')} />
-                    <span className="relative">{label}</span>
-                  </Link>
-                )
-              })}
+        <LayoutGroup>
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-zinc-600">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map(({ href, label, icon: Icon }) => {
+                  const active = pathname === href || pathname.startsWith(href + '/')
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={onClose}
+                      className={cn(
+                        "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-normal transition-colors",
+                        active
+                          ? "text-brand-brown dark:text-brand-beige font-medium"
+                          : "text-gray-500 hover:bg-brand-gray/80 hover:text-brand-foreground dark:text-zinc-500 dark:hover:bg-zinc-800/60 dark:hover:text-brand-beige",
+                      )}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="sidebar-active"
+                          className="absolute inset-0 rounded-md bg-brand-beige dark:bg-brand-brown/35"
+                          style={{ zIndex: 0 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                        />
+                      )}
+                      <Icon className={cn('relative z-[1] h-4 w-4 shrink-0', active ? 'text-brand-brown dark:text-brand-beige' : 'text-gray-400 dark:text-zinc-600')} />
+                      <span className="relative z-[1]">{label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </LayoutGroup>
       </nav>
     </div>
   )

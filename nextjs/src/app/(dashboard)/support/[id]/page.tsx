@@ -64,7 +64,7 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
             <ChevronRight className="h-3 w-3" />
             <span className="text-gray-600">Ärende</span>
           </nav>
-          <h1 className="text-2xl font-bold text-gray-900">{ticket.title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{ticket.title}</h1>
         </div>
         <div className="flex gap-2">
           <Badge variant={priorityVariant[ticket.priority] ?? 'gray'}>

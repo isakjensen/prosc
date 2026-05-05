@@ -45,7 +45,7 @@ export default function NyttProspektPage() {
           <ChevronRight className="h-3 w-3" />
           <span className="text-gray-600">Ny prospekt</span>
         </nav>
-        <h1 className="text-2xl font-bold text-gray-900">Nytt prospekt</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">Nytt prospekt</h1>
         <p className="text-sm text-gray-500 mt-1">Fyll i uppgifterna nedan</p>
       </div>
 

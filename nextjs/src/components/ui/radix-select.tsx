@@ -10,17 +10,20 @@ interface SelectOption {
 }
 
 interface RadixSelectProps {
-  value: string
-  onChange: (value: string) => void
+  value?: string
+  defaultValue?: string
+  onChange?: (value: string) => void
   options: SelectOption[]
   placeholder?: string
   disabled?: boolean
   className?: string
+  name?: string
+  required?: boolean
 }
 
-export function RadixSelect({ value, onChange, options, placeholder = 'Välj…', disabled, className }: RadixSelectProps) {
+export function RadixSelect({ value, defaultValue, onChange, options, placeholder = 'Välj…', disabled, className, name, required }: RadixSelectProps) {
   return (
-    <SelectPrimitive.Root value={value} onValueChange={onChange} disabled={disabled}>
+    <SelectPrimitive.Root value={value} defaultValue={defaultValue} onValueChange={onChange} disabled={disabled} name={name} required={required}>
       <SelectPrimitive.Trigger
         className={cn(
           'flex h-10 w-full items-center justify-between gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm transition-all outline-none',

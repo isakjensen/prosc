@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
+import { RadixSelect } from '@/components/ui/radix-select'
 
 interface ProspectCompany {
   id: string
@@ -42,17 +43,16 @@ export default function ProspektListView({ companies, stages }: Props) {
       {/* Filter */}
       <div className="flex items-center gap-3">
         <label className="text-sm font-medium text-gray-700 shrink-0">Filtrera fas:</label>
-        <select
+        <RadixSelect
           value={selectedStageId}
-          onChange={(e) => setSelectedStageId(e.target.value)}
-          className="flex h-10 w-full max-w-xs rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 transition-all outline-none hover:border-zinc-300 hover:bg-white focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
-        >
-          <option value="all">Alla faser</option>
-          <option value="ingen">Ingen fas</option>
-          {stages.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+          onChange={setSelectedStageId}
+          options={[
+            { value: 'all', label: 'Alla faser' },
+            { value: 'ingen', label: 'Ingen fas' },
+            ...stages.map(s => ({ value: s.id, label: s.name })),
+          ]}
+          className="max-w-xs"
+        />
         <span className="text-xs text-gray-400 shrink-0">{filtered.length} prospekts</span>
       </div>
 

@@ -381,6 +381,51 @@ input::-webkit-credentials-auto-fill-button {
     -webkit-overflow-scrolling: touch;
   }
 
+  /* ─── Dark mode table fixes ─────────────────────────────────────────────── */
+
+  .dark .panel-surface table thead tr {
+    border-color: #27272a;
+    background: #1c1c1f;
+  }
+
+  .dark .panel-surface table thead th {
+    color: #71717a;
+  }
+
+  .dark .panel-surface table tbody tr {
+    border-color: #27272a;
+  }
+
+  .dark .panel-surface table tbody tr:hover {
+    background: #1c1c1f;
+  }
+
+  .dark .panel-surface table td {
+    color: #a1a1aa;
+  }
+
+  .dark .panel-surface table td a {
+    color: #e4e4e7;
+  }
+
+  .dark .panel-surface table td a:hover {
+    color: #f4f4f5;
+  }
+
+  /* Panel headers with border-gray-100 */
+  .dark .panel-surface .border-gray-100 {
+    border-color: #27272a;
+  }
+
+  .dark .panel-surface .bg-gray-50\/50 {
+    background: #1c1c1f;
+  }
+
+  /* Dividers inside panels */
+  .dark .panel-surface .divide-gray-100 > :not(:last-child) {
+    border-color: #27272a;
+  }
+
   /* ─── Page container ─────────────────────────────────────────────────────── */
 
   .page-container {

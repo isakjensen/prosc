@@ -7,6 +7,7 @@ import { Modal, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
+import { RadixSelect } from '@/components/ui/radix-select'
 
 interface CreateUserModalProps {
   isOpen: boolean
@@ -74,15 +75,15 @@ export default function CreateUserModal({ isOpen, onClose }: CreateUserModalProp
             </div>
             <div>
               <FieldLabel>Roll</FieldLabel>
-              <select
+              <RadixSelect
                 name="role"
                 defaultValue="MEMBER"
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 transition-all outline-none hover:border-zinc-300 hover:bg-white focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
-              >
-                <option value="MEMBER">Medlem</option>
-                <option value="MANAGER">Manager</option>
-                <option value="ADMIN">Admin</option>
-              </select>
+                options={[
+                  { value: 'MEMBER', label: 'Medlem' },
+                  { value: 'MANAGER', label: 'Manager' },
+                  { value: 'ADMIN', label: 'Admin' },
+                ]}
+              />
             </div>
           </div>
         </ModalBody>

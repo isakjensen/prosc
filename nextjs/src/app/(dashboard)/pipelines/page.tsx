@@ -43,7 +43,7 @@ export default async function PipelinesPage() {
       <div className="page-hero pb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <p className="page-kicker">CRM</p>
-          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Pipeline</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mt-0.5">Pipeline</h1>
           <p className="text-sm text-gray-500 mt-0.5">{pipelines.length} pipelines totalt</p>
         </div>
         <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">

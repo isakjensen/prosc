@@ -79,7 +79,7 @@ export default async function KalenderPage() {
     <div className="space-y-6">
       <div className="page-hero pb-5">
         <p className="page-kicker">Arbete</p>
-        <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Kalender</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mt-0.5">Kalender</h1>
         <p className="text-sm text-gray-500 mt-0.5">{events.length} händelser denna period</p>
       </div>
       <CalendarView events={events} />

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RadixSelect } from '@/components/ui/radix-select'
 
 const methods = [
   { value: 'BANK_TRANSFER', label: 'Bankgiro' },
@@ -69,15 +70,11 @@ export default function PaymentForm({ invoiceId, remaining }: { invoiceId: strin
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Metod</label>
-          <select
+          <RadixSelect
             value={method}
-            onChange={(e) => setMethod(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100"
-          >
-            {methods.map((m) => (
-              <option key={m.value} value={m.value}>{m.label}</option>
-            ))}
-          </select>
+            onChange={setMethod}
+            options={methods}
+          />
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Referens</label>

@@ -46,7 +46,7 @@ export default function NyProjektPage() {
           <ChevronRight className="h-3 w-3" />
           <span className="text-gray-600">Nytt projekt</span>
         </nav>
-        <h1 className="text-2xl font-bold text-gray-900">Nytt projekt</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">Nytt projekt</h1>
         <p className="text-sm text-gray-500 mt-1">Fyll i uppgifterna nedan</p>
       </div>
 

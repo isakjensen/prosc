@@ -108,7 +108,7 @@ export default async function PipelineDetailPage({ params }: PageProps) {
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-gray-900">{pipeline.namn}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{pipeline.namn}</h1>
                 <div className="flex items-center gap-2">
                   {pipeline.status === 'RUNNING' && (
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-green animate-pulse" />

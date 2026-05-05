@@ -759,11 +759,11 @@ model BolagsfaktaBransch {
 model BolagsfaktaPipeline {
   id                      String                    @id @default(cuid())
   namn                    String
-  kommunSlug              String
-  kommunNamn              String
-  branschSlug             String
-  branschNamn             String
-  branschKod              String
+  kommunSlug              String?
+  kommunNamn              String?
+  branschSlug             String?
+  branschNamn             String?
+  branschKod              String?
   /// Antal företag enligt Bolagsfakta vid skapande (samma siffra som i bransch-dropdown)
   bolagsfaktaForetagCount Int?
   status                  BolagsfaktaPipelineStatus @default(IDLE)

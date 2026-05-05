@@ -47,7 +47,7 @@ export default async function RapporterPage() {
       <div className="page-hero pb-5 flex items-start justify-between gap-4">
         <div>
           <p className="page-kicker">System</p>
-          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Rapporter</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mt-0.5">Rapporter</h1>
           <p className="text-sm text-gray-500 mt-0.5">Nyckeltal och affärsöversikt</p>
         </div>
       </div>

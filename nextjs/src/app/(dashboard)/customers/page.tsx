@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 
 interface PageProps {
@@ -24,7 +25,7 @@ export default async function KunderPage({ searchParams }: PageProps) {
       <div className="page-hero pb-5 flex items-center justify-between gap-4">
         <div>
           <p className="page-kicker">CRM</p>
-          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Kunder</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mt-0.5">Kunder</h1>
         </div>
         <Link href="/customers/ny">
           <Button>+ Ny kund</Button>
@@ -33,11 +34,11 @@ export default async function KunderPage({ searchParams }: PageProps) {
 
       {/* Search */}
       <form method="GET">
-        <input
+        <Input
           name="q"
           defaultValue={q}
           placeholder="Sök efter kund…"
-          className="flex h-10 w-full max-w-sm rounded-md border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 hover:bg-gray-50 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:bg-white transition-all"
+          className="max-w-sm"
         />
       </form>
 

@@ -24,7 +24,7 @@ export default async function PipelinesRedlistPage() {
         <div className="min-w-0">
           <p className="page-kicker">CRM</p>
           <div className="flex flex-wrap items-center gap-2 mt-0.5">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
               Redlistade företag
             </h1>
             <Badge variant="gray">{entries.length}</Badge>

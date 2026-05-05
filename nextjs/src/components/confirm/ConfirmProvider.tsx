@@ -55,6 +55,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const [lastOptions, setLastOptions] = useState<ConfirmOptions | null>(null)
+
   const finish = useCallback((result: boolean) => {
     const resolve = resolverRef.current
     resolverRef.current = null
@@ -62,7 +64,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     resolve?.(result)
   }, [])
 
-  const options = state.open ? state.options : null
+  // Keep last options alive during exit animation
+  if (state.open && state.options !== lastOptions) {
+    setLastOptions(state.options)
+  }
+
+  const options = state.open ? state.options : lastOptions
   const isDanger = options?.variant === "danger"
   const useDangerBody =
     isDanger && Boolean(options?.description || (options?.bullets && options.bullets.length > 0))
@@ -70,21 +77,20 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      {options && (
-        <Modal
-          isOpen
-          onClose={() => finish(false)}
-          title={options.title}
-          description={useDangerBody ? undefined : options.description}
-          size={isDanger ? "xl" : "sm"}
-          dense={isDanger}
-          rootClassName="z-[10050]"
-          panelClassName={cn(
-            isDanger &&
-              "ring-1 ring-red-200/70 dark:ring-red-900/50 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]",
-          )}
-        >
-          {useDangerBody ? (
+      <Modal
+        isOpen={state.open}
+        onClose={() => finish(false)}
+        title={options?.title ?? ""}
+        description={useDangerBody ? undefined : options?.description}
+        size={isDanger ? "xl" : "sm"}
+        dense={isDanger}
+        rootClassName="z-[10050]"
+        panelClassName={cn(
+          isDanger &&
+            "ring-1 ring-red-200/70 dark:ring-red-900/50 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]",
+        )}
+      >
+          {useDangerBody && options ? (
             <div className="px-5 py-3 sm:py-3.5">
               <div className="flex gap-3 sm:gap-4">
                 <div
@@ -137,22 +143,21 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               )}
               onClick={() => finish(false)}
             >
-              {options.cancelLabel ?? "Avbryt"}
+              {options?.cancelLabel ?? "Avbryt"}
             </Button>
             <Button
               type="button"
-              variant={options.variant === "danger" ? "destructive" : "default"}
+              variant={options?.variant === "danger" ? "destructive" : "default"}
               className={cn(
-                options.variant === "danger" &&
+                options?.variant === "danger" &&
                   "min-w-[5.5rem] font-semibold shadow-md shadow-red-900/15 dark:shadow-red-950/40",
               )}
               onClick={() => finish(true)}
             >
-              {options.confirmLabel ?? "Bekräfta"}
+              {options?.confirmLabel ?? "Bekräfta"}
             </Button>
           </ModalFooter>
         </Modal>
-      )}
     </ConfirmContext.Provider>
   )
 }

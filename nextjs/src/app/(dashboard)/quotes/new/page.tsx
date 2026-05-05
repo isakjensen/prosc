@@ -98,7 +98,7 @@ export default function NyOffertPage() {
           <ChevronRight className="h-3 w-3" />
           <span className="text-gray-600">Ny offert</span>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Ny offert</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">Ny offert</h1>
         <p className="text-sm text-gray-500 mt-0.5">Skapa och skicka en offert till kund</p>
       </div>
 

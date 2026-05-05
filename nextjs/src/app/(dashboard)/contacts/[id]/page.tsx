@@ -38,7 +38,7 @@ export default async function KontaktDetailPage({ params }: PageProps) {
         </div>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
               {contact.firstName} {contact.lastName}
             </h1>
             {contact.title && <p className="text-sm text-gray-500 mt-0.5">{contact.title}</p>}

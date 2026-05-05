@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { KOMMUNER } from '@/lib/kommuner'
@@ -127,7 +128,7 @@ export default function NyPipelinePage() {
           <ChevronRight className="h-3 w-3" />
           <span className="text-gray-600">Ny pipeline</span>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Ny pipeline</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">Ny pipeline</h1>
         <p className="text-sm text-gray-500 mt-0.5">Välj kommun och bransch att scrapea från Bolagsfakta</p>
       </div>
 
@@ -141,22 +142,16 @@ export default function NyPipelinePage() {
             {/* Välj kommun */}
             <div>
               <FieldLabel required>Kommun</FieldLabel>
-              <select
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              <SearchableSelect
                 value={selectedKommunSlug}
-                onChange={e => {
-                  const slug = e.target.value
+                onChange={(slug) => {
                   const k = KOMMUNER.find(k => k.slug === slug)
                   setSelectedKommunSlug(slug)
                   setSelectedKommunNamn(k?.namn ?? '')
                 }}
-                required
-              >
-                <option value="">Välj en kommun…</option>
-                {KOMMUNER.map(k => (
-                  <option key={k.slug} value={k.slug}>{k.namn}</option>
-                ))}
-              </select>
+                options={KOMMUNER.map(k => ({ value: k.slug, label: k.namn }))}
+                placeholder="Välj en kommun…"
+              />
             </div>
 
             {/* Välj bransch */}
@@ -183,23 +178,18 @@ export default function NyPipelinePage() {
               ) : branscher.length === 0 ? (
                 <p className="text-sm text-gray-400">Inga branscher hittades</p>
               ) : (
-                <select
-                  className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                <SearchableSelect
                   value={selectedBransch?.branschKod ?? ''}
-                  onChange={e => {
-                    const b = branscher.find(b => b.branschKod === e.target.value)
+                  onChange={(kod) => {
+                    const b = branscher.find(b => b.branschKod === kod)
                     setSelectedBransch(b ?? null)
                   }}
-                  required
-                >
-                  <option value="">Välj en bransch…</option>
-                  {branscher.map(b => (
-                    <option key={b.branschKod} value={b.branschKod}>
-                      {b.branschKod} – {b.branschNamn}
-                      {b.foretagCount != null ? ` (${b.foretagCount.toLocaleString('sv-SE')})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  options={branscher.map(b => ({
+                    value: b.branschKod,
+                    label: `${b.branschKod} – ${b.branschNamn}${b.foretagCount != null ? ` (${b.foretagCount.toLocaleString('sv-SE')})` : ''}`,
+                  }))}
+                  placeholder="Välj en bransch…"
+                />
               )}
             </div>
 

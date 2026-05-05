@@ -111,7 +111,7 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
           <span className="text-gray-600">{project.name}</span>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{project.name}</h1>
           <Badge variant={projectStatusVariant[project.status] ?? 'gray'}>
             {projectStatusLabel[project.status] ?? project.status}
           </Badge>

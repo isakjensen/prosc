@@ -32,15 +32,20 @@ const ThemeContext = createContext<{
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status, update } = useSession()
-  const [theme, setThemeState] = useState<Theme>(() =>
-    typeof window !== "undefined" ? readStoredTheme() : "light",
-  )
+  const [theme, setThemeState] = useState<Theme>("light")
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setThemeState(readStoredTheme())
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
     const root = document.documentElement
     root.classList.remove("light", "dark")
     root.classList.add(theme)
-  }, [theme])
+  }, [theme, mounted])
 
   // Uppdatera PWA status bar-färg dynamiskt
   useEffect(() => {

@@ -7,6 +7,7 @@ import { Modal, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { RadixSelect } from '@/components/ui/radix-select'
 
 interface ProspectStageOption {
   id: string
@@ -99,16 +100,15 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
             {customer.stage === 'PROSPECT' && customer.prospectStages && customer.prospectStages.length > 0 && (
               <div className="sm:col-span-2">
                 <FieldLabel>Fas</FieldLabel>
-                <select
+                <RadixSelect
                   value={selectedStageId}
-                  onChange={(e) => setSelectedStageId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 transition-all outline-none hover:border-zinc-300 hover:bg-white focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
-                >
-                  <option value="">Ingen fas</option>
-                  {customer.prospectStages.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                  onChange={setSelectedStageId}
+                  options={[
+                    { value: '', label: 'Ingen fas' },
+                    ...customer.prospectStages.map(s => ({ value: s.id, label: s.name })),
+                  ]}
+                  placeholder="Välj fas…"
+                />
               </div>
             )}
 

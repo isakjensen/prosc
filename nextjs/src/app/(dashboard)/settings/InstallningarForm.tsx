@@ -67,7 +67,7 @@ export default function InstallningarForm({ settings }: Props) {
   return (
     <div className="space-y-6">
       {/* Utseende */}
-      <div className="panel-surface max-w-2xl mx-auto">
+      <div className="panel-surface w-full">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Utseende</h2>
           <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
@@ -75,7 +75,7 @@ export default function InstallningarForm({ settings }: Props) {
           </p>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-2 gap-3 max-w-md">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {themes.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
@@ -97,22 +97,24 @@ export default function InstallningarForm({ settings }: Props) {
       </div>
 
       {/* Systeminställningar */}
-      <div className="panel-surface max-w-2xl mx-auto">
+      <div className="panel-surface w-full">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Systeminställningar</h2>
         </div>
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {settings.map((setting) => (
-              <div key={setting.key}>
-                <FieldLabel>{setting.label}</FieldLabel>
-                <Input
-                  value={values[setting.key] ?? ''}
-                  onChange={(e) => setValues((prev) => ({ ...prev, [setting.key]: e.target.value }))}
-                  placeholder={setting.placeholder}
-                />
-              </div>
-            ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {settings.map((setting) => (
+                <div key={setting.key}>
+                  <FieldLabel>{setting.label}</FieldLabel>
+                  <Input
+                    value={values[setting.key] ?? ''}
+                    onChange={(e) => setValues((prev) => ({ ...prev, [setting.key]: e.target.value }))}
+                    placeholder={setting.placeholder}
+                  />
+                </div>
+              ))}
+            </div>
 
             <div className="pt-2">
               <Button type="submit" disabled={loading}>

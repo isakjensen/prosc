@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import { Menu, Sun, Moon, LogOut, ChevronLeft } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
@@ -18,6 +19,7 @@ const ROOT_PATHS = [
   '/contracts', '/support', '/projects', '/tasks', '/pipelines',
   '/prospects', '/meetings', '/knowledge-base', '/reports',
   '/settings', '/profile', '/users', '/calendar', '/system-logs',
+  '/outreach-planning',
 ]
 
 export function Topbar({ onMenuClick }: TopbarProps) {
@@ -26,16 +28,19 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const router = useRouter()
   const pathname = usePathname()
 
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const nextTheme = theme === 'light' ? 'dark' : 'light'
-  const ThemeIcon = theme === 'dark' ? Moon : Sun
+  const ThemeIcon = mounted && theme === 'dark' ? Moon : Sun
   const showBack = !ROOT_PATHS.includes(pathname)
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-brand-gray dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 lg:px-6">
-      <div className="flex items-center gap-1 lg:hidden">
+      <div className="flex items-center gap-1">
         <button
           onClick={onMenuClick}
-          className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors"
+          className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors lg:hidden"
           aria-label="Öppna meny"
         >
           <Menu className="h-5 w-5" />
@@ -59,7 +64,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(nextTheme)}
-          title={theme === 'dark' ? 'Byt till ljust läge' : 'Byt till mörkt läge'}
+          title={mounted && theme === 'dark' ? 'Byt till ljust läge' : 'Byt till mörkt läge'}
           className="h-8 w-8 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors"
         >
           <ThemeIcon className="h-4 w-4" />
