@@ -18,6 +18,9 @@ export function PipelineForetagCountComparison({
   /** När false visas inte listlänken här (t.ex. om den redan visas i sidhuvudet). */
   showBolagsfaktaListLink?: boolean
 }) {
+  // Visa inget om scraping inte startats ännu
+  if (scrapedCount === 0) return null
+
   if (bolagsfaktaForetagCount == null) {
     if (compact) {
       return (
@@ -104,8 +107,8 @@ export function PipelineForetagCountComparison({
     <div
       className={`w-full rounded-lg border px-4 py-3 text-sm sm:px-5 sm:py-4 ${
         match
-          ? "border-brand-green/35 bg-brand-green/10 text-gray-800"
-          : "border-red-200 bg-red-50 text-red-900"
+          ? "border-green-400 bg-green-100 text-gray-800 dark:border-green-600 dark:bg-green-900/40"
+          : "border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40"
       }`}
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-6 lg:gap-10">
@@ -121,7 +124,7 @@ export function PipelineForetagCountComparison({
         </div>
         <div className="min-w-0 flex-1 space-y-2 md:border-l md:border-current/10 md:pl-6 lg:pl-10">
           <p
-            className={`text-xs leading-relaxed ${match ? "text-brand-green" : "text-red-800 font-medium"}`}
+            className={`text-xs leading-relaxed ${match ? "text-green-800 dark:text-green-300" : "text-red-800 font-medium dark:text-red-400"}`}
           >
             {match
               ? "Antalen stämmer överens."

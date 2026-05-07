@@ -47,6 +47,19 @@ export function orgNumberLookupVariants(normalized: string | null | undefined): 
 }
 
 /**
+ * Bolagsnamn som innehåller dessa fraser ignoreras helt vid listskrapning — ingen DB-rad skapas.
+ */
+const IGNORED_NAME_PHRASES = [
+  'sista versen',
+]
+
+export function shouldAutoRedlistByName(namn: string | null | undefined): boolean {
+  if (!namn) return false
+  const lower = namn.toLowerCase()
+  return IGNORED_NAME_PHRASES.some((phrase) => lower.includes(phrase))
+}
+
+/**
  * Listskrapning: bolag med maskerat org.nr (XXXX) eller text som inte går att tolka som ######-#### / ######-XXXX ska inte bli kund automatiskt.
  */
 export function shouldAutoRedlistByOrgNummer(

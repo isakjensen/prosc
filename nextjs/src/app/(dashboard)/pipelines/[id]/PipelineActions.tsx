@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 interface Props {
   pipelineId: string
   status: string
+  hasActiveDetailJobs: boolean
 }
 
 function PipelineScrapeErrorAlert({ title, children }: { title: string; children: React.ReactNode }) {
@@ -24,7 +25,7 @@ function PipelineScrapeErrorAlert({ title, children }: { title: string; children
   )
 }
 
-export default function PipelineActions({ pipelineId, status }: Props) {
+export default function PipelineActions({ pipelineId, status, hasActiveDetailJobs }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -93,23 +94,13 @@ export default function PipelineActions({ pipelineId, status }: Props) {
           <SlidersHorizontal className="h-4 w-4" />
           {filtersOpen ? "Stäng filter" : "Filter"}
         </Button>
-        {status !== "RUNNING" && loading !== "scrape" ? (
+        {status !== "RUNNING" && !hasActiveDetailJobs && loading !== "scrape" ? (
           <Button onClick={handleScrape} disabled={loading !== null}>
             Starta scraping
           </Button>
-        ) : loading === "scrape" && status !== "RUNNING" ? (
+        ) : loading === "scrape" && status !== "RUNNING" && !hasActiveDetailJobs ? (
           <span className="inline-flex h-10 items-center px-1 text-sm text-gray-500">Startar…</span>
         ) : null}
-        {status === "RUNNING" && (
-          <Button
-            variant="destructive"
-            onClick={handleStop}
-            disabled={loading !== null}
-            className="bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500"
-          >
-            {loading === "stop" ? "Stoppar..." : "Stoppa"}
-          </Button>
-        )}
       </div>
       {error ? <PipelineScrapeErrorAlert title="Något gick fel">{error}</PipelineScrapeErrorAlert> : null}
     </div>

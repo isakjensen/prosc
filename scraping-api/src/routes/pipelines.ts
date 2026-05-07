@@ -123,6 +123,33 @@ export async function pipelineRoutes(app: FastifyInstance) {
     return { pipelineId: id, status: 'STOPPED' }
   })
 
+  // Avbryt köade detaljjobb för en pipeline
+  app.post<{ Params: { id: string } }>('/api/pipelines/:id/stop-details', async (request, reply) => {
+    const { id } = request.params
+
+    // Hämta alla QUEUED detaljjobb för denna pipeline
+    const queued = await prisma.bolagsfaktaForetag.findMany({
+      where: { pipelineId: id, detailStatus: 'QUEUED' },
+      select: { id: true, detailJobId: true },
+    })
+
+    // Ta bort dem från BullMQ-kön och sätt DB-status till IDLE
+    await Promise.all(
+      queued.map(async (f) => {
+        if (f.detailJobId) {
+          const job = await fetchDetailQueue.getJob(f.detailJobId)
+          await job?.remove().catch(() => {})
+        }
+        await prisma.bolagsfaktaForetag.update({
+          where: { id: f.id },
+          data: { detailStatus: 'IDLE', detailJobId: null, detailError: null },
+        }).catch(() => {})
+      })
+    )
+
+    return { pipelineId: id, cancelled: queued.length }
+  })
+
   // Lista företag i pipeline
   app.get<{ Params: { id: string } }>('/api/pipelines/:id/companies', async (request, reply) => {
     const { id } = request.params

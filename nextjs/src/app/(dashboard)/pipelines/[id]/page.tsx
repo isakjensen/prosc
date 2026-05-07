@@ -8,7 +8,7 @@ import PipelineActions from "./PipelineActions"
 import { type PipelineForetagRow } from "./PipelineForetagTable"
 import PipelineForetagBatchPanel from "./PipelineForetagBatchPanel"
 import PipelineForetagPanelHeading from "./PipelineForetagPanelHeading"
-import PipelineLiveRefresh from "./PipelineLiveRefresh"
+import PipelineLiveStatus from "./PipelineLiveStatus"
 import PipelineScrapeCompleteBanner from "./PipelineScrapeCompleteBanner"
 import { PipelineForetagCountComparison } from "@/components/bolagsfakta/PipelineForetagCountComparison"
 import { bolagsfaktaBranschListingUrl } from "@/lib/bolagsfakta-list-url"
@@ -35,25 +35,31 @@ const statusVariant: Record<string, 'gray' | 'info' | 'success' | 'danger'> = {
 export default async function PipelineDetailPage({ params }: PageProps) {
   const { id } = await params
 
-  await reconcileBolagsfaktaStaleStatusViaApi(id)
+  // Fire-and-forget — blockerar inte sidladdning
+  void reconcileBolagsfaktaStaleStatusViaApi(id)
 
-  const pipeline = await prisma.bolagsfaktaPipeline.findUnique({
-    where: { id },
-    include: {
-      foretag: {
-        orderBy: [{ isRedlisted: "asc" }, { createdAt: "desc" }],
-        take: 100,
-        include: {
-          customer: {
-            include: {
-              bolagsfaktaData: true,
+  const [pipeline, activeDetailCount] = await Promise.all([
+    prisma.bolagsfaktaPipeline.findUnique({
+      where: { id },
+      include: {
+        foretag: {
+          orderBy: [{ isRedlisted: "asc" }, { createdAt: "desc" }],
+          take: 100,
+          include: {
+            customer: {
+              include: {
+                bolagsfaktaData: true,
+              },
             },
           },
         },
+        _count: { select: { foretag: true } },
       },
-      _count: { select: { foretag: true } },
-    },
-  })
+    }),
+    prisma.bolagsfaktaForetag.count({
+      where: { pipelineId: id, detailStatus: { in: ["QUEUED", "RUNNING"] } },
+    }),
+  ])
 
   if (!pipeline) notFound()
 
@@ -96,7 +102,6 @@ export default async function PipelineDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <PipelineLiveRefresh status={pipeline.status} hasActiveDetailJobs={hasActiveDetailJobs} />
       {/* Header */}
       <div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
@@ -110,12 +115,16 @@ export default async function PipelineDetailPage({ params }: PageProps) {
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{pipeline.namn}</h1>
                 <div className="flex items-center gap-2">
-                  {pipeline.status === 'RUNNING' && (
-                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-green animate-pulse" />
+                  {(pipeline.status === 'RUNNING' || (pipeline.status === 'COMPLETED' && activeDetailCount > 0)) && (
+                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-600 animate-pulse" />
                   )}
-                  <Badge variant={statusVariant[pipeline.status] ?? 'gray'}>
-                    {statusLabel[pipeline.status] ?? pipeline.status}
-                  </Badge>
+                  {pipeline.status === 'COMPLETED' && activeDetailCount > 0 ? (
+                    <Badge variant="info">Hämtar data…</Badge>
+                  ) : (
+                    <Badge variant={statusVariant[pipeline.status] ?? 'gray'}>
+                      {statusLabel[pipeline.status] ?? pipeline.status}
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-gray-500 sm:gap-x-3">
@@ -175,13 +184,22 @@ export default async function PipelineDetailPage({ params }: PageProps) {
                 ) : null}
               </div>
             </div>
-            <PipelineActions pipelineId={id} status={pipeline.status} />
+            <PipelineActions pipelineId={id} status={pipeline.status} hasActiveDetailJobs={activeDetailCount > 0} />
           </div>
           <div className="flex w-full min-w-0 flex-col gap-1.5">
-            <PipelineScrapeCompleteBanner
-              status={pipeline.status}
-              listForetagCount={pipeline._count.foretag}
+            <PipelineLiveStatus
+              pipelineId={id}
+              initialStatus={pipeline.status}
+              initialForetagCount={pipeline._count.foretag}
+              bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
+              initialActiveDetailCount={activeDetailCount}
             />
+            {activeDetailCount === 0 && (
+              <PipelineScrapeCompleteBanner
+                status={pipeline.status}
+                listForetagCount={pipeline._count.foretag}
+              />
+            )}
             <PipelineForetagCountComparison
               bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
               scrapedCount={pipeline._count.foretag}

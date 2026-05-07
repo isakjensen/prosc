@@ -7,6 +7,7 @@ import {
   normalizeOrgNumber,
   orgNumberLookupVariants,
   shouldAutoRedlistByOrgNummer,
+  shouldAutoRedlistByName,
 } from './swedish-org-number.js'
 
 export const BASE_URL = 'https://www.bolagsfakta.se'
@@ -15,6 +16,7 @@ export {
   normalizeOrgNumber,
   orgNumberLookupVariants,
   shouldAutoRedlistByOrgNummer,
+  shouldAutoRedlistByName,
 } from './swedish-org-number.js'
 
 export function delay(ms: number) {
@@ -97,7 +99,7 @@ export async function navigateAndGetHtml(page: Page, url: string): Promise<strin
   await delay(500)
   try {
     await page.click('button:has-text("Endast nödvändiga")', { timeout: 3000 })
-    await delay(400)
+    await delay(200)
   } catch { /* ingen dialog */ }
   return page.content()
 }
@@ -132,7 +134,7 @@ async function loadBranschListPageHtmlPair(page: Page, url: string): Promise<{
   if (isCloudflareBlockHtml(ssrHtml)) ssrHtml = ''
   try {
     await page.click('button:has-text("Endast nödvändiga")', { timeout: 3000 })
-    await delay(400)
+    await delay(200)
   } catch { /* ingen dialog */ }
   let domHtml = await page.content()
   // Paginerade listor: SSR för ?sida=N kan vara tom medan Vue fyller listan i DOM.
@@ -517,6 +519,9 @@ function mergeForetagParsed(a: Foretag[], b: Foretag[]): Foretag[] {
 }
 
 async function upsertForetagWithCustomer(pipelineId: string, f: Foretag) {
+  // Bolag med bannrade fraser i namnet ignoreras helt — ingen DB-rad skapas
+  if (shouldAutoRedlistByName(f.namn)) return
+
   const url = absolutizeBolagsfaktaUrl(f.url)
   if (url) {
     const dup = await prisma.bolagsfaktaForetag.findFirst({ where: { pipelineId, url } })
@@ -633,8 +638,18 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
         await bolagsfaktaPipelineListLog(
           `SESSION STOPPED_BY_USER pipelineId=${pipelineId} iter=${iter} url=${currentUrl}`,
         )
+        await prisma.bolagsfaktaPipeline.update({
+          where: { id: pipelineId },
+          data: { scrapeCurrentPage: null, scrapeCurrentUrl: null },
+        }).catch(() => {})
         return
       }
+
+      // Uppdatera live-status i DB så UI kan visa framsteg
+      await prisma.bolagsfaktaPipeline.update({
+        where: { id: pipelineId },
+        data: { scrapeCurrentPage: iter, scrapeCurrentUrl: currentUrl },
+      }).catch(() => {})
 
       const fromSsr = parseForetagFromHtml(ssrHtml)
       const fromDom = parseForetagFromHtml(domHtml)
@@ -667,9 +682,15 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
       }
 
       const dbBefore = await prisma.bolagsfaktaForetag.count({ where: { pipelineId } })
-      for (const f of foretag) {
-        await upsertForetagWithCustomer(pipelineId, f)
+      // Parallella upserts med concurrency=5 för snabbare insättning
+      const queue = [...foretag]
+      async function upsertWorker() {
+        while (queue.length > 0) {
+          const f = queue.shift()
+          if (f) await upsertForetagWithCustomer(pipelineId, f).catch(() => {})
+        }
       }
+      await Promise.all(Array.from({ length: 5 }, upsertWorker))
       const dbAfter = await prisma.bolagsfaktaForetag.count({ where: { pipelineId } })
       console.log(`[bolagsfakta] Pipeline ${pipelineId} lista ${iter}: ${foretag.length} företag (${currentUrl})`)
       await bolagsfaktaPipelineListLog(
@@ -773,7 +794,7 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
 
     await prisma.bolagsfaktaPipeline.update({
       where: { id: pipelineId },
-      data: { status: 'COMPLETED', lastScrapedAt: new Date() },
+      data: { status: 'COMPLETED', lastScrapedAt: new Date(), scrapeCurrentPage: null, scrapeCurrentUrl: null },
     })
   } catch (err) {
     console.error(`[bolagsfakta] Fel:`, err)
@@ -782,7 +803,7 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
     )
     await prisma.bolagsfaktaPipeline.update({
       where: { id: pipelineId },
-      data: { status: 'STOPPED' },
+      data: { status: 'STOPPED', scrapeCurrentPage: null, scrapeCurrentUrl: null },
     })
     throw err
   } finally {

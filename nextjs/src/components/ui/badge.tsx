@@ -16,7 +16,7 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
           'border-brand-green/40 bg-brand-green/15 text-brand-green dark:border-brand-green/50 dark:bg-brand-green/20 dark:text-brand-beige': variant === 'success',
           'border-brand-brown/25 bg-brand-beige text-brand-brown dark:border-brand-beige/35 dark:bg-brand-brown/30 dark:text-brand-beige': variant === 'warning',
           'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-400': variant === 'danger',
-          'border-brand-green/30 bg-brand-beige/80 text-brand-green dark:border-brand-green/35 dark:bg-brand-brown/25 dark:text-brand-beige': variant === 'info',
+          'border-green-500/40 bg-green-500/10 text-green-700 dark:border-green-500/40 dark:bg-green-500/15 dark:text-green-400': variant === 'info',
           'border-brand-gray bg-brand-gray text-brand-foreground/80 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400': variant === 'gray',
         },
         className,

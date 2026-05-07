@@ -97,6 +97,8 @@ model BolagsfaktaPipeline {
   bolagsfaktaForetagCount Int?
   status                  BolagsfaktaPipelineStatus @default(IDLE)
   lastScrapedAt           DateTime?
+  scrapeCurrentPage       Int?
+  scrapeCurrentUrl        String?                   @db.VarChar(2048)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
   foretag                 BolagsfaktaForetag[]

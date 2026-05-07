@@ -258,7 +258,7 @@ async function collectTabHtml(
   const u = baseUrl.split('#')[0] + hash
   await logger?.info("tab_navigate", { hash, url: u })
   await page.goto(u, { waitUntil: 'load', timeout: 60000 })
-  await delay(1200)
+  await delay(500)
   const html = await page.content()
   await logger?.info("tab_html", { hash, htmlLength: html.length })
   return html

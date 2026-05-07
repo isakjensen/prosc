@@ -35,8 +35,8 @@ export const scrapePipelineQueue = new Queue('scrape-pipeline', {
 export const fetchDetailQueue = new Queue('fetch-detail', {
   connection: redisConnection,
   defaultJobOptions: {
-    attempts: 2,
-    backoff: { type: 'exponential', delay: 5000 },
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 10000 },
     removeOnComplete: { count: 200 },
     removeOnFail: { count: 500 },
   },

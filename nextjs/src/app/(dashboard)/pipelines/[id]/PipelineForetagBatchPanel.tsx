@@ -603,60 +603,37 @@ export default function PipelineForetagBatchPanel({
 
   return (
     <div className="relative">
-      <div className="flex flex-col gap-3 border-b border-gray-100 bg-gray-50/50 px-6 py-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-gray-600 max-w-xl leading-snug">
-            <span className="font-medium text-gray-800">Masshämta bolagsdata</span> — gäller den{" "}
-            <strong>synliga</strong> listan (filter/sök). Oskrapade = saknar data eller senaste körning
-            misslyckades. Alla valbara = inkluderar redan skrapade (för omhämtning).
-          </p>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={
-                batchRunning || siteBatchRunning || redlistRunning || queueableMissingRows.length === 0
-              }
-              onClick={() => void runBatch("missing")}
-            >
-              Endast oskrapade ({queueableMissingRows.length})
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={batchRunning || siteBatchRunning || redlistRunning || queueableRows.length === 0}
-              onClick={() => void runBatch("all")}
-            >
-              Alla valbara ({queueableRows.length})
-            </Button>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-gray-600 max-w-xl leading-snug">
-            <span className="font-medium text-gray-800">Webbplats-sökning</span> — kör samma
-            Bolagsfakta-detaljskrapning som uppdaterar webb/e-post/telefon via Google + AI. Gäller den{" "}
-            <strong>synliga</strong> listan. Använd markerade rader i verktygsraden nedan, eller kör för alla
-            som saknar webb här.
-          </p>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={
-                batchRunning ||
-                siteBatchRunning ||
-                redlistRunning ||
-                websiteMissingQueueableRows.length === 0
-              }
-              onClick={() => void runWebsiteBatch("missing")}
-            >
-              <Globe className="h-3.5 w-3.5" />
-              Saknar webbplats ({websiteMissingQueueableRows.length})
-            </Button>
-          </div>
-        </div>
+      <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 bg-gray-50/50 px-6 py-3">
+        <span className="text-xs font-medium text-gray-500 mr-1">Bolagsdata:</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={batchRunning || siteBatchRunning || redlistRunning || queueableMissingRows.length === 0}
+          onClick={() => void runBatch("missing")}
+        >
+          Oskrapade ({queueableMissingRows.length})
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          disabled={batchRunning || siteBatchRunning || redlistRunning || queueableRows.length === 0}
+          onClick={() => void runBatch("all")}
+        >
+          Alla ({queueableRows.length})
+        </Button>
+        <span className="text-gray-200 mx-1">|</span>
+        <span className="text-xs font-medium text-gray-500 mr-1">Webb:</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={batchRunning || siteBatchRunning || redlistRunning || websiteMissingQueueableRows.length === 0}
+          onClick={() => void runWebsiteBatch("missing")}
+        >
+          <Globe className="h-3.5 w-3.5" />
+          Saknar webb ({websiteMissingQueueableRows.length})
+        </Button>
       </div>
 
       {/* Collapsible filter panel (opened via header button) */}

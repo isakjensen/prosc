@@ -48,7 +48,7 @@ export function startFetchDetailWorker() {
     },
     {
       connection: redisConnection,
-      concurrency: 3, // Three detail scrapes at a time
+      concurrency: 3, // Three detail scrapes at a time (more causes Cloudflare timeouts)
       ...bullMqLongJobWorkerSettings,
     },
   )
@@ -73,18 +73,20 @@ export function startFetchDetailWorker() {
   worker.on('failed', (job, err) => {
     console.error(`[worker:fetch-detail] Failed job ${job?.id}:`, err.message)
     const foretagId = (job?.data as { foretagId?: string } | undefined)?.foretagId
-    if (foretagId) {
-      void prisma.bolagsfaktaForetag
-        .update({
-          where: { id: foretagId },
-          data: {
-            detailStatus: 'ERROR',
-            detailFinishedAt: new Date(),
-            detailError: err.message,
-          },
-        })
-        .catch(() => {})
-    }
+    if (!foretagId) return
+
+    const maxAttempts = job?.opts?.attempts ?? 1
+    const attemptsMade = job?.attemptsMade ?? 1
+    const isFinal = attemptsMade >= maxAttempts
+
+    void prisma.bolagsfaktaForetag
+      .update({
+        where: { id: foretagId },
+        data: isFinal
+          ? { detailStatus: 'ERROR', detailFinishedAt: new Date(), detailError: err.message }
+          : { detailStatus: 'QUEUED', detailError: err.message },
+      })
+      .catch(() => {})
   })
 
   console.log('[worker:fetch-detail] Worker started')

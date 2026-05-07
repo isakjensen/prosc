@@ -249,6 +249,22 @@ async function pollJobUntilComplete(
   }
 }
 
+/** POST /api/pipelines/:id/stop-details — avbryt köade detaljjobb */
+export async function stopDetailJobsViaApi(pipelineId: string): Promise<NextResponse> {
+  if (!getConfig()) return scrapingApiNotConfiguredResponse()
+  try {
+    const res = await scrapingApiFetch(`/api/pipelines/${encodeURIComponent(pipelineId)}/stop-details`, {
+      method: "POST",
+    })
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    if (res.ok) return NextResponse.json({ ok: true, ...body })
+    return scraperFailureResponse(res.status, body)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: SCRAPER_TROUBLE_MESSAGE, detail: msg }, { status: 503 })
+  }
+}
+
 /** POST /api/pipelines/:id/scrape */
 export async function runPipelineScrapeViaApi(pipelineId: string): Promise<NextResponse> {
   if (!getConfig()) return scrapingApiNotConfiguredResponse()
