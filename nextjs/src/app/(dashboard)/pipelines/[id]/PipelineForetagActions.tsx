@@ -300,7 +300,7 @@ export default function PipelineForetagActions({
         />
         <div
           ref={menuRef}
-          className="fixed z-[9999] min-w-[14rem] rounded-md border border-gray-200 bg-white py-1 shadow-xl"
+          className="fixed z-[9999] min-w-[14rem] rounded-md border border-gray-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
           style={{ top: menuPos.top, left: menuPos.left, width: MENU_WIDTH }}
         >
           {bolagsfaktaUrl && (
@@ -309,13 +309,13 @@ export default function PipelineForetagActions({
                 href={bolagsfaktaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center gap-2 rounded-none px-3 py-2 text-xs font-normal text-gray-700 hover:bg-gray-100"
+                className="flex w-full items-center gap-2 rounded-none px-3 py-2 text-xs font-normal text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
                 onClick={() => setOpen(false)}
               >
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 Öppna på Bolagsfakta
               </a>
-              <div className="my-1 border-t border-gray-100" role="separator" />
+              <div className="my-1 border-t border-gray-100 dark:border-zinc-700" role="separator" />
             </>
           )}
           <Button
@@ -372,7 +372,7 @@ export default function PipelineForetagActions({
           <div className="my-1 border-t border-gray-100" role="separator" />
           <Button
             variant="ghost"
-            className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto text-red-700 hover:bg-red-50 hover:text-red-800"
+            className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
             disabled={loading !== null}
             onClick={() => void removeFromPipeline()}
           >
@@ -388,7 +388,7 @@ export default function PipelineForetagActions({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+        className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700/80"
       >
         Åtgärder
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />

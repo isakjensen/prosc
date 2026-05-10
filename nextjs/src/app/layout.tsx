@@ -3,6 +3,7 @@ import { Ubuntu, Ubuntu_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar'
+import NextTopLoader from 'nextjs-toploader'
 
 const ubuntu = Ubuntu({
   subsets: ['latin'],
@@ -25,11 +26,10 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/bitrate-crm-favicon.png", type: "image/png", sizes: "32x32" },
-      { url: "/bitrate-crm-favicon.png", type: "image/png", sizes: "192x192" },
+      { url: "/bitrate-logo.png", type: "image/png", sizes: "192x192" },
     ],
-    apple: [{ url: "/bitrate-crm-favicon.png", sizes: "180x180", type: "image/png" }],
-    shortcut: "/bitrate-crm-favicon.png",
+    apple: [{ url: "/bitrate-logo.png", sizes: "180x180", type: "image/png" }],
+    shortcut: "/bitrate-logo.png",
   },
   appleWebApp: {
     capable: true,
@@ -56,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       data-scroll-behavior="smooth"
     >
       <body className="h-full font-sans antialiased">
+        <NextTopLoader color="#2563eb" showSpinner={false} height={2} shadow={false} />
         <ServiceWorkerRegistrar />
         <Providers>{children}</Providers>
       </body>

@@ -70,12 +70,15 @@ export async function newStealthPage(
   browser: Browser,
   opts?: { geolocation?: StealthPageGeolocation },
 ): Promise<Page> {
+  const { getRandomProxy } = await import('@/lib/proxy-pool')
+  const proxy = getRandomProxy()
   const context = await browser.newContext({
     userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 800 },
     locale: 'sv-SE',
     timezoneId: 'Europe/Stockholm',
+    ...(proxy ? { proxy } : {}),
     ...(opts?.geolocation
       ? {
           geolocation: {
@@ -606,6 +609,7 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
   if (!pipeline) throw new Error('Pipeline hittades inte')
 
   const { kommunSlug, branschSlug, branschKod } = pipeline
+  if (!kommunSlug || !branschSlug || !branschKod) throw new Error('Pipeline saknar kommun/bransch-data')
   const basePageUrl = `${BASE_URL}/bransch/${encodeURIComponent(kommunSlug)}/${encodeURIComponent(branschSlug)}/${branschKod}`
 
    const browser = await launchStealthBrowser()

@@ -48,7 +48,7 @@ export function startFetchDetailWorker() {
     },
     {
       connection: redisConnection,
-      concurrency: 3, // Three detail scrapes at a time (more causes Cloudflare timeouts)
+      concurrency: 8,
       ...bullMqLongJobWorkerSettings,
     },
   )

@@ -3,7 +3,6 @@ import type { Prisma } from '@prisma/client'
 import { UserUiTheme } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
-import bcrypt from 'bcryptjs'
 
 export async function GET() {
   const session = await auth()
@@ -71,17 +70,6 @@ export async function PATCH(request: NextRequest) {
       }
     }
     data.email = body.email
-  }
-
-  if (body.newPassword) {
-    if (!body.currentPassword) {
-      return NextResponse.json({ error: 'Nuvarande lösenord krävs' }, { status: 400 })
-    }
-    const valid = await bcrypt.compare(body.currentPassword, user.passwordHash)
-    if (!valid) {
-      return NextResponse.json({ error: 'Felaktigt nuvarande lösenord' }, { status: 403 })
-    }
-    data.passwordHash = await bcrypt.hash(body.newPassword, 10)
   }
 
   if (body.themePreference !== undefined) {

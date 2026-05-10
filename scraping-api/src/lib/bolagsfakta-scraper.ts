@@ -51,14 +51,17 @@ export type StealthPageGeolocation = {
 
 export async function newStealthPage(
   browser: Browser,
-  opts?: { geolocation?: StealthPageGeolocation },
+  opts?: { geolocation?: StealthPageGeolocation; noProxy?: boolean },
 ): Promise<Page> {
+  const { getRandomProxy } = await import('./proxy-pool.js')
+  const proxy = opts?.noProxy ? undefined : getRandomProxy()
   const context = await browser.newContext({
     userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 800 },
     locale: 'sv-SE',
     timezoneId: 'Europe/Stockholm',
+    ...(proxy ? { proxy } : {}),
     ...(opts?.geolocation
       ? {
           geolocation: {
@@ -139,7 +142,7 @@ async function loadBranschListPageHtmlPair(page: Page, url: string): Promise<{
   let domHtml = await page.content()
   // Paginerade listor: SSR för ?sida=N kan vara tom medan Vue fyller listan i DOM.
   if (/[?&](sida|page)=\d+/i.test(url)) {
-    await delay(2400)
+    await delay(600)
     try {
       await page.evaluate(() => {
         window.scrollTo(0, Math.min(document.body.scrollHeight, 14000))
@@ -147,7 +150,7 @@ async function loadBranschListPageHtmlPair(page: Page, url: string): Promise<{
     } catch {
       /* ignore */
     }
-    await delay(800)
+    await delay(200)
     domHtml = await page.content()
   }
   return { ssrHtml, domHtml }
@@ -518,9 +521,19 @@ function mergeForetagParsed(a: Foretag[], b: Foretag[]): Foretag[] {
   return [...map.values()]
 }
 
-async function upsertForetagWithCustomer(pipelineId: string, f: Foretag) {
+async function upsertForetagWithCustomer(pipelineId: string, f: Foretag, nameContainsPhrases: string[]) {
   // Bolag med bannrade fraser i namnet ignoreras helt — ingen DB-rad skapas
   if (shouldAutoRedlistByName(f.namn)) return
+
+  // Kolla DB-baserade namnfilter
+  if (f.namn) {
+    const lower = f.namn.toLowerCase()
+    if (nameContainsPhrases.some((phrase) => lower.includes(phrase))) return
+  }
+
+  // Enskilda firmor och enskilda näringsidkare ignoreras — precis som redlistade
+  const EF_BOLAGSFORMS = ['enskild firma', 'enskild näringsidkare']
+  if (f.bolagsform && EF_BOLAGSFORMS.includes(f.bolagsform.toLowerCase())) return
 
   const url = absolutizeBolagsfaktaUrl(f.url)
   if (url) {
@@ -613,18 +626,44 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
   const { kommunSlug, branschSlug, branschKod } = pipeline
   const basePageUrl = `${BASE_URL}/bransch/${encodeURIComponent(kommunSlug)}/${encodeURIComponent(branschSlug)}/${branschKod}`
 
-  const browser = await launchStealthBrowser()
+  let browser = await launchStealthBrowser()
 
   try {
-    const page = await newStealthPage(browser)
+    const proxyConfigured = Boolean(process.env.PROXY_SERVER?.trim() && process.env.PROXY_USERNAME?.trim())
+    let page = await newStealthPage(browser)
+    let usingProxy = proxyConfigured
 
-    let { ssrHtml, domHtml } = await loadBranschListPageHtmlPair(page, basePageUrl)
+    let firstPair = await loadBranschListPageHtmlPair(page, basePageUrl)
+
+    // Diagnostik: logga vad proxyn returnerade
+    if (proxyConfigured) {
+      const ssrSnippet = firstPair.ssrHtml.slice(0, 300).replace(/\s+/g, ' ')
+      const domSnippet = firstPair.domHtml.slice(0, 300).replace(/\s+/g, ' ')
+      const cfBlock = isCloudflareBlockHtml(firstPair.ssrHtml) || isCloudflareBlockHtml(firstPair.domHtml)
+      const companiesFound = parseForetagFromHtml(firstPair.ssrHtml).length + parseForetagFromHtml(firstPair.domHtml).length
+      console.log(`[proxy-debug] ssrLen=${firstPair.ssrHtml.length} domLen=${firstPair.domHtml.length} cfBlock=${cfBlock} companies=${companiesFound}`)
+      console.log(`[proxy-debug] ssrSnippet: ${ssrSnippet}`)
+      console.log(`[proxy-debug] domSnippet: ${domSnippet}`)
+    }
+
+    // Tom sida med proxy — stäng och försök utan proxy
+    if (proxyConfigured && parseForetagFromHtml(firstPair.ssrHtml).length === 0 && parseForetagFromHtml(firstPair.domHtml).length === 0) {
+      console.log(`[bolagsfakta] Pipeline ${pipelineId}: proxy gav tom sida, försöker utan proxy`)
+      await bolagsfaktaPipelineListLog(`PROXY_FALLBACK pipelineId=${pipelineId} — tom första sida med proxy, startar om utan proxy`)
+      await browser.close()
+      browser = await launchStealthBrowser()
+      page = await newStealthPage(browser, { noProxy: true })
+      firstPair = await loadBranschListPageHtmlPair(page, basePageUrl)
+      usingProxy = false
+    }
+
+    let { ssrHtml, domHtml } = firstPair
     const pageParam = detectBranschListPaginationParam(`${ssrHtml}\n${domHtml}`)
     const listingPath = branschListingPathname(basePageUrl)
     const visited = new Set<string>([normalizeListUrlForDedup(basePageUrl)])
 
     await bolagsfaktaPipelineListLog(
-      `SESSION START pipelineId=${pipelineId} basePageUrl=${basePageUrl} listingPath=${listingPath} pageParam=${pageParam} bolagsfaktaForetagCount_index=${pipeline.bolagsfaktaForetagCount ?? 'null'}`,
+      `SESSION START pipelineId=${pipelineId} basePageUrl=${basePageUrl} listingPath=${listingPath} pageParam=${pageParam} usingProxy=${usingProxy} bolagsfaktaForetagCount_index=${pipeline.bolagsfaktaForetagCount ?? 'null'}`,
     )
 
     const MAX_LIST_PAGES = 150
@@ -682,12 +721,19 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
       }
 
       const dbBefore = await prisma.bolagsfaktaForetag.count({ where: { pipelineId } })
+      // Hämta namnfilter en gång per sida
+      const nameContainsPhrases = (
+        await prisma.bolagsfaktaRedlistEntry.findMany({
+          where: { nameContains: { not: null } },
+          select: { nameContains: true },
+        })
+      ).map((e) => e.nameContains as string)
       // Parallella upserts med concurrency=5 för snabbare insättning
       const queue = [...foretag]
       async function upsertWorker() {
         while (queue.length > 0) {
           const f = queue.shift()
-          if (f) await upsertForetagWithCustomer(pipelineId, f).catch(() => {})
+          if (f) await upsertForetagWithCustomer(pipelineId, f, nameContainsPhrases).catch(() => {})
         }
       }
       await Promise.all(Array.from({ length: 5 }, upsertWorker))
@@ -776,7 +822,7 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
       }
 
       visited.add(normalizeListUrlForDedup(nextUrl))
-      await delay(1000 + Math.random() * 1500)
+      await delay(400 + Math.random() * 400)
       const nextPair = await loadBranschListPageHtmlPair(page, nextUrl)
       ssrHtml = nextPair.ssrHtml
       domHtml = nextPair.domHtml

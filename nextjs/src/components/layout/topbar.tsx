@@ -2,38 +2,27 @@
 
 import { useState, useEffect } from 'react'
 import { signOut, useSession } from 'next-auth/react'
-import { Menu, Sun, Moon, LogOut, ChevronLeft } from 'lucide-react'
+import { Menu, Sun, Moon, LogOut } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 import { GlobalSearch } from './global-search'
 import { NotificationCenter } from './notification-center'
 import { UserAvatar } from './user-avatar'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
 
 interface TopbarProps {
   onMenuClick: () => void
 }
 
-const ROOT_PATHS = [
-  '/dashboard', '/contacts', '/customers', '/quotes', '/invoices',
-  '/contracts', '/support', '/projects', '/tasks', '/pipelines',
-  '/prospects', '/meetings', '/knowledge-base', '/reports',
-  '/settings', '/profile', '/users', '/calendar', '/system-logs',
-  '/outreach-planning',
-]
 
 export function Topbar({ onMenuClick }: TopbarProps) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const { theme, setTheme } = useTheme()
-  const router = useRouter()
-  const pathname = usePathname()
 
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
   const nextTheme = theme === 'light' ? 'dark' : 'light'
   const ThemeIcon = mounted && theme === 'dark' ? Moon : Sun
-  const showBack = !ROOT_PATHS.includes(pathname)
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-brand-gray dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 lg:px-6">
@@ -45,15 +34,6 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        {showBack && (
-          <button
-            onClick={() => router.back()}
-            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors"
-            aria-label="Tillbaka"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-        )}
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
@@ -81,11 +61,15 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           title="Min profil"
           className="rounded-full ring-1 ring-gray-200 dark:ring-zinc-600 hover:ring-zinc-400 dark:hover:ring-zinc-500 transition-[box-shadow] shrink-0"
         >
-          <UserAvatar
-            src={session?.user?.image}
-            name={session?.user?.name}
-            className="h-8 w-8"
-          />
+          {status === 'loading' ? (
+            <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-zinc-800" />
+          ) : (
+            <UserAvatar
+              src={session?.user?.image}
+              name={session?.user?.name}
+              className="h-8 w-8"
+            />
+          )}
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}

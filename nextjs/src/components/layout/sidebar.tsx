@@ -80,20 +80,25 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex h-full flex-col bg-white dark:bg-zinc-900 border-r border-brand-gray dark:border-zinc-800">
       {/* Logo */}
-      <div className="flex h-14 shrink-0 items-center px-5 border-b border-brand-gray dark:border-zinc-800">
+      <div className="flex h-14 shrink-0 items-center px-4 border-b border-brand-gray dark:border-zinc-800">
         <Link
           href="/dashboard"
           onClick={onClose}
           className="flex items-center gap-2.5 min-w-0"
         >
-          <Image
-            src="/bitrate-crm-logo-transparent.png"
-            alt="Bitrate CRM"
-            width={168}
-            height={40}
-            className="h-8 w-auto max-w-[9.5rem] object-contain object-left shrink-0 dark:brightness-110 dark:contrast-95"
-            priority
-          />
+          <div className="h-8 w-8 shrink-0 rounded-lg overflow-hidden bg-white dark:bg-blue-950 shadow-sm dark:shadow-blue-950/50">
+            <Image
+              src="/bitrate-logo.png"
+              alt="Bitrate"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-cover"
+              priority
+            />
+          </div>
+          <span className="font-bold text-[13.5px] tracking-tight text-gray-900 dark:text-white truncate">
+            Bitrate CRM
+          </span>
         </Link>
       </div>
 

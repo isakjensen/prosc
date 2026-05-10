@@ -3,7 +3,8 @@ import { formatDateTime } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ChevronRight, ExternalLink } from "lucide-react"
+import { ExternalLink } from "lucide-react"
+import { BackButton } from "@/components/ui/back-button"
 import PipelineActions from "./PipelineActions"
 import { type PipelineForetagRow } from "./PipelineForetagTable"
 import PipelineForetagBatchPanel from "./PipelineForetagBatchPanel"
@@ -38,7 +39,9 @@ export default async function PipelineDetailPage({ params }: PageProps) {
   // Fire-and-forget — blockerar inte sidladdning
   void reconcileBolagsfaktaStaleStatusViaApi(id)
 
-  const [pipeline, activeDetailCount] = await Promise.all([
+  const EF_BOLAGSFORMS = ['enskild firma', 'enskild näringsidkare']
+
+  const [pipeline, activeDetailCount, filteredForetagCount] = await Promise.all([
     prisma.bolagsfaktaPipeline.findUnique({
       where: { id },
       include: {
@@ -58,6 +61,13 @@ export default async function PipelineDetailPage({ params }: PageProps) {
     }),
     prisma.bolagsfaktaForetag.count({
       where: { pipelineId: id, detailStatus: { in: ["QUEUED", "RUNNING"] } },
+    }),
+    prisma.bolagsfaktaForetag.count({
+      where: {
+        pipelineId: id,
+        isRedlisted: false,
+        bolagsform: { notIn: EF_BOLAGSFORMS },
+      },
     }),
   ])
 
@@ -101,131 +111,120 @@ export default async function PipelineDetailPage({ params }: PageProps) {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <Link href="/pipelines" className="hover:text-gray-600 transition-colors">Pipeline</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-600">{pipeline.namn}</span>
-        </div>
-        <div className="flex flex-col gap-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{pipeline.namn}</h1>
-                <div className="flex items-center gap-2">
-                  {(pipeline.status === 'RUNNING' || (pipeline.status === 'COMPLETED' && activeDetailCount > 0)) && (
-                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-600 animate-pulse" />
-                  )}
-                  {pipeline.status === 'COMPLETED' && activeDetailCount > 0 ? (
-                    <Badge variant="info">Hämtar data…</Badge>
-                  ) : (
-                    <Badge variant={statusVariant[pipeline.status] ?? 'gray'}>
-                      {statusLabel[pipeline.status] ?? pipeline.status}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-gray-500 sm:gap-x-3">
-                <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-1">
-                  <span className="shrink-0 text-gray-400">Senast skrapad:</span>{" "}
-                  {pipeline.lastScrapedAt ? (
+        <BackButton href="/pipelines" label="Pipeline" />
+
+        {/* Titel + åtgärder */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{pipeline.namn}</h1>
+              {pipeline.status === 'COMPLETED' && activeDetailCount > 0 ? (
+                <Badge variant="info">Hämtar data…</Badge>
+              ) : (
+                <Badge variant={statusVariant[pipeline.status] ?? 'gray'}>
+                  {statusLabel[pipeline.status] ?? pipeline.status}
+                </Badge>
+              )}
+            </div>
+
+            {/* Metadata-rad */}
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+              <span>
+                <span className="text-gray-400">Kommun: </span>
+                <span className="font-medium text-gray-600">{pipeline.kommunNamn}</span>
+              </span>
+              <span className="text-gray-300" aria-hidden>·</span>
+              <span>
+                <span className="text-gray-400">Bransch: </span>
+                <span className="font-medium text-gray-600">{pipeline.branschNamn}</span>
+              </span>
+              {pipeline.lastScrapedAt && (
+                <>
+                  <span className="text-gray-300" aria-hidden>·</span>
+                  <span>
+                    <span className="text-gray-400">Skrapad: </span>
                     <time
                       dateTime={pipeline.lastScrapedAt.toISOString()}
                       className="font-medium text-gray-600 tabular-nums"
                     >
                       {formatDateTime(pipeline.lastScrapedAt)}
                     </time>
-                  ) : (
-                    <span className="text-gray-400">–</span>
-                  )}
-                </span>
-                <span
-                  className="hidden text-gray-300 sm:inline sm:shrink-0"
-                  aria-hidden
-                >
-                  ·
-                </span>
-                <span className="min-w-0 sm:max-w-[min(100%,28rem)]">
-                  <span className="text-gray-400">Kommun:</span>{" "}
-                  <span className="text-gray-600">{pipeline.kommunNamn}</span>
-                </span>
-                <span
-                  className="hidden text-gray-300 sm:inline sm:shrink-0"
-                  aria-hidden
-                >
-                  ·
-                </span>
-                <span className="min-w-0 basis-full sm:basis-auto sm:max-w-none">
-                  <span className="text-gray-400">Bransch:</span>{" "}
-                  <span className="text-gray-600">
-                    {pipeline.branschKod} – {pipeline.branschNamn}
                   </span>
-                </span>
-                {bolagsfaktaListUrl ? (
-                  <>
-                    <span
-                      className="hidden text-gray-300 sm:inline sm:shrink-0"
-                      aria-hidden
-                    >
-                      ·
-                    </span>
-                    <a
-                      href={bolagsfaktaListUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex basis-full items-center gap-1.5 font-medium text-gray-700 underline decoration-gray-400 underline-offset-2 hover:text-gray-900 hover:decoration-gray-600 sm:basis-auto"
-                    >
-                      Öppna fullständig företagslista på Bolagsfakta
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    </a>
-                  </>
-                ) : null}
-              </div>
+                </>
+              )}
+              {bolagsfaktaListUrl && (
+                <>
+                  <span className="text-gray-300" aria-hidden>·</span>
+                  <a
+                    href={bolagsfaktaListUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-brand-brown hover:underline underline-offset-2"
+                  >
+                    Bolagsfakta
+                    <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                  </a>
+                </>
+              )}
             </div>
-            <PipelineActions pipelineId={id} status={pipeline.status} hasActiveDetailJobs={activeDetailCount > 0} />
           </div>
-          <div className="flex w-full min-w-0 flex-col gap-1.5">
-            <PipelineLiveStatus
-              pipelineId={id}
-              initialStatus={pipeline.status}
-              initialForetagCount={pipeline._count.foretag}
-              bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
-              initialActiveDetailCount={activeDetailCount}
-            />
-            {activeDetailCount === 0 && (
-              <PipelineScrapeCompleteBanner
-                status={pipeline.status}
-                listForetagCount={pipeline._count.foretag}
-              />
-            )}
-            <PipelineForetagCountComparison
-              bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
-              scrapedCount={pipeline._count.foretag}
-              bolagsfaktaListUrl={bolagsfaktaListUrl}
-              showBolagsfaktaListLink={false}
-            />
-          </div>
+
+          <PipelineActions pipelineId={id} status={pipeline.status} hasActiveDetailJobs={activeDetailCount > 0} />
         </div>
       </div>
 
-      {/* Resultat */}
+      {/* Live status (scraping pågår) */}
+      <PipelineLiveStatus
+        pipelineId={id}
+        initialStatus={pipeline.status}
+        initialForetagCount={pipeline._count.foretag}
+        bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
+        initialActiveDetailCount={activeDetailCount}
+      />
+
+      {/* Klar-banner */}
+      {activeDetailCount === 0 && (
+        <PipelineScrapeCompleteBanner
+          status={pipeline.status}
+          listForetagCount={pipeline._count.foretag}
+        />
+      )}
+
+      {/* Antal-jämförelse */}
+      <PipelineForetagCountComparison
+        bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
+        scrapedCount={filteredForetagCount}
+        bolagsfaktaListUrl={bolagsfaktaListUrl}
+        showBolagsfaktaListLink={false}
+      />
+
+      {/* Företagstabell */}
       <div className="panel-surface">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between gap-3">
           <PipelineForetagPanelHeading
             pipelineId={id}
             initialTotalCount={pipeline._count.foretag}
             pipelineStatus={pipeline.status}
           />
           {pipeline._count.foretag > 100 && (
-            <span className="text-sm text-gray-400 shrink-0">Visar de 100 senaste i tabellen</span>
+            <span className="text-xs text-gray-400 shrink-0">Visar de 100 senaste</span>
           )}
         </div>
         {pipeline.foretag.length === 0 && pipeline.status !== "RUNNING" ? (
-          <p className="px-6 py-6 text-sm text-gray-400">
-            Inga företag ännu. Starta scraping för att hämta företag från Bolagsfakta.
-          </p>
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-brand-gray flex items-center justify-center">
+              <svg className="h-6 w-6 text-brand-brown/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 00-1-1h-2a1 1 0 00-1 1v5m4 0H9" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">Inga företag ännu</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">Klicka "Starta scraping" för att hämta företag från Bolagsfakta.</p>
+            </div>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <PipelineForetagBatchPanel

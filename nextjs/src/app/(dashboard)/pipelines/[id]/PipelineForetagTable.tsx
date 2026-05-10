@@ -124,7 +124,7 @@ function rowAccentClass(f: PipelineForetagRow, status?: BatchStatus) {
   if (f.customerStage === "PROSPECT" || f.customerStage === "CUSTOMER") {
     return "border-l-4 border-l-brand-green bg-brand-green/15 hover:bg-brand-green/20 dark:bg-brand-green/20 dark:hover:bg-brand-green/25"
   }
-  return "hover:bg-gray-50"
+  return "hover:bg-gray-50 dark:hover:bg-zinc-800/60"
 }
 
 function stageBadge(
@@ -295,7 +295,7 @@ export default function PipelineForetagTable({
   return (
     <table className="w-full min-w-[64rem] text-sm">
       <thead>
-        <tr className="border-b border-gray-100 bg-gray-50/50">
+        <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-zinc-800 dark:bg-zinc-800/50">
           {hasSelection && (
             <th className="pl-4 pr-2 py-3 align-middle w-10">
               <input
@@ -318,7 +318,7 @@ export default function PipelineForetagTable({
             Status
           </th>
           <th className="px-3 py-3 align-middle text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-[5.5rem] whitespace-nowrap">
-            BF-data
+            Data
           </th>
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[10rem]">
             Företag
@@ -333,7 +333,10 @@ export default function PipelineForetagTable({
             Ekonomi
           </th>
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 whitespace-nowrap">
-            Bolagsform
+            Form
+          </th>
+          <th className="px-6 py-3 align-middle text-right text-xs font-semibold uppercase tracking-wide text-gray-400 whitespace-nowrap">
+            Tid
           </th>
           <th className="px-6 py-3 align-middle text-left text-xs font-semibold uppercase tracking-wide text-gray-400 min-w-[10rem]">
             Webbplats
@@ -343,7 +346,7 @@ export default function PipelineForetagTable({
           </th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-100">
+      <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
         {rows.map((f) => {
           const stage = stageBadge(f.customerId, f.customerStage)
           const eligible = isEligibleForBatch(f)
@@ -351,7 +354,7 @@ export default function PipelineForetagTable({
           const rowError = siteErrors?.get(f.id) ?? errors?.get(f.id)
           const nameClass = f.hasBolagsfakta
             ? "font-medium text-brand-green hover:opacity-90 transition-colors inline-block max-w-full break-words"
-            : "font-medium text-gray-900 hover:text-zinc-600 transition-colors inline-block max-w-full break-words"
+            : "font-medium text-gray-900 dark:text-zinc-200 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors inline-block max-w-full break-words"
 
           const nameInner = (
             <span className="inline-flex flex-wrap items-center gap-1.5">
@@ -434,20 +437,20 @@ export default function PipelineForetagTable({
                   )}
                 </div>
               </td>
-              <td className="px-6 py-3 align-middle text-xs text-gray-500 whitespace-normal break-words leading-snug">
+              <td className="px-6 py-3 align-middle text-xs text-gray-500 dark:text-zinc-400 whitespace-normal break-words leading-snug">
                 {f.adress ?? "–"}
               </td>
-              <td className="px-6 py-3 align-middle text-gray-500 whitespace-nowrap">{f.orgNummer ?? "–"}</td>
+              <td className="px-6 py-3 align-middle text-gray-500 dark:text-zinc-400 whitespace-nowrap">{f.orgNummer ?? "–"}</td>
               <td className="px-6 py-3 align-middle">
                 {f.omsattning || f.ebitda || f.aretsResultat ? (
                   <div className="flex flex-col gap-0.5 text-xs">
                     {f.omsattning && (
-                      <span className="text-gray-600 whitespace-nowrap">
-                        <span className="text-gray-400">Oms </span>{f.omsattning}
+                      <span className="font-medium text-gray-800 dark:text-zinc-200 whitespace-nowrap tabular-nums">
+                        {f.omsattning}
                       </span>
                     )}
                     {f.ebitda && (
-                      <span className="text-gray-600 whitespace-nowrap">
+                      <span className="text-gray-500 whitespace-nowrap tabular-nums">
                         <span className="text-gray-400">EBITDA </span>{f.ebitda}
                       </span>
                     )}
@@ -455,7 +458,7 @@ export default function PipelineForetagTable({
                       const sign = parseResultatSign(f.aretsResultat)
                       if (!sign) return null
                       return (
-                        <span className={sign === "positive" ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                        <span className={sign === "positive" ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
                           {sign === "positive" ? "▲ Vinst" : "▼ Förlust"}
                         </span>
                       )
@@ -465,10 +468,19 @@ export default function PipelineForetagTable({
                   <span className="text-gray-300 text-xs">–</span>
                 )}
               </td>
-              <td className="px-6 py-3 align-middle text-gray-500 whitespace-nowrap">
+              <td className="px-6 py-3 align-middle text-gray-500 dark:text-zinc-400 whitespace-nowrap">
                 {abbreviateBolagsform(f.bolagsform)}
               </td>
-              <td className="px-6 py-3 align-middle text-gray-500 min-w-[10rem] max-w-[14rem]">
+              <td className="px-6 py-3 align-middle text-right whitespace-nowrap">
+                {f.detailStatus === "SUCCESS" && f.detailStartedAt && f.detailFinishedAt ? (
+                  <span className="text-xs tabular-nums text-gray-400 dark:text-zinc-500">
+                    {((new Date(f.detailFinishedAt).getTime() - new Date(f.detailStartedAt).getTime()) / 1000).toFixed(1)}s
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-300 dark:text-zinc-700">–</span>
+                )}
+              </td>
+              <td className="px-6 py-3 align-middle text-gray-500 dark:text-zinc-400 min-w-[10rem] max-w-[14rem]">
                 {f.website ? (
                   <a
                     href={
@@ -478,7 +490,7 @@ export default function PipelineForetagTable({
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-zinc-800 hover:underline break-all line-clamp-2"
+                    className="text-zinc-800 dark:text-zinc-300 hover:underline break-all line-clamp-2"
                   >
                     {f.website}
                   </a>

@@ -3,7 +3,7 @@ import { formatDate } from '@/lib/utils'
 import { EditContactButton } from '@/app/(dashboard)/customers/[id]/KundEditActions'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronRight } from 'lucide-react'
+import { BackButton } from '@/components/ui/back-button'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -31,11 +31,7 @@ export default async function KontaktDetailPage({ params }: PageProps) {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <Link href="/contacts" className="hover:text-gray-600 transition-colors">Kontakter</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-600">{contact.firstName} {contact.lastName}</span>
-        </div>
+        <BackButton href="/contacts" label="Kontakter" />
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">

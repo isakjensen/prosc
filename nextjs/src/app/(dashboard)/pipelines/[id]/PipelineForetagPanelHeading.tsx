@@ -39,7 +39,7 @@ export default function PipelineForetagPanelHeading({
   }, [pipelineId, pipelineStatus])
 
   return (
-    <h2 className="text-sm font-semibold text-gray-900 inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+    <h2 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 inline-flex flex-wrap items-center gap-x-2 gap-y-1">
       <span>
         Företag (<span className="tabular-nums">{count}</span>)
       </span>

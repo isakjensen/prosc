@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
-import { Loader2, Play, Square, RotateCcw, Globe } from "lucide-react"
+import { Loader2, Play, Square, RotateCcw, Globe, Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import PipelineForetagTable, {
@@ -603,53 +603,85 @@ export default function PipelineForetagBatchPanel({
 
   return (
     <div className="relative">
-      <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 bg-gray-50/50 px-6 py-3">
-        <span className="text-xs font-medium text-gray-500 mr-1">Bolagsdata:</span>
+      {/* Always-visible toolbar */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 bg-gray-50/50 dark:border-zinc-800 dark:bg-zinc-800/40 px-4 py-2.5">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[10rem] max-w-[18rem]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Sök namn, org.nr…"
+            className="pl-8 h-8 text-sm"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="h-5 w-px bg-gray-200 shrink-0" />
+
+        {/* Batch data actions */}
+        <span className="text-xs font-medium text-gray-400 shrink-0">Hämta data</span>
         <Button
           type="button"
           variant="outline"
           size="sm"
+          className="h-8"
           disabled={batchRunning || siteBatchRunning || redlistRunning || queueableMissingRows.length === 0}
           onClick={() => void runBatch("missing")}
         >
-          Oskrapade ({queueableMissingRows.length})
+          Saknade ({queueableMissingRows.length})
         </Button>
         <Button
           type="button"
           size="sm"
+          className="h-8"
           disabled={batchRunning || siteBatchRunning || redlistRunning || queueableRows.length === 0}
           onClick={() => void runBatch("all")}
         >
           Alla ({queueableRows.length})
         </Button>
-        <span className="text-gray-200 mx-1">|</span>
-        <span className="text-xs font-medium text-gray-500 mr-1">Webb:</span>
+
+        <div className="h-5 w-px bg-gray-200 shrink-0" />
+
+        {/* Website scan */}
         <Button
           type="button"
           variant="outline"
           size="sm"
+          className="h-8"
           disabled={batchRunning || siteBatchRunning || redlistRunning || websiteMissingQueueableRows.length === 0}
           onClick={() => void runWebsiteBatch("missing")}
         >
           <Globe className="h-3.5 w-3.5" />
-          Saknar webb ({websiteMissingQueueableRows.length})
+          Sök webb ({websiteMissingQueueableRows.length})
         </Button>
+
+        {/* Row count */}
+        <span className="ml-auto text-xs text-gray-400 shrink-0 tabular-nums">
+          {visibleRows.length !== liveListTotal ? (
+            <>{visibleRows.length} av {liveListTotal.toLocaleString('sv')}</>
+          ) : (
+            <>{liveListTotal.toLocaleString('sv')} företag</>
+          )}
+          {pipelineStatus === "RUNNING" && (
+            <Loader2 className="inline ml-1.5 h-3 w-3 animate-spin text-brand-green" aria-hidden />
+          )}
+        </span>
       </div>
 
       {/* Collapsible filter panel (opened via header button) */}
       {filtersOpen && (
-        <div className="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end">
-            <div className="sm:col-span-6">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Sök</label>
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Sök på namn, org.nr eller adress…"
-              />
-            </div>
-
-            <div className="sm:col-span-3">
+        <div className="border-b border-gray-100 bg-gray-50/50 dark:border-zinc-800 dark:bg-zinc-800/40 px-6 py-4">
+          <div className="flex flex-wrap gap-x-6 gap-y-3 items-end">
+            <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Sortera efter</label>
               <Select
                 value={sortBy}
@@ -672,7 +704,7 @@ export default function PipelineForetagBatchPanel({
               </Select>
             </div>
 
-            <div className="sm:col-span-3">
+            <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Ordning</label>
               <Select
                 value={sortOrder}
@@ -683,8 +715,8 @@ export default function PipelineForetagBatchPanel({
               </Select>
             </div>
 
-            <div className="sm:col-span-4">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">CRM-status</label>
               <Select
                 value={stageFilter}
                 onChange={(e) => {
@@ -702,191 +734,151 @@ export default function PipelineForetagBatchPanel({
                   }
                 }}
               >
-                <option value="all">Alla</option>
-                <option value="PIPELINE">Pipeline (ej kund)</option>
-                <option value="SCRAPED">SCRAPED</option>
-                <option value="PROSPECT">PROSPECT</option>
-                <option value="CUSTOMER">CUSTOMER</option>
-                <option value="ARCHIVED">ARCHIVED</option>
+                <option value="all">Alla statusar</option>
+                <option value="PIPELINE">Ej kund</option>
+                <option value="SCRAPED">Scrapad</option>
+                <option value="PROSPECT">Prospect</option>
+                <option value="CUSTOMER">Kund</option>
+                <option value="ARCHIVED">Arkiverad</option>
               </Select>
             </div>
 
-            <div className="sm:col-span-8">
-              <label className="block text-xs font-medium text-gray-500 mb-2">Avancerat</label>
-              <div className="grid grid-cols-1 gap-x-8 gap-y-3 rounded-md border border-gray-100 bg-white/60 px-3 py-2 sm:grid-cols-2 lg:grid-cols-4">
-                <label className="flex items-center gap-2.5 text-sm text-gray-700 select-none">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
-                    checked={onlyMissingFixedData}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setOnlyMissingFixedData(checked)
-                      if (checked) setOnlyHasFetchedData(false)
-                    }}
-                  />
-                  Saknar bolagsdata
-                </label>
-
-                <label className="flex items-center gap-2.5 text-sm text-gray-700 select-none">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
-                    checked={onlyHasFetchedData}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setOnlyHasFetchedData(checked)
-                      if (checked) setOnlyMissingFixedData(false)
-                    }}
-                  />
-                  Har bolagsdata
-                </label>
-
-                <label className="flex items-center gap-2.5 text-sm text-gray-700 select-none">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
-                    checked={hideRedlisted}
-                    onChange={(e) => setHideRedlisted(e.target.checked)}
-                  />
-                  Dölj redlistade
-                </label>
-
-                <label className="flex items-center gap-2.5 text-sm text-gray-700 select-none">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
-                    checked={onlyEligibleForBatch}
-                    onChange={(e) => setOnlyEligibleForBatch(e.target.checked)}
-                  />
-                  Endast valbara (multi-fetch)
-                </label>
-              </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 items-center pt-1">
+              <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                  checked={onlyMissingFixedData}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setOnlyMissingFixedData(checked)
+                    if (checked) setOnlyHasFetchedData(false)
+                  }}
+                />
+                Saknar bolagsdata
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                  checked={onlyHasFetchedData}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setOnlyHasFetchedData(checked)
+                    if (checked) setOnlyMissingFixedData(false)
+                  }}
+                />
+                Har bolagsdata
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                  checked={hideRedlisted}
+                  onChange={(e) => setHideRedlisted(e.target.checked)}
+                />
+                Dölj redlistade
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                  checked={onlyEligibleForBatch}
+                  onChange={(e) => setOnlyEligibleForBatch(e.target.checked)}
+                />
+                Valbara för batch
+              </label>
             </div>
 
-            <div className="sm:col-span-12 flex items-center justify-between gap-3 pt-1">
-              <p className="text-xs text-gray-500">
-                Visar <span className="font-medium text-gray-700">{visibleRows.length}</span> av{" "}
-                <span className="font-medium text-gray-700 tabular-nums">{liveListTotal}</span>
-                {pipelineStatus === "RUNNING" ? (
-                  <span className="ml-1.5 inline-flex items-center gap-1 text-brand-green">
-                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                    Uppdateras…
-                  </span>
-                ) : null}
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setQuery("")
-                  setSortBy("name")
-                  setSortOrder("asc")
-                  setStageFilter("all")
-                  setOnlyMissingFixedData(false)
-                  setOnlyHasFetchedData(false)
-                  setHideRedlisted(false)
-                  setOnlyEligibleForBatch(false)
-                }}
-              >
-                Återställ filter
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto self-end"
+              onClick={() => {
+                setQuery("")
+                setSortBy("name")
+                setSortOrder("asc")
+                setStageFilter("all")
+                setOnlyMissingFixedData(false)
+                setOnlyHasFetchedData(false)
+                setHideRedlisted(false)
+                setOnlyEligibleForBatch(false)
+              }}
+            >
+              Återställ
+            </Button>
           </div>
         </div>
       )}
 
       {showBar && (
-        <div className="sticky top-0 left-0 right-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-          <div className="flex items-center gap-3 text-sm min-w-0">
+        <div className="sticky top-0 left-0 right-0 z-10 border-b border-gray-200 dark:border-zinc-700 bg-white/96 dark:bg-zinc-900/96 backdrop-blur-sm px-5 py-2.5 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between shadow-sm">
+          <div className="flex items-center gap-2.5 text-sm min-w-0">
             {batchRunning ? (
               <>
-                <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
-                <span className="text-gray-700">
-                  Hämtar bolagsdata... <span className="font-semibold">{processedCount}</span> av{" "}
-                  <span className="font-semibold">{totalBatch}</span>
+                <Loader2 className="h-3.5 w-3.5 text-brand-brown animate-spin shrink-0" />
+                <span className="text-gray-700 dark:text-zinc-300">
+                  Hämtar bolagsdata
+                  <span className="ml-1.5 font-semibold tabular-nums">{processedCount}/{totalBatch}</span>
                 </span>
                 {completedCount > 0 && (
-                  <span className="text-brand-green font-medium">{completedCount} klar</span>
+                  <span className="text-brand-green text-xs font-medium">✓ {completedCount}</span>
                 )}
                 {failedCount > 0 && (
-                  <span className="text-red-600 font-medium">{failedCount} fel</span>
+                  <span className="text-red-600 text-xs font-medium">✗ {failedCount}</span>
                 )}
               </>
             ) : siteBatchRunning ? (
               <>
-                <Loader2 className="h-4 w-4 text-brand-brown animate-spin shrink-0" />
-                <span className="text-gray-700">
-                  Skannar webbplatser... <span className="font-semibold">{siteProcessedCount}</span> av{" "}
-                  <span className="font-semibold">{siteTotalBatch}</span>
+                <Loader2 className="h-3.5 w-3.5 text-brand-brown animate-spin shrink-0" />
+                <span className="text-gray-700 dark:text-zinc-300">
+                  Skannar webbplatser
+                  <span className="ml-1.5 font-semibold tabular-nums">{siteProcessedCount}/{siteTotalBatch}</span>
                 </span>
                 {siteCompletedCount > 0 && (
-                  <span className="text-brand-green font-medium">{siteCompletedCount} klar</span>
+                  <span className="text-brand-green text-xs font-medium">✓ {siteCompletedCount}</span>
                 )}
                 {siteFailedCount > 0 && (
-                  <span className="text-red-600 font-medium">{siteFailedCount} fel</span>
+                  <span className="text-red-600 text-xs font-medium">✗ {siteFailedCount}</span>
                 )}
               </>
             ) : statuses.size > 0 ? (
-              <span className="text-gray-700">
-                Bolagsdata klar:{" "}
-                <span className="font-semibold text-brand-green">{completedCount} lyckades</span>
-                {failedCount > 0 && (
-                  <>
-                    , <span className="font-semibold text-red-600">{failedCount} misslyckades</span>
-                  </>
-                )}
+              <span className="text-gray-700 dark:text-zinc-300">
+                Klar: <span className="font-semibold text-brand-green">{completedCount} lyckades</span>
+                {failedCount > 0 && <span className="font-semibold text-red-600 ml-1">, {failedCount} fel</span>}
               </span>
             ) : siteStatuses.size > 0 ? (
-              <span className="text-gray-700">
-                Webbplats-sökning klar:{" "}
-                <span className="font-semibold text-brand-green">{siteCompletedCount} lyckades</span>
-                {siteFailedCount > 0 && (
-                  <>
-                    , <span className="font-semibold text-red-600">{siteFailedCount} misslyckades</span>
-                  </>
-                )}
+              <span className="text-gray-700 dark:text-zinc-300">
+                Webb-sökning klar: <span className="font-semibold text-brand-green">{siteCompletedCount} lyckades</span>
+                {siteFailedCount > 0 && <span className="font-semibold text-red-600 ml-1">, {siteFailedCount} fel</span>}
               </span>
             ) : (
-              <span className="text-gray-700">
-                <span className="font-semibold">{selectedIds.size}</span> företag valda
+              <span className="text-gray-700 dark:text-zinc-300">
+                <span className="font-semibold">{selectedIds.size}</span> valda
               </span>
             )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {!batchRunning &&
-              !siteBatchRunning &&
-              statuses.size === 0 &&
-              siteStatuses.size === 0 &&
-              selectedIds.size > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void runRedlistSelected()}
-                  disabled={redlistRunning}
-                >
-                  {redlistRunning ? "Redlistar…" : `Redlista (${selectedIds.size})`}
-                </Button>
-              )}
+            {!batchRunning && !siteBatchRunning && statuses.size === 0 && siteStatuses.size === 0 && selectedIds.size > 0 && (
+              <Button variant="outline" size="sm" onClick={() => void runRedlistSelected()} disabled={redlistRunning}>
+                {redlistRunning ? "Redlistar…" : `Redlista (${selectedIds.size})`}
+              </Button>
+            )}
             {!batchRunning && !siteBatchRunning && statuses.size > 0 && failedCount > 0 && (
               <Button variant="outline" size="sm" onClick={handleRetryFailed}>
                 <RotateCcw className="h-3.5 w-3.5" />
-                Kör om bolagsdata
+                Kör om
               </Button>
             )}
-
             {!batchRunning && !siteBatchRunning && siteStatuses.size > 0 && siteFailedCount > 0 && (
               <Button variant="outline" size="sm" onClick={handleRetrySiteFailed}>
                 <RotateCcw className="h-3.5 w-3.5" />
-                Kör om webbsökning
+                Kör om
               </Button>
             )}
-
             {!batchRunning && !siteBatchRunning && (statuses.size > 0 || siteStatuses.size > 0) && (
-              <Button variant="ghost" size="sm" onClick={handleClearSelection}>
-                Rensa
-              </Button>
+              <Button variant="ghost" size="sm" onClick={handleClearSelection}>Rensa</Button>
             )}
 
             {batchRunning ? (
@@ -917,7 +909,7 @@ export default function PipelineForetagBatchPanel({
                   disabled={selectedIds.size === 0 || redlistRunning}
                 >
                   <Play className="h-3.5 w-3.5" />
-                  Kör bolagsdata ({selectedIds.size})
+                  Hämta data ({selectedIds.size})
                 </Button>
               </>
             ) : null}

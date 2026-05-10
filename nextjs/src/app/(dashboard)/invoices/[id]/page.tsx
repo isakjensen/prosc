@@ -3,7 +3,7 @@ import { formatDate, formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronRight } from 'lucide-react'
+import { BackButton } from '@/components/ui/back-button'
 import PaymentForm from './PaymentForm'
 import InvoiceActions from './InvoiceActions'
 
@@ -40,11 +40,7 @@ export default async function FakturaDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <Link href="/invoices" className="hover:text-gray-600 transition-colors">Fakturor</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-600">{invoice.number}</span>
-        </div>
+        <BackButton href="/invoices" label="Fakturor" />
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{invoice.title}</h1>

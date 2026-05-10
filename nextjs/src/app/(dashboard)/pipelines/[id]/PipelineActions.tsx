@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { SlidersHorizontal } from "lucide-react"
+import { SlidersHorizontal, Loader2, Play } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 
@@ -10,19 +10,6 @@ interface Props {
   pipelineId: string
   status: string
   hasActiveDetailJobs: boolean
-}
-
-function PipelineScrapeErrorAlert({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div
-      role="alert"
-      aria-live="assertive"
-      className="w-full rounded-md border border-red-200 bg-red-50 px-3 py-2 text-left text-xs text-red-950"
-    >
-      <p className="font-medium text-red-900">{title}</p>
-      <div className="mt-0.5 break-words text-red-800">{children}</div>
-    </div>
-  )
 }
 
 export default function PipelineActions({ pipelineId, status, hasActiveDetailJobs }: Props) {
@@ -33,8 +20,7 @@ export default function PipelineActions({ pipelineId, status, hasActiveDetailJob
   useEffect(() => setMounted(true), [])
 
   const filtersOpen = mounted && searchParams.get("filters") === "1"
-  const [loading, setLoading] = useState<"scrape" | "stop" | null>(null)
-  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   function toggleFilters() {
     const next = new URLSearchParams(searchParams.toString())
@@ -48,8 +34,7 @@ export default function PipelineActions({ pipelineId, status, hasActiveDetailJob
   }
 
   async function handleScrape() {
-    setLoading("scrape")
-    setError("")
+    setLoading(true)
     try {
       const res = await fetch(`/api/pipelines/${pipelineId}/scrape`, { method: "POST" })
       const body = (await res.json().catch(() => ({}))) as {
@@ -60,49 +45,52 @@ export default function PipelineActions({ pipelineId, status, hasActiveDetailJob
       if (!res.ok) {
         const main = body.error ?? `HTTP ${res.status}`
         const combined =
-          body.detail && body.detail !== body.error ? `${main} (${body.detail})` : main
-        setError(combined)
+          body.detail && body.detail !== body.error ? `${main} — ${body.detail}` : main
+        toast.error(combined)
         return
       }
-      toast.info(body.message?.trim() || "Listskrapning startad — sidan uppdateras automatiskt.")
+      toast.success(body.message?.trim() || "Scraping startad.")
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Kunde inte starta scraping.")
+      toast.error(e instanceof Error ? e.message : "Kunde inte starta scraping.")
     } finally {
-      setLoading(null)
+      setLoading(false)
     }
   }
 
-  async function handleStop() {
-    setLoading("stop")
-    setError("")
-    try {
-      const res = await fetch(`/api/pipelines/${pipelineId}/stop`, { method: "POST" })
-      if (!res.ok) throw new Error()
-      router.refresh()
-    } catch {
-      setError("Kunde inte stoppa pipeline. Försök igen.")
-    } finally {
-      setLoading(null)
-    }
-  }
+  const canStart = status !== "RUNNING" && !hasActiveDetailJobs
 
   return (
-    <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:max-w-md sm:items-end">
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" onClick={toggleFilters} disabled={loading !== null}>
-          <SlidersHorizontal className="h-4 w-4" />
-          {filtersOpen ? "Stäng filter" : "Filter"}
+    <div className="flex items-center gap-2 shrink-0">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={toggleFilters}
+        disabled={loading}
+      >
+        <SlidersHorizontal className="h-4 w-4" />
+        {filtersOpen ? "Stäng filter" : "Filter"}
+      </Button>
+
+      {canStart && (
+        <Button
+          size="sm"
+          onClick={() => void handleScrape()}
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Startar…
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4" />
+              Starta scraping
+            </>
+          )}
         </Button>
-        {status !== "RUNNING" && !hasActiveDetailJobs && loading !== "scrape" ? (
-          <Button onClick={handleScrape} disabled={loading !== null}>
-            Starta scraping
-          </Button>
-        ) : loading === "scrape" && status !== "RUNNING" && !hasActiveDetailJobs ? (
-          <span className="inline-flex h-10 items-center px-1 text-sm text-gray-500">Startar…</span>
-        ) : null}
-      </div>
-      {error ? <PipelineScrapeErrorAlert title="Något gick fel">{error}</PipelineScrapeErrorAlert> : null}
+      )}
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { BackButton } from '@/components/ui/back-button'
 import { notFound } from 'next/navigation'
 
 interface PageProps {
@@ -59,11 +59,7 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
-            <Link href="/support" className="hover:text-gray-600 transition-colors">Support</Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-gray-600">Ärende</span>
-          </nav>
+          <BackButton href="/support" label="Support" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{ticket.title}</h1>
         </div>
         <div className="flex gap-2">

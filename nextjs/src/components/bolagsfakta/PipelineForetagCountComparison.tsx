@@ -107,8 +107,8 @@ export function PipelineForetagCountComparison({
     <div
       className={`w-full rounded-lg border px-4 py-3 text-sm sm:px-5 sm:py-4 ${
         match
-          ? "border-green-400 bg-green-100 text-gray-800 dark:border-green-600 dark:bg-green-900/40"
-          : "border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40"
+          ? "border-green-300 bg-green-50 text-gray-800 dark:border-green-900 dark:bg-green-950/20 dark:text-zinc-200"
+          : "border-red-200 bg-red-50 text-red-900 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-200"
       }`}
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-6 lg:gap-10">
@@ -124,7 +124,7 @@ export function PipelineForetagCountComparison({
         </div>
         <div className="min-w-0 flex-1 space-y-2 md:border-l md:border-current/10 md:pl-6 lg:pl-10">
           <p
-            className={`text-xs leading-relaxed ${match ? "text-green-800 dark:text-green-300" : "text-red-800 font-medium dark:text-red-400"}`}
+            className={`text-xs leading-relaxed ${match ? "text-green-800 dark:text-green-400" : "text-red-800 font-medium dark:text-red-400"}`}
           >
             {match
               ? "Antalen stämmer överens."

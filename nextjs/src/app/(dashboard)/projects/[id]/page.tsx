@@ -3,7 +3,7 @@ import { formatDate, formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronRight } from 'lucide-react'
+import { BackButton } from '@/components/ui/back-button'
 import ProjektEditForm from './ProduktEditForm'
 import FeaturesTab from './FeaturesTab'
 import KunderTab from './KunderTab'
@@ -105,11 +105,7 @@ export default async function ProjektDetailPage({ params, searchParams }: PagePr
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <Link href="/projects" className="hover:text-gray-600 transition-colors">Projekt</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-600">{project.name}</span>
-        </div>
+        <BackButton href="/projects" label="Projekt" />
         <div className="flex items-start justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{project.name}</h1>
           <Badge variant={projectStatusVariant[project.status] ?? 'gray'}>

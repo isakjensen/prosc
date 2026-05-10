@@ -1,18 +1,15 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  // Admin user
-  const hash = await bcrypt.hash('password123', 10)
+  // Admin user (Discord-only login — no password)
   const admin = await prisma.user.upsert({
     where: { email: "admin@bcrm.com" },
     update: {},
     create: {
       email: "admin@bcrm.com",
       name: "Admin",
-      passwordHash: hash,
       role: "ADMIN",
     },
   })

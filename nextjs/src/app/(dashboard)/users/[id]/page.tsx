@@ -3,7 +3,7 @@ import { formatDate, formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { BackButton } from '@/components/ui/back-button'
 import UserTabs from './UserTabs'
 import { EditUserButton } from '../AnvandareClient'
 import { UserAvatar } from '@/components/layout/user-avatar'
@@ -91,11 +91,7 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-zinc-500">
-        <Link href="/users" className="hover:text-gray-600 dark:hover:text-zinc-300 transition-colors">Användare</Link>
-        <ChevronRight className="h-3 w-3" />
-        <span className="text-gray-600 dark:text-zinc-300">{user.name}</span>
-      </div>
+      <BackButton href="/users" label="Användare" />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">

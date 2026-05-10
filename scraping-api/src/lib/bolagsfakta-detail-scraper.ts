@@ -5,7 +5,8 @@ import { buildBolagsfaktaDisplayFields } from './bolagsfakta-display-fields.js'
 import type { BolagsfaktaDebugLogger } from './bolagsfakta-debug-logger.js'
 import { logGoogleDiscoveryWebsiteSearchHint } from './bolagsfakta-google-discovery.js'
 import type { WebsiteDiscoveryResult } from './website-discovery-types.js'
-import { delay, launchStealthBrowser, navigateAndGetHtml, newStealthPage } from './bolagsfakta-scraper.js'
+import { delay, navigateAndGetHtml } from './bolagsfakta-scraper.js'
+import { borrowContext } from './context-pool.js'
 
 export interface AnsvarigPerson {
   name: string
@@ -271,23 +272,15 @@ export async function scrapeBolagsfaktaCompanyPage(
   const base = fullUrl.split('#')[0]
   await logger?.info("scrape_start", { baseUrl: base, inputUrl: fullUrl })
 
-  const browser = logger
-    ? await logger.time("launch_browser", () => launchStealthBrowser())
-    : await launchStealthBrowser()
+  const { page, release } = await borrowContext()
   let overviewHtml: string
   let ansvarigaHtml: string
   let ekonomiHtml: string
   let omHtml: string
 
   try {
-    const page = logger
-      ? await logger.time("new_page", () => newStealthPage(browser))
-      : await newStealthPage(browser)
-
     overviewHtml = logger
-      ? await logger.time("navigate_overview", () => navigateAndGetHtml(page, base), {
-          step: "overview",
-        })
+      ? await logger.time("navigate_overview", () => navigateAndGetHtml(page, base), { step: "overview" })
       : await navigateAndGetHtml(page, base)
     await logger?.info("overview_html", { htmlLength: overviewHtml.length })
 
@@ -301,8 +294,8 @@ export async function scrapeBolagsfaktaCompanyPage(
       ? await logger.time("tab_om_foretaget", () => collectTabHtml(page, base, "#om-foretaget", logger))
       : await collectTabHtml(page, base, "#om-foretaget")
   } finally {
-    await browser.close()
-    await logger?.info("browser_closed", {})
+    release()
+    await logger?.info("context_released", {})
   }
 
   await logger?.info("parse_start", {
@@ -345,7 +338,8 @@ export async function scrapeBolagsfaktaCompanyPage(
   })
 
   const display = buildBolagsfaktaDisplayFields({ overview, omForetaget })
-  const websiteDiscovery = await logGoogleDiscoveryWebsiteSearchHint(display, flat, logger)
+  // AI-baserad hemsideidentifiering är tillfälligt inaktiverad
+  const websiteDiscovery = undefined as Awaited<ReturnType<typeof logGoogleDiscoveryWebsiteSearchHint>> | undefined
 
   return {
     sourceUrl: base,

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import bcrypt from 'bcryptjs'
-import { DEFAULT_AVATAR_URL } from '@/lib/avatar'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -33,9 +31,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json()
 
-  if (!body.name || !body.email || !body.password) {
+  if (!body.name || !body.email) {
     return NextResponse.json(
-      { error: 'Namn, e-post och lösenord krävs' },
+      { error: 'Namn och e-post krävs' },
       { status: 400 },
     )
   }
@@ -50,15 +48,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const passwordHash = await bcrypt.hash(body.password, 10)
-
   const user = await prisma.user.create({
     data: {
       name: body.name,
       email: body.email,
-      passwordHash,
       role: body.role || 'MEMBER',
-      avatar: DEFAULT_AVATAR_URL,
     },
     select: {
       id: true,

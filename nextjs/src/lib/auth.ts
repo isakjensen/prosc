@@ -1,44 +1,54 @@
 import NextAuth from 'next-auth'
-import Credentials from 'next-auth/providers/credentials'
+import Discord from 'next-auth/providers/discord'
 import { prisma } from '@/lib/db'
-import bcrypt from 'bcryptjs'
 import { resolveAvatarUrl } from '@/lib/avatar'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    Credentials({
-      credentials: {
-        email: { label: 'E-post', type: 'email' },
-        password: { label: 'Lösenord', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        })
-
-        if (!user) return null
-
-        const valid = await bcrypt.compare(
-          credentials.password as string,
-          user.passwordHash,
-        )
-        if (!valid) return null
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          image: resolveAvatarUrl(user.avatar),
-          themePreference:
-            user.themePreference === 'DARK' ? ('dark' as const) : ('light' as const),
-        }
-      },
+    Discord({
+      clientId: process.env.DISCORD_CLIENT_ID!,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET!,
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider !== 'discord') return true
+
+      const discordId = account.providerAccountId
+      const email = user.email ?? `discord_${discordId}@discord.local`
+      const name = user.name ?? 'Discord-användare'
+
+      const existing = await prisma.user.findFirst({
+        where: { OR: [{ discordId }, { email }] },
+      })
+
+      const discordImage = user.image ?? null
+
+      if (existing) {
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            ...(!existing.discordId && { discordId }),
+            ...(discordImage && { avatar: discordImage }),
+          },
+        })
+        user.id = existing.id
+        ;(user as { role?: string }).role = existing.role
+        ;(user as { themePreference?: string }).themePreference =
+          existing.themePreference === 'DARK' ? 'dark' : 'light'
+        user.image = discordImage ?? resolveAvatarUrl(existing.avatar) ?? undefined
+        return true
+      }
+
+      // Ny Discord-användare — skapa konto automatiskt
+      const created = await prisma.user.create({
+        data: { discordId, email, name, avatar: discordImage },
+      })
+      user.id = created.id
+      ;(user as { role?: string }).role = created.role
+      ;(user as { themePreference?: string }).themePreference = 'light'
+      return true
+    },
     jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
@@ -57,7 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.image =
-          (token.picture as string | undefined) ?? resolveAvatarUrl(null)
+          (token.picture as string | undefined) ?? undefined
         session.user.themePreference =
           (token.themePreference as 'light' | 'dark' | undefined) ?? 'light'
       }

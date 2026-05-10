@@ -12,7 +12,7 @@ import KundTabs from "./KundTabs"
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import KundOversiktPanels, { KundCrmOnlyCompanyCard } from "./KundOversiktPanels"
-import { ChevronRight } from 'lucide-react'
+import { BackButton } from '@/components/ui/back-button'
 import type { CustomerStage } from '@prisma/client'
 
 interface PageProps {
@@ -197,11 +197,7 @@ export default async function KundDetailPage({ params, searchParams }: PageProps
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <Link href={bc.href} className="hover:text-gray-600 transition-colors">{bc.label}</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-600">{customer.name}</span>
-        </div>
+        <BackButton href={bc.href} label={bc.label} />
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{customer.name}</h1>

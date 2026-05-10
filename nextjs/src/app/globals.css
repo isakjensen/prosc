@@ -7,12 +7,12 @@
   --font-sans: var(--font-ubuntu), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-ubuntu-mono), ui-monospace, monospace;
 
-  --color-brand-beige: #f7e8c9;
-  --color-brand-brown: #593c34;
-  --color-brand-green: #5c766d;
-  --color-brand-gray: #ede9e6;
+  --color-brand-beige: #dbeafe;
+  --color-brand-brown: #2563eb;
+  --color-brand-green: #16a34a;
+  --color-brand-gray: #eef3ff;
 
-  --color-brand-foreground: #2a211e;
+  --color-brand-foreground: #0f172a;
 
   /* Remap gray → zinc for neutrals (structure only) */
   --color-gray-50: var(--color-zinc-50);
@@ -30,12 +30,12 @@
 
 :root {
   color-scheme: light;
-  --bcrm-beige: #f7e8c9;
-  --bcrm-brown: #593c34;
-  --bcrm-green: #5c766d;
-  --bcrm-gray: #ede9e6;
+  --bcrm-beige: #dbeafe;
+  --bcrm-brown: #2563eb;
+  --bcrm-green: #16a34a;
+  --bcrm-gray: #eef3ff;
   --bcrm-white: #ffffff;
-  --bcrm-foreground: #2a211e;
+  --bcrm-foreground: #0f172a;
 
   --scroll-tab-bg: var(--bcrm-white);
   --surface-border: color-mix(in srgb, var(--bcrm-brown) 12%, var(--bcrm-gray));

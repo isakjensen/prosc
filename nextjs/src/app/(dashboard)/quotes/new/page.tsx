@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/lib/toast'
 import Link from 'next/link'
-import { ChevronRight, Trash2, Plus } from 'lucide-react'
+import { Trash2, Plus } from 'lucide-react'
+import { BackButton } from '@/components/ui/back-button'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -93,11 +94,7 @@ export default function NyOffertPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Breadcrumb + header */}
       <div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <Link href="/quotes" className="hover:text-gray-600 transition-colors">Offerter</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-600">Ny offert</span>
-        </div>
+        <BackButton href="/quotes" label="Offerter" />
         <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">Ny offert</h1>
         <p className="text-sm text-gray-500 mt-0.5">Skapa och skicka en offert till kund</p>
       </div>
