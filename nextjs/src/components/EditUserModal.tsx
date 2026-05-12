@@ -14,6 +14,7 @@ interface UserData {
   name: string
   email: string
   role: string
+  discordId: string | null
 }
 
 interface EditUserModalProps {
@@ -45,6 +46,7 @@ export default function EditUserModal({ isOpen, onClose, user }: EditUserModalPr
       name: formData.name as string,
       email: formData.email as string,
       role: formData.role as string,
+      discordId: (formData.discordId as string) || "",
     }
     if (formData.password) {
       data.password = formData.password as string
@@ -92,11 +94,14 @@ export default function EditUserModal({ isOpen, onClose, user }: EditUserModalPr
                 name="role"
                 defaultValue={user.role}
                 options={[
-                  { value: 'MEMBER', label: 'Medlem' },
-                  { value: 'MANAGER', label: 'Manager' },
+                  { value: 'USER', label: 'Användare' },
                   { value: 'ADMIN', label: 'Admin' },
                 ]}
               />
+            </div>
+            <div>
+              <FieldLabel>Discord ID</FieldLabel>
+              <Input name="discordId" defaultValue={user.discordId ?? ""} placeholder="T.ex. 123456789012345678" />
             </div>
             <div>
               <FieldLabel>Nytt lösenord (valfritt)</FieldLabel>

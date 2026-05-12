@@ -1,36 +1,36 @@
 'use client'
 
-import Image from 'next/image'
-import { signIn } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
+import Image from "next/image"
+import { useSearchParams } from "next/navigation"
+import { signIn } from "next-auth/react"
+import { Suspense } from "react"
+import { Button } from "@/components/ui/button"
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams()
+  const error = searchParams.get("error")
+
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-[#f4f7ff] dark:bg-zinc-950 px-4 overflow-hidden">
 
-      {/* Subtil linjegrid — samma som original */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
         style={{
           backgroundImage: `linear-gradient(#2563eb 1px, transparent 1px), linear-gradient(90deg, #2563eb 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
+          backgroundSize: "48px 48px",
         }}
       />
 
-      {/* Blå glöd bakom kortet */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] h-[460px] rounded-full bg-blue-200/45 dark:bg-blue-900/12 blur-3xl" />
 
-      {/* Kort */}
       <div
         className="panel-surface relative z-10 w-full max-w-[380px] overflow-hidden"
-        style={{ animation: 'fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both' }}
+        style={{ animation: "fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both" }}
       >
-        {/* Blå accent-linje */}
         <div className="h-[3px] w-full bg-gradient-to-r from-blue-800 via-blue-500 to-blue-400" />
 
         <div className="px-8 pt-8 pb-9 flex flex-col items-center gap-7">
 
-          {/* Logo */}
           <div className="flex flex-col items-center gap-2.5">
             <div
               className="h-14 w-14 rounded-2xl overflow-hidden shadow-md shadow-blue-200/70 dark:shadow-blue-900/40 ring-1 ring-blue-100/80 dark:ring-blue-800/40"
@@ -54,10 +54,16 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Avdelare */}
           <div className="w-full h-px bg-gray-100 dark:bg-zinc-800" />
 
-          {/* Inloggning */}
+          {error === "no-account" && (
+            <div className="w-full rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 px-4 py-3">
+              <p className="text-[13px] text-red-700 dark:text-red-400 text-center font-medium leading-relaxed">
+                Du har inte behörighet till systemet. Ditt Discord-konto är inte kopplat till något användarkonto.
+              </p>
+            </div>
+          )}
+
           <div className="w-full flex flex-col items-center gap-4">
             <p className="text-[13px] text-gray-500 dark:text-zinc-400 text-center leading-relaxed">
               Logga in med ditt Discord-konto för att fortsätta
@@ -67,7 +73,7 @@ export default function LoginPage() {
               variant="default"
               size="lg"
               className="w-full gap-3 text-[13.5px] font-semibold tracking-wide"
-              onClick={() => signIn('discord', { callbackUrl: '/dashboard' })}
+              onClick={() => signIn("discord", { callbackUrl: "/dashboard" })}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -91,5 +97,13 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   )
 }

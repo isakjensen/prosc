@@ -74,14 +74,17 @@ export default function CreateUserModal({ isOpen, onClose }: CreateUserModalProp
               <PasswordInput name="password" required placeholder="Minst 6 tecken" />
             </div>
             <div>
+              <FieldLabel>Discord ID</FieldLabel>
+              <Input name="discordId" placeholder="T.ex. 123456789012345678" />
+            </div>
+            <div>
               <FieldLabel>Roll</FieldLabel>
               <RadixSelect
                 name="role"
-                defaultValue="MEMBER"
+                defaultValue="USER"
                 options={[
-                  { value: 'MEMBER', label: 'Medlem' },
-                  { value: 'MANAGER', label: 'Manager' },
-                  { value: 'ADMIN', label: 'Admin' },
+                  { value: "USER", label: "Användare" },
+                  { value: "ADMIN", label: "Admin" },
                 ]}
               />
             </div>

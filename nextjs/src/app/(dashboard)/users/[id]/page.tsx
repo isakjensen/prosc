@@ -20,14 +20,12 @@ interface PageProps {
 
 const roleLabel: Record<string, string> = {
   ADMIN: 'Admin',
-  MANAGER: 'Manager',
-  MEMBER: 'Medlem',
+  USER: 'Användare',
 }
 
-const roleVariant: Record<string, 'danger' | 'warning' | 'gray'> = {
+const roleVariant: Record<string, 'danger' | 'gray'> = {
   ADMIN: 'danger',
-  MANAGER: 'warning',
-  MEMBER: 'gray',
+  USER: 'gray',
 }
 
 const activityTypeLabel: Record<string, string> = {
@@ -58,6 +56,7 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
       id: true,
       name: true,
       email: true,
+      discordId: true,
       role: true,
       avatar: true,
       createdAt: true,
@@ -107,7 +106,7 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <EditUserButton user={{ id: user.id, name: user.name, email: user.email, role: user.role }} />
+          <EditUserButton user={{ id: user.id, name: user.name, email: user.email, role: user.role, discordId: user.discordId }} />
           <Badge variant={rb}>{rl}</Badge>
         </div>
       </div>
@@ -124,11 +123,12 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
             </div>
             <div className="p-6 space-y-3">
               {[
-                { label: 'Namn', value: user.name },
-                { label: 'E-post', value: user.email },
-                { label: 'Roll', value: rl },
-                { label: 'Skapad', value: formatDate(user.createdAt) },
-                { label: 'Senast uppdaterad', value: formatDate(user.updatedAt) },
+                { label: "Namn", value: user.name },
+                { label: "E-post", value: user.email },
+                { label: "Discord ID", value: user.discordId ?? "–" },
+                { label: "Roll", value: rl },
+                { label: "Skapad", value: formatDate(user.createdAt) },
+                { label: "Senast uppdaterad", value: formatDate(user.updatedAt) },
               ].map((row) => (
                 <div key={row.label} className="flex justify-between text-sm gap-4">
                   <span className="text-gray-500 dark:text-zinc-400 shrink-0">{row.label}</span>

@@ -48,11 +48,24 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  if (body.discordId) {
+    const discordConflict = await prisma.user.findUnique({
+      where: { discordId: body.discordId },
+    })
+    if (discordConflict) {
+      return NextResponse.json(
+        { error: "Discord ID används redan av en annan användare" },
+        { status: 409 },
+      )
+    }
+  }
+
   const user = await prisma.user.create({
     data: {
       name: body.name,
       email: body.email,
-      role: body.role || 'MEMBER',
+      role: body.role || "USER",
+      ...(body.discordId && { discordId: body.discordId }),
     },
     select: {
       id: true,

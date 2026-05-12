@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5">
       {children}
       {required && (
         <span className="ml-1 text-red-400 normal-case tracking-normal">*</span>
@@ -17,7 +17,7 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
   )
 }
 
-export function RedlistAddForm() {
+export function FilterAddForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [namn, setNamn] = useState("")
@@ -75,8 +75,8 @@ export function RedlistAddForm() {
 
   return (
     <form onSubmit={onSubmit} className="panel-surface p-6 space-y-4">
-      <h2 className="text-sm font-semibold text-gray-900">Lägg till företag eller regel</h2>
-      <p className="text-xs text-gray-500 -mt-2">
+      <h2 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Lägg till företag eller regel</h2>
+      <p className="text-xs text-gray-500 dark:text-zinc-400 -mt-2">
         Fyll i minst ett av org.nr, URL eller &quot;Namn innehåller&quot; (skiftlägesokänslig match vid scraping).
       </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

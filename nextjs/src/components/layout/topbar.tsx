@@ -54,7 +54,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
         <div className="text-right hidden sm:block">
           <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{session?.user?.name}</p>
-          <p className="text-xs text-gray-500 dark:text-zinc-500">{session?.user?.role}</p>
+          <p className="text-xs text-gray-500 dark:text-zinc-500">{{ ADMIN: 'Admin', USER: 'Användare' }[session?.user?.role ?? ''] ?? session?.user?.role}</p>
         </div>
         <Link
           href="/profile"

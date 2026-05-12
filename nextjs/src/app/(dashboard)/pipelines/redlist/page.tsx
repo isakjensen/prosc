@@ -1,15 +1,15 @@
 import { prisma } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { BackButton } from "@/components/ui/back-button"
-import { RedlistAddForm } from "./RedlistAddForm"
-import { RedlistEntriesTable, type RedlistEntryRow } from "./RedlistEntriesTable"
+import { FilterAddForm } from "./RedlistAddForm"
+import { FilterEntriesTable, type FilterEntryRow } from "./RedlistEntriesTable"
 
-export default async function PipelinesRedlistPage() {
+export default async function PipelinesFilterPage() {
   const entries = await prisma.bolagsfaktaRedlistEntry.findMany({
     orderBy: { createdAt: "desc" },
   })
 
-  const rows: RedlistEntryRow[] = entries.map((row) => ({
+  const rows: FilterEntryRow[] = entries.map((row) => ({
     id: row.id,
     namn: row.namn,
     orgNummerNormalized: row.orgNummerNormalized,
@@ -24,18 +24,18 @@ export default async function PipelinesRedlistPage() {
         <BackButton href="/pipelines" label="Pipeline" />
         <div className="flex flex-wrap items-center gap-2 mt-0.5">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
-            Redlistade företag
+            Filtrerade företag
           </h1>
           <Badge variant="gray">{entries.length}</Badge>
         </div>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
           Företag som inte ska tas vidare via pipeline (org.nr, URL eller automatisk namn-matchning)
         </p>
       </div>
 
-      <RedlistAddForm />
+      <FilterAddForm />
 
-      <RedlistEntriesTable entries={rows} />
+      <FilterEntriesTable entries={rows} />
     </div>
   )
 }

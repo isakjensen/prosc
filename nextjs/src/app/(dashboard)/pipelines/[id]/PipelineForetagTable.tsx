@@ -119,7 +119,7 @@ function rowAccentClass(f: PipelineForetagRow, status?: BatchStatus) {
     return "border-l-4 border-l-blue-500 bg-blue-50/60 hover:bg-blue-50/80 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
   }
   if (f.isRedlisted) {
-    return "border-l-4 border-l-red-600 bg-red-50/90 hover:bg-red-100/90 dark:bg-red-950/25 dark:hover:bg-red-950/40"
+    return "border-l-4 border-l-amber-500 bg-amber-50/60 hover:bg-amber-100/70 dark:border-l-amber-400 dark:bg-amber-950/20 dark:hover:bg-amber-950/35"
   }
   if (f.customerStage === "PROSPECT" || f.customerStage === "CUSTOMER") {
     return "border-l-4 border-l-brand-green bg-brand-green/15 hover:bg-brand-green/20 dark:bg-brand-green/20 dark:hover:bg-brand-green/25"
@@ -381,7 +381,7 @@ export default function PipelineForetagTable({
                     title={
                       !eligible
                         ? f.isRedlisted
-                          ? "Redlistat företag kan inte hämtas"
+                          ? "Filtrerat företag kan inte hämtas"
                           : !f.customerId
                             ? "Saknar kopplad kund"
                             : "Saknar Bolagsfakta-URL"
@@ -425,8 +425,8 @@ export default function PipelineForetagTable({
                       </Badge>
                     ) : null}
                     {f.isRedlisted && (
-                      <Badge variant="danger" className="text-[10px] px-1.5 py-0 font-medium">
-                        Redlistad
+                      <Badge variant="warning" className="text-[10px] px-1.5 py-0 font-medium">
+                        Filtrerad
                       </Badge>
                     )}
                   </div>

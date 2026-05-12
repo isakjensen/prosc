@@ -12,41 +12,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider !== 'discord') return true
+      if (account?.provider !== 'discord') return false
 
       const discordId = account.providerAccountId
-      const email = user.email ?? `discord_${discordId}@discord.local`
-      const name = user.name ?? 'Discord-användare'
-
-      const existing = await prisma.user.findFirst({
-        where: { OR: [{ discordId }, { email }] },
+      const existing = await prisma.user.findUnique({
+        where: { discordId },
       })
+
+      if (!existing) {
+        return "/login?error=no-account"
+      }
 
       const discordImage = user.image ?? null
 
-      if (existing) {
-        await prisma.user.update({
-          where: { id: existing.id },
-          data: {
-            ...(!existing.discordId && { discordId }),
-            ...(discordImage && { avatar: discordImage }),
-          },
-        })
-        user.id = existing.id
-        ;(user as { role?: string }).role = existing.role
-        ;(user as { themePreference?: string }).themePreference =
-          existing.themePreference === 'DARK' ? 'dark' : 'light'
-        user.image = discordImage ?? resolveAvatarUrl(existing.avatar) ?? undefined
-        return true
-      }
-
-      // Ny Discord-användare — skapa konto automatiskt
-      const created = await prisma.user.create({
-        data: { discordId, email, name, avatar: discordImage },
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          ...(discordImage && { avatar: discordImage }),
+        },
       })
-      user.id = created.id
-      ;(user as { role?: string }).role = created.role
-      ;(user as { themePreference?: string }).themePreference = 'light'
+
+      user.id = existing.id
+      ;(user as { role?: string }).role = existing.role
+      ;(user as { themePreference?: string }).themePreference =
+        existing.themePreference === "DARK" ? "dark" : "light"
+      user.image = discordImage ?? resolveAvatarUrl(existing.avatar) ?? undefined
       return true
     },
     jwt({ token, user, trigger, session }) {

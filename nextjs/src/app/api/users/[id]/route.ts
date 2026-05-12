@@ -67,6 +67,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     data.email = body.email
   }
   if (body.role !== undefined) data.role = body.role
+  if (body.discordId !== undefined) {
+    const newDiscordId = body.discordId || null
+    if (newDiscordId && newDiscordId !== user.discordId) {
+      const discordConflict = await prisma.user.findUnique({
+        where: { discordId: newDiscordId },
+      })
+      if (discordConflict) {
+        return NextResponse.json(
+          { error: "Discord ID används redan av en annan användare" },
+          { status: 409 },
+        )
+      }
+    }
+    data.discordId = newDiscordId
+  }
   if (body.password) {
     data.passwordHash = await bcrypt.hash(body.password, 10)
   }

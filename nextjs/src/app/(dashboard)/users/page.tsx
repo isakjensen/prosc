@@ -11,14 +11,12 @@ interface PageProps {
 
 const roleLabel: Record<string, string> = {
   ADMIN: 'Admin',
-  MANAGER: 'Manager',
-  MEMBER: 'Medlem',
+  USER: 'Användare',
 }
 
-const roleVariant: Record<string, 'danger' | 'warning' | 'gray'> = {
+const roleVariant: Record<string, 'danger' | 'gray'> = {
   ADMIN: 'danger',
-  MANAGER: 'warning',
-  MEMBER: 'gray',
+  USER: 'gray',
 }
 
 export default async function AnvandarePage({ searchParams }: PageProps) {
@@ -106,7 +104,7 @@ export default async function AnvandarePage({ searchParams }: PageProps) {
                   </td>
                   <td className="px-6 py-4 text-gray-500 dark:text-zinc-500 hidden md:table-cell">{formatDate(user.createdAt)}</td>
                   <td className="px-6 py-4 text-right">
-                    <EditUserButton user={{ id: user.id, name: user.name, email: user.email, role: user.role }} />
+                    <EditUserButton user={{ id: user.id, name: user.name, email: user.email, role: user.role, discordId: user.discordId }} />
                   </td>
                 </tr>
               ))}

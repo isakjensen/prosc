@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/db"
-import { formatDateTime } from "@/lib/utils"
+import { formatDateTime, cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, ShieldAlert } from "lucide-react"
 import { BackButton } from "@/components/ui/back-button"
 import PipelineActions from "./PipelineActions"
 import { type PipelineForetagRow } from "./PipelineForetagTable"
@@ -172,7 +173,24 @@ export default async function PipelineDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          <PipelineActions pipelineId={id} status={pipeline.status} hasActiveDetailJobs={activeDetailCount > 0} />
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/pipelines/redlist">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "gap-2",
+                  "border-l-4 border-l-amber-500 bg-amber-50 text-amber-900 hover:bg-amber-100",
+                  "dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-950/60",
+                )}
+              >
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                Filtrerade
+              </Button>
+            </Link>
+            <PipelineActions pipelineId={id} status={pipeline.status} hasActiveDetailJobs={activeDetailCount > 0} foretagCount={pipeline._count.foretag} />
+          </div>
         </div>
       </div>
 

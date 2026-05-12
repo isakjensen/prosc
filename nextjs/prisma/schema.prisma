@@ -13,7 +13,7 @@ model User {
   discordId         String?            @unique
   avatar            String?
   name              String
-  role              UserRole           @default(MEMBER)
+  role              UserRole           @default(USER)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   themePreference   UserUiTheme        @default(LIGHT)
@@ -1024,8 +1024,7 @@ model Outreach {
 
 enum UserRole {
   ADMIN
-  MANAGER
-  MEMBER
+  USER
 }
 
 enum UserUiTheme {

@@ -55,7 +55,7 @@ export async function onQuoteAccepted(quoteId: string) {
 
   // Create notification for all admins/managers
   const admins = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'MANAGER'] } },
+    where: { role: 'ADMIN' },
     select: { id: true },
   })
 
@@ -81,7 +81,7 @@ export async function onInvoiceOverdue(invoiceId: string) {
   if (!invoice) return
 
   const admins = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'MANAGER'] } },
+    where: { role: 'ADMIN' },
     select: { id: true },
   })
 
@@ -141,7 +141,7 @@ export async function onPaymentReceived(invoiceId: string) {
   if (!invoice) return
 
   const admins = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'MANAGER'] } },
+    where: { role: 'ADMIN' },
     select: { id: true },
   })
 

@@ -487,24 +487,24 @@ export default function PipelineForetagBatchPanel({
     siteAbortRef.current?.abort()
   }
 
-  async function runRedlistSelected() {
+  async function runFilterSelected() {
     const selected = [...selectedIds]
     if (selected.length === 0) return
 
-    const idsToRedlist = selected.filter((id) => {
+    const idsToFilter = selected.filter((id) => {
       const r = liveRows.find((row) => row.id === id)
       return r && !r.isRedlisted
     })
 
-    if (idsToRedlist.length === 0) {
-      toast.info("Alla markerade företag är redan redlistade")
+    if (idsToFilter.length === 0) {
+      toast.info("Alla markerade företag är redan filtrerade")
       return
     }
 
     const ok = await confirm({
-      title: "Redlista markerade företag?",
-      description: `Redlista ${idsToRedlist.length} markerade företag? Detta påverkar vilka företag som kan hämtas.`,
-      confirmLabel: "Redlista",
+      title: "Filtrera markerade företag?",
+      description: `Filtrera ${idsToFilter.length} markerade företag? De kommer inte längre hämtas eller tas vidare.`,
+      confirmLabel: "Filtrera",
       cancelLabel: "Avbryt",
       variant: "danger",
     })
@@ -516,7 +516,7 @@ export default function PipelineForetagBatchPanel({
       let failed = 0
 
       const concurrency = 5
-      const queue = [...idsToRedlist]
+      const queue = [...idsToFilter]
 
       async function worker() {
         while (queue.length > 0) {
@@ -542,12 +542,10 @@ export default function PipelineForetagBatchPanel({
 
       await Promise.all(Array.from({ length: concurrency }, () => worker()))
 
-      // Optimistic UI so the user immediately sees them as redlisted.
       setLiveRows((prev) =>
-        prev.map((r) => (idsToRedlist.includes(r.id) ? { ...r, isRedlisted: true } : r)),
+        prev.map((r) => (idsToFilter.includes(r.id) ? { ...r, isRedlisted: true } : r)),
       )
 
-      // Clear selection immediately (no manual reload needed).
       setSelectedIds(new Set())
       setStatuses(new Map())
       setErrors(new Map())
@@ -556,9 +554,9 @@ export default function PipelineForetagBatchPanel({
       setSoloWebsiteRowIds(new Set())
 
       if (failed === 0) {
-        toast.success(`Redlistade ${succeeded} företag`)
+        toast.success(`Filtrerade ${succeeded} företag`)
       } else {
-        toast.warning(`Redlistade ${succeeded} — ${failed} misslyckades`)
+        toast.warning(`Filtrerade ${succeeded} — ${failed} misslyckades`)
       }
     } finally {
       setRedlistRunning(false)
@@ -777,7 +775,7 @@ export default function PipelineForetagBatchPanel({
                   checked={hideRedlisted}
                   onChange={(e) => setHideRedlisted(e.target.checked)}
                 />
-                Dölj redlistade
+                Dölj filtrerade
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
                 <input
@@ -861,8 +859,8 @@ export default function PipelineForetagBatchPanel({
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             {!batchRunning && !siteBatchRunning && statuses.size === 0 && siteStatuses.size === 0 && selectedIds.size > 0 && (
-              <Button variant="outline" size="sm" onClick={() => void runRedlistSelected()} disabled={redlistRunning}>
-                {redlistRunning ? "Redlistar…" : `Redlista (${selectedIds.size})`}
+              <Button variant="outline" size="sm" onClick={() => void runFilterSelected()} disabled={redlistRunning}>
+                {redlistRunning ? "Filtrerar…" : `Filtrera (${selectedIds.size})`}
               </Button>
             )}
             {!batchRunning && !siteBatchRunning && statuses.size > 0 && failedCount > 0 && (

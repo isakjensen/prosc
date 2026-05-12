@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 
-export function RedlistRemoveButton({ entryId }: { entryId: string }) {
+export function FilterRemoveButton({ entryId }: { entryId: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -38,7 +38,7 @@ export function RedlistRemoveButton({ entryId }: { entryId: string }) {
       type="button"
       variant="outline"
       size="sm"
-      className="text-red-600 border-red-200 hover:bg-red-50"
+      className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/40"
       disabled={loading}
       onClick={onRemove}
     >

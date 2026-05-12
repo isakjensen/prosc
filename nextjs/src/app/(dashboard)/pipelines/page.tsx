@@ -60,12 +60,12 @@ export default async function PipelinesPage() {
                 variant="outline"
                 className={cn(
                   'w-full sm:w-auto gap-2',
-                  'border-l-4 border-l-red-500 bg-red-50 text-red-900 hover:bg-red-100',
-                  'dark:border-red-700 dark:bg-red-950/40 dark:text-red-100 dark:hover:bg-red-950/60',
+                  'border-l-4 border-l-amber-500 bg-amber-50 text-amber-900 hover:bg-amber-100',
+                  'dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-950/60',
                 )}
               >
                 <ShieldAlert className="h-4 w-4 shrink-0" />
-                Redlistad
+                Filtrerade
               </Button>
             </Link>
             <Link href="/pipelines/new" className="w-full sm:w-auto">

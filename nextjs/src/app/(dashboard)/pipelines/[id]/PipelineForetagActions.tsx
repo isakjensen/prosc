@@ -258,7 +258,7 @@ export default function PipelineForetagActions({
     }
   }
 
-  async function addToRedlist() {
+  async function addToFilterList() {
     setLoading("redlist")
     setError("")
     try {
@@ -269,13 +269,13 @@ export default function PipelineForetagActions({
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
-      toast.success("Tillagd på redlist")
+      toast.success("Företaget är nu filtrerat")
       setOpen(false)
       router.refresh()
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Kunde inte redlista."
+      const msg = e instanceof Error ? e.message : "Kunde inte filtrera."
       setError(msg)
-      console.error("[PipelineForetagActions] redlist failed", e)
+      console.error("[PipelineForetagActions] filter failed", e)
     } finally {
       setLoading(null)
     }
@@ -365,9 +365,9 @@ export default function PipelineForetagActions({
             variant="ghost"
             className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto"
             disabled={isRedlisted || loading !== null}
-            onClick={() => void addToRedlist()}
+            onClick={() => void addToFilterList()}
           >
-            {loading === "redlist" ? "Sparar…" : isRedlisted ? "Redan redlistad" : "Lägg till på redlist"}
+            {loading === "redlist" ? "Sparar…" : isRedlisted ? "Redan filtrerad" : "Filtrera företag"}
           </Button>
           <div className="my-1 border-t border-gray-100" role="separator" />
           <Button

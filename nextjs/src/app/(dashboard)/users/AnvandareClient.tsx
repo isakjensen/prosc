@@ -11,6 +11,7 @@ interface UserRow {
   name: string
   email: string
   role: string
+  discordId: string | null
 }
 
 export function CreateUserButton() {
