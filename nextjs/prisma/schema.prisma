@@ -767,6 +767,7 @@ model BolagsfaktaPipeline {
   /// Antal företag enligt Bolagsfakta vid skapande (samma siffra som i bransch-dropdown)
   bolagsfaktaForetagCount Int?
   status                  BolagsfaktaPipelineStatus @default(IDLE)
+  scrapeStartedAt         DateTime?
   lastScrapedAt           DateTime?
   scrapeCurrentPage       Int?
   scrapeCurrentUrl        String?                   @db.VarChar(2048)

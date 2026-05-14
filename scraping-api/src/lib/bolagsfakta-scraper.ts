@@ -521,17 +521,14 @@ function mergeForetagParsed(a: Foretag[], b: Foretag[]): Foretag[] {
   return [...map.values()]
 }
 
-async function upsertForetagWithCustomer(pipelineId: string, f: Foretag, nameContainsPhrases: string[]) {
-  // Bolag med bannrade fraser i namnet ignoreras helt — ingen DB-rad skapas
+async function upsertForetagWithCustomer(pipelineId: string, f: Foretag, nameContainsPhrases: string[], skipDetailQueue = false) {
   if (shouldAutoRedlistByName(f.namn)) return
 
-  // Kolla DB-baserade namnfilter
   if (f.namn) {
     const lower = f.namn.toLowerCase()
     if (nameContainsPhrases.some((phrase) => lower.includes(phrase))) return
   }
 
-  // Enskilda firmor och enskilda näringsidkare ignoreras — precis som redlistade
   const EF_BOLAGSFORMS = ['enskild firma', 'enskild näringsidkare']
   if (f.bolagsform && EF_BOLAGSFORMS.includes(f.bolagsform.toLowerCase())) return
 
@@ -585,6 +582,8 @@ async function upsertForetagWithCustomer(pipelineId: string, f: Foretag, nameCon
       url,
     },
   })
+
+  if (skipDetailQueue) return
 
   const canDetailScrape = Boolean(created.customerId) && Boolean(created.url) && !created.isRedlisted
   if (!canDetailScrape) return
@@ -720,20 +719,34 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
         break
       }
 
+      if (await isPipelineCancelled(pipelineId)) {
+        console.log(`[bolagsfakta] Pipeline ${pipelineId} stoppad före upsert (iteration ${iter})`)
+        await bolagsfaktaPipelineListLog(
+          `SESSION STOPPED_BY_USER pipelineId=${pipelineId} iter=${iter} phase=pre-upsert`,
+        )
+        await prisma.bolagsfaktaPipeline.update({
+          where: { id: pipelineId },
+          data: { scrapeCurrentPage: null, scrapeCurrentUrl: null },
+        }).catch(() => {})
+        return
+      }
+
       const dbBefore = await prisma.bolagsfaktaForetag.count({ where: { pipelineId } })
-      // Hämta namnfilter en gång per sida
       const nameContainsPhrases = (
         await prisma.bolagsfaktaRedlistEntry.findMany({
           where: { nameContains: { not: null } },
           select: { nameContains: true },
         })
       ).map((e) => e.nameContains as string)
-      // Parallella upserts med concurrency=5 för snabbare insättning
+      let cancelled = false
       const queue = [...foretag]
       async function upsertWorker() {
-        while (queue.length > 0) {
+        while (queue.length > 0 && !cancelled) {
           const f = queue.shift()
-          if (f) await upsertForetagWithCustomer(pipelineId, f, nameContainsPhrases).catch(() => {})
+          if (f) await upsertForetagWithCustomer(pipelineId, f, nameContainsPhrases, cancelled).catch(() => {})
+          if (queue.length > 0 && queue.length % 10 === 0) {
+            cancelled = await isPipelineCancelled(pipelineId)
+          }
         }
       }
       await Promise.all(Array.from({ length: 5 }, upsertWorker))
@@ -742,6 +755,18 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
       await bolagsfaktaPipelineListLog(
         `UPSERT iter=${iter} pipelineId=${pipelineId} parsedMerged=${foretag.length} dbRows ${dbBefore}->${dbAfter} netNew=${dbAfter - dbBefore} (dubbletter/redlist ger netNew < parsed)`,
       )
+
+      if (cancelled || (await isPipelineCancelled(pipelineId))) {
+        console.log(`[bolagsfakta] Pipeline ${pipelineId} stoppad efter upsert (iteration ${iter})`)
+        await bolagsfaktaPipelineListLog(
+          `SESSION STOPPED_BY_USER pipelineId=${pipelineId} iter=${iter} phase=post-upsert`,
+        )
+        await prisma.bolagsfaktaPipeline.update({
+          where: { id: pipelineId },
+          data: { scrapeCurrentPage: null, scrapeCurrentUrl: null },
+        }).catch(() => {})
+        return
+      }
 
       let nextUrl: string | null = null
       let nextSource = 'none'
@@ -831,17 +856,32 @@ export async function scrapeBolagsfaktaPipeline(pipelineId: string) {
 
     const saved = await prisma.bolagsfaktaForetag.count({ where: { pipelineId } })
     const indexHint = pipeline.bolagsfaktaForetagCount
-    console.log(
-      `[bolagsfakta] Pipeline ${pipelineId} klar: ${saved} rader i DB (Bolagsfakta-index vid skapande: ${indexHint ?? '—'})`,
-    )
-    await bolagsfaktaPipelineListLog(
-      `SESSION COMPLETE pipelineId=${pipelineId} dbRows=${saved} bolagsfaktaForetagCount_index=${indexHint ?? 'null'} deltaVsIndex=${indexHint != null ? saved - indexHint : 'n/a'}`,
-    )
 
-    await prisma.bolagsfaktaPipeline.update({
+    const currentPipeline = await prisma.bolagsfaktaPipeline.findUnique({
       where: { id: pipelineId },
-      data: { status: 'COMPLETED', lastScrapedAt: new Date(), scrapeCurrentPage: null, scrapeCurrentUrl: null },
+      select: { status: true },
     })
+    if (currentPipeline?.status === 'STOPPED') {
+      console.log(`[bolagsfakta] Pipeline ${pipelineId} avslutad men redan STOPPED — behåller status`)
+      await bolagsfaktaPipelineListLog(
+        `SESSION STOPPED_KEPT pipelineId=${pipelineId} dbRows=${saved} — scraping klar men status var redan STOPPED`,
+      )
+      await prisma.bolagsfaktaPipeline.update({
+        where: { id: pipelineId },
+        data: { scrapeCurrentPage: null, scrapeCurrentUrl: null },
+      }).catch(() => {})
+    } else {
+      console.log(
+        `[bolagsfakta] Pipeline ${pipelineId} klar: ${saved} rader i DB (Bolagsfakta-index vid skapande: ${indexHint ?? '—'})`,
+      )
+      await bolagsfaktaPipelineListLog(
+        `SESSION COMPLETE pipelineId=${pipelineId} dbRows=${saved} bolagsfaktaForetagCount_index=${indexHint ?? 'null'} deltaVsIndex=${indexHint != null ? saved - indexHint : 'n/a'}`,
+      )
+      await prisma.bolagsfaktaPipeline.update({
+        where: { id: pipelineId },
+        data: { status: 'COMPLETED', lastScrapedAt: new Date(), scrapeCurrentPage: null, scrapeCurrentUrl: null },
+      })
+    }
   } catch (err) {
     console.error(`[bolagsfakta] Fel:`, err)
     await bolagsfaktaPipelineListLog(

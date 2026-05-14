@@ -96,6 +96,7 @@ model BolagsfaktaPipeline {
   branschKod              String
   bolagsfaktaForetagCount Int?
   status                  BolagsfaktaPipelineStatus @default(IDLE)
+  scrapeStartedAt         DateTime?
   lastScrapedAt           DateTime?
   scrapeCurrentPage       Int?
   scrapeCurrentUrl        String?                   @db.VarChar(2048)
@@ -925,7 +926,7 @@ model ticket_comments {
 model users {
   id                                                  String                @id
   email                                               String                @unique
-  passwordHash                                        String
+  passwordHash                                        String?
   name                                                String
   role                                                users_role            @default(MEMBER)
   avatar                                              String?

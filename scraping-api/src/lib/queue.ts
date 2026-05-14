@@ -41,3 +41,13 @@ export const fetchDetailQueue = new Queue('fetch-detail', {
     removeOnFail: { count: 500 },
   },
 })
+
+export const websiteDiscoveryQueue = new Queue('website-discovery', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: { count: 200 },
+    removeOnFail: { count: 500 },
+  },
+})

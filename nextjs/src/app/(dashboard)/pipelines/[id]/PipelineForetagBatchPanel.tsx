@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/confirm/ConfirmProvider"
 import { Button } from "@/components/ui/button"
-import { Loader2, Play, Square, RotateCcw, Globe, Search, X } from "lucide-react"
+import { Loader2, Play, Square, RotateCcw, Globe, Search, X, Sparkles } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import PipelineForetagTable, {
@@ -75,6 +75,16 @@ export default function PipelineForetagBatchPanel({
   const [redlistRunning, setRedlistRunning] = useState(false)
   /** En-rads webbsökning från Åtgärder (påverkar BF-data-kolumnens laddningstext). */
   const [soloWebsiteRowIds, setSoloWebsiteRowIds] = useState<Set<string>>(new Set())
+
+  // -- Batch website discovery (AI agent, groups of 10) --
+  const [batchWebDiscoveryRunning, setBatchWebDiscoveryRunning] = useState(false)
+  const [batchWebDiscoveryProgress, setBatchWebDiscoveryProgress] = useState<{
+    totalCompanies: number
+    totalBatches: number
+    completedBatches: number
+    foundWebsites: number
+  } | null>(null)
+  const batchWebPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const hasActiveDetailJobs = liveRows.some(
     (r) => r.detailStatus === "QUEUED" || r.detailStatus === "RUNNING",
@@ -184,6 +194,11 @@ export default function PipelineForetagBatchPanel({
   const websiteMissingQueueableRows = useMemo(
     () => websiteScanQueueableRows.filter(rowMissingWebsite),
     [websiteScanQueueableRows],
+  )
+
+  const missingWebsiteCount = useMemo(
+    () => liveRows.filter((r) => !r.isRedlisted && r.customerId && !r.website?.trim()).length,
+    [liveRows],
   )
 
   const completedCount = [...statuses.values()].filter((s) => s === "success").length
@@ -583,6 +598,174 @@ export default function PipelineForetagBatchPanel({
     setSoloWebsiteRowIds(new Set())
   }
 
+  async function startBatchWebDiscovery() {
+    setBatchWebDiscoveryRunning(true)
+    setBatchWebDiscoveryProgress(null)
+    setSelectedIds(new Set())
+    setStatuses(new Map())
+    setErrors(new Map())
+    setSiteStatuses(new Map())
+    setSiteErrors(new Map())
+    setSoloWebsiteRowIds(new Set())
+
+    try {
+      const res = await fetch(`/api/pipelines/${pipelineId}/discover-websites`, {
+        method: "POST",
+      })
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string
+        totalCompanies?: number
+        totalBatches?: number
+        message?: string
+      }
+
+      if (!res.ok) {
+        toast.error(body.error ?? `HTTP ${res.status}`)
+        setBatchWebDiscoveryRunning(false)
+        return
+      }
+
+      if (body.totalCompanies === 0) {
+        toast.info(body.message ?? "Alla företag har redan en webbplats.")
+        setBatchWebDiscoveryRunning(false)
+        return
+      }
+
+      setBatchWebDiscoveryProgress({
+        totalCompanies: body.totalCompanies ?? 0,
+        totalBatches: body.totalBatches ?? 0,
+        completedBatches: 0,
+        foundWebsites: 0,
+      })
+
+      toast.success(`Webbplatssökning startad — ${body.totalCompanies} företag i ${body.totalBatches} grupper`)
+
+      if (batchWebPollRef.current) clearInterval(batchWebPollRef.current)
+      batchWebPollRef.current = setInterval(() => void pollBatchWebProgress(), 3000)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte starta webbplatssökning")
+      setBatchWebDiscoveryRunning(false)
+    }
+  }
+
+  async function stopBatchWebDiscovery() {
+    try {
+      const res = await fetch(`/api/pipelines/${pipelineId}/discover-websites/stop`, {
+        method: "POST",
+      })
+      const body = (await res.json().catch(() => ({}))) as { error?: string }
+
+      if (!res.ok) {
+        toast.error(body.error ?? "Kunde inte stoppa webbplatssökningen")
+        return
+      }
+
+      if (batchWebPollRef.current) clearInterval(batchWebPollRef.current)
+      batchWebPollRef.current = null
+      setBatchWebDiscoveryRunning(false)
+      setBatchWebDiscoveryProgress(null)
+      toast.info("Webbplatssökning stoppad")
+      router.refresh()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte stoppa webbplatssökningen")
+    }
+  }
+
+  async function pollBatchWebProgress() {
+    try {
+      const res = await fetch(`/api/pipelines/${pipelineId}/discover-websites`)
+      const body = (await res.json().catch(() => ({}))) as {
+        status?: string
+        progress?: {
+          totalCompanies?: number
+          totalBatches?: number
+          completedBatches?: number
+          foundWebsites?: number
+        }
+        result?: {
+          totalCompanies?: number
+          foundWebsites?: number
+          errors?: number
+        }
+        error?: string
+      }
+
+      if (body.status === "running" && body.progress) {
+        setBatchWebDiscoveryProgress({
+          totalCompanies: body.progress.totalCompanies ?? 0,
+          totalBatches: body.progress.totalBatches ?? 0,
+          completedBatches: body.progress.completedBatches ?? 0,
+          foundWebsites: body.progress.foundWebsites ?? 0,
+        })
+      } else if (body.status === "completed") {
+        if (batchWebPollRef.current) clearInterval(batchWebPollRef.current)
+        batchWebPollRef.current = null
+        setBatchWebDiscoveryRunning(false)
+
+        const found = body.result?.foundWebsites ?? 0
+        const total = body.result?.totalCompanies ?? 0
+        const errs = body.result?.errors ?? 0
+
+        if (errs > 0) {
+          toast.warning(`Webbplatssökning klar: ${found} av ${total} hittade, ${errs} fel`)
+        } else {
+          toast.success(`Webbplatssökning klar: ${found} av ${total} webbplatser hittade`)
+        }
+        setBatchWebDiscoveryProgress(null)
+        router.refresh()
+      } else if (body.status === "failed") {
+        if (batchWebPollRef.current) clearInterval(batchWebPollRef.current)
+        batchWebPollRef.current = null
+        setBatchWebDiscoveryRunning(false)
+        toast.error(`Webbplatssökning misslyckades: ${body.error ?? "Okänt fel"}`)
+        setBatchWebDiscoveryProgress(null)
+      } else if (body.status === "idle") {
+        if (batchWebPollRef.current) clearInterval(batchWebPollRef.current)
+        batchWebPollRef.current = null
+        setBatchWebDiscoveryRunning(false)
+        setBatchWebDiscoveryProgress(null)
+      }
+    } catch {
+      /* ignore poll errors */
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (batchWebPollRef.current) clearInterval(batchWebPollRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(`/api/pipelines/${pipelineId}/discover-websites`)
+        const body = (await res.json().catch(() => ({}))) as {
+          status?: string
+          progress?: {
+            totalCompanies?: number
+            totalBatches?: number
+            completedBatches?: number
+            foundWebsites?: number
+          }
+        }
+        if (body.status === "running" && body.progress) {
+          setBatchWebDiscoveryRunning(true)
+          setBatchWebDiscoveryProgress({
+            totalCompanies: body.progress.totalCompanies ?? 0,
+            totalBatches: body.progress.totalBatches ?? 0,
+            completedBatches: body.progress.completedBatches ?? 0,
+            foundWebsites: body.progress.foundWebsites ?? 0,
+          })
+          if (batchWebPollRef.current) clearInterval(batchWebPollRef.current)
+          batchWebPollRef.current = setInterval(() => void pollBatchWebProgress(), 3000)
+        }
+      } catch {
+        /* ignore */
+      }
+    })()
+  }, [pipelineId])
+
   function handleClearSelection() {
     setSelectedIds(new Set())
     setStatuses(new Map())
@@ -647,20 +830,29 @@ export default function PipelineForetagBatchPanel({
           Alla ({queueableRows.length})
         </Button>
 
-        <div className="h-5 w-px bg-gray-200 shrink-0" />
+        {/* "Sök webb"-knappen dold */}
 
-        {/* Website scan */}
-        <Button
+        {/* AI batch website discovery — tillfälligt inaktiverad */}
+        {/* <Button
           type="button"
-          variant="outline"
           size="sm"
           className="h-8"
-          disabled={batchRunning || siteBatchRunning || redlistRunning || websiteMissingQueueableRows.length === 0}
-          onClick={() => void runWebsiteBatch("missing")}
+          disabled={
+            batchRunning ||
+            siteBatchRunning ||
+            redlistRunning ||
+            batchWebDiscoveryRunning ||
+            missingWebsiteCount === 0
+          }
+          onClick={() => void startBatchWebDiscovery()}
         >
-          <Globe className="h-3.5 w-3.5" />
-          Sök webb ({websiteMissingQueueableRows.length})
-        </Button>
+          {batchWebDiscoveryRunning ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" />
+          )}
+          {batchWebDiscoveryRunning ? "Söker…" : `Hämta webbplatser (${missingWebsiteCount})`}
+        </Button> */}
 
         {/* Row count */}
         <span className="ml-auto text-xs text-gray-400 shrink-0 tabular-nums">
@@ -804,6 +996,51 @@ export default function PipelineForetagBatchPanel({
               }}
             >
               Återställ
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {batchWebDiscoveryRunning && batchWebDiscoveryProgress && (
+        <div className="border-b border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-950/30 px-5 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-sm">
+            <Sparkles className="h-4 w-4 text-indigo-500 shrink-0 animate-pulse" />
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium text-indigo-900 dark:text-indigo-100">
+                AI söker webbplatser
+                <span className="ml-2 font-semibold tabular-nums">
+                  {batchWebDiscoveryProgress.completedBatches}/{batchWebDiscoveryProgress.totalBatches} grupper
+                </span>
+              </span>
+              <span className="text-xs text-indigo-600 dark:text-indigo-300 tabular-nums">
+                {batchWebDiscoveryProgress.totalCompanies} företag totalt — {batchWebDiscoveryProgress.foundWebsites} webbplatser hittade hittills
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-32 h-1.5 bg-indigo-200 dark:bg-indigo-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                style={{
+                  width: `${batchWebDiscoveryProgress.totalBatches > 0
+                    ? (batchWebDiscoveryProgress.completedBatches / batchWebDiscoveryProgress.totalBatches) * 100
+                    : 0}%`,
+                }}
+              />
+            </div>
+            <span className="text-xs font-medium tabular-nums text-indigo-600 dark:text-indigo-300 w-10 text-right">
+              {batchWebDiscoveryProgress.totalBatches > 0
+                ? Math.round((batchWebDiscoveryProgress.completedBatches / batchWebDiscoveryProgress.totalBatches) * 100)
+                : 0}%
+            </span>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => void stopBatchWebDiscovery()}
+            >
+              <Square className="h-3.5 w-3.5" />
+              Stoppa
             </Button>
           </div>
         </div>

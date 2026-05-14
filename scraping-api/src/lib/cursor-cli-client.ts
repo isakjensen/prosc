@@ -1,5 +1,8 @@
 import { execFile } from "child_process"
-import { access } from "node:fs/promises"
+import { access, writeFile, unlink } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { randomUUID } from "node:crypto"
 import { promisify } from "util"
 
 const execFileAsync = promisify(execFile)
@@ -48,6 +51,34 @@ async function resolveAgentCliCommand(): Promise<string> {
 }
 
 /**
+ * On Windows with .cmd shims, passing multi-line prompts as CLI arguments
+ * breaks PowerShell's argument parser. Write to a temp file and have
+ * PowerShell read it with Get-Content -Raw instead.
+ */
+async function execViaPromptFile(
+  cmd: string,
+  prompt: string,
+  timeout: number,
+): Promise<{ stdout: string; stderr: string }> {
+  const promptFile = join(tmpdir(), `cursor-prompt-${randomUUID()}.txt`)
+  await writeFile(promptFile, prompt, "utf8")
+
+  const escapedCmd = cmd.replace(/'/g, "''")
+  const escapedFile = promptFile.replace(/'/g, "''")
+  const psCommand = `& '${escapedCmd}' --yolo --output-format json -p (Get-Content -Raw '${escapedFile}')`
+
+  try {
+    return await execFileAsync(
+      "powershell",
+      ["-NoProfile", "-NonInteractive", "-Command", psCommand],
+      { timeout, maxBuffer: 2 * 1024 * 1024 },
+    )
+  } finally {
+    await unlink(promptFile).catch(() => {})
+  }
+}
+
+/**
  * Kör agent CLI med en prompt (-p) och returnerar JSON-parsad output.
  * Ersätter Ollama för AI-analys.
  */
@@ -57,19 +88,26 @@ export async function cursorCliJson(args: {
 }): Promise<{ raw: string; parsed: unknown }> {
   const timeout = args.timeoutMs ?? 120_000
   const cmd = await resolveAgentCliCommand()
-  const shell =
+  const needsPromptFile =
     process.platform === "win32" && cmd.trim().toLowerCase().endsWith(".cmd")
 
   try {
-    const { stdout, stderr } = await execFileAsync(
-      cmd,
-      ["--yolo", "--output-format", "json", "-p", args.prompt],
-      {
-        timeout,
-        maxBuffer: 2 * 1024 * 1024,
-        shell,
-      },
-    )
+    let stdout: string
+    let stderr: string
+
+    if (needsPromptFile) {
+      const result = await execViaPromptFile(cmd, args.prompt, timeout)
+      stdout = result.stdout
+      stderr = result.stderr
+    } else {
+      const result = await execFileAsync(
+        cmd,
+        ["--yolo", "--output-format", "json", "-p", args.prompt],
+        { timeout, maxBuffer: 2 * 1024 * 1024 },
+      )
+      stdout = result.stdout
+      stderr = result.stderr
+    }
 
     if (stderr) {
       console.warn("[cursor-cli] stderr:", stderr.slice(0, 500))

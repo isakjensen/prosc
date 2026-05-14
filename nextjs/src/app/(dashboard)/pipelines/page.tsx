@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { reconcileBolagsfaktaStaleStatusViaApi } from '@/lib/scraping-api-client'
 import { ShieldAlert, Building2, Database, Zap, GitBranch, ExternalLink } from 'lucide-react'
+import PipelineListLiveRefresh from './PipelineListLiveRefresh'
 
 const statusLabel: Record<string, string> = {
   IDLE: 'Ej startad',
@@ -42,6 +43,7 @@ export default async function PipelinesPage() {
 
   return (
     <div className="space-y-6">
+      <PipelineListLiveRefresh hasRunning={runningCount > 0} />
 
       {/* Hero */}
       <div className="page-hero pb-6">

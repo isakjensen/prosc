@@ -10,6 +10,7 @@ import { kunderBolagsfaktaRoutes } from './routes/kunder-bolagsfakta.js'
 import { reconcileAllBolagsfaktaStaleStatuses } from './lib/bolagsfakta-status-reconcile.js'
 import { startScrapePipelineWorker } from './workers/scrape-pipeline.js'
 import { startFetchDetailWorker } from './workers/fetch-detail.js'
+import { startWebsiteDiscoveryWorker, drainWebsiteDiscoveryQueue } from './workers/website-discovery.js'
 
 const PORT = parseInt(process.env.PORT || '3100', 10)
 
@@ -33,9 +34,13 @@ await app.register(pipelineRoutes)
 await app.register(companyRoutes)
 await app.register(kunderBolagsfaktaRoutes)
 
+// Drain leftover website-discovery jobs from previous runs before starting the worker
+await drainWebsiteDiscoveryQueue()
+
 // Start BullMQ workers
 startScrapePipelineWorker()
 startFetchDetailWorker()
+startWebsiteDiscoveryWorker()
 
 void reconcileAllBolagsfaktaStaleStatuses()
   .then((r) => {

@@ -2,7 +2,9 @@ import type { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/db.js'
 import { deletePipelineCascade } from '../lib/delete-pipeline-cascade.js'
 import { reconcileAllBolagsfaktaStaleStatuses, reconcileStalePipelineRunningStatus } from '../lib/bolagsfakta-status-reconcile.js'
-import { scrapePipelineQueue, fetchDetailQueue } from '../lib/queue.js'
+import { scrapePipelineQueue, fetchDetailQueue, websiteDiscoveryQueue } from '../lib/queue.js'
+import { getWebsiteDiscoveryProgress, stopWebsiteDiscovery } from '../workers/website-discovery.js'
+import { loadCompaniesForDiscovery } from '../lib/batch-website-discovery.js'
 import type { CreatePipelineBody, FetchDetailBody } from '../types/api.js'
 
 export async function pipelineRoutes(app: FastifyInstance) {
@@ -97,7 +99,7 @@ export async function pipelineRoutes(app: FastifyInstance) {
 
     await prisma.bolagsfaktaPipeline.update({
       where: { id },
-      data: { status: 'RUNNING' },
+      data: { status: 'RUNNING', scrapeStartedAt: new Date() },
     })
 
     const job = await scrapePipelineQueue.add('scrape', { pipelineId: id }, {
@@ -220,4 +222,101 @@ export async function pipelineRoutes(app: FastifyInstance) {
       return reply.status(202).send({ jobId: job.id, foretagId, status: 'queued' })
     },
   )
+
+  // Starta batch-webbplatssökning för hela pipelinen (grupper om 10 via Cursor agent)
+  app.post<{ Params: { id: string } }>('/api/pipelines/:id/discover-websites', async (request, reply) => {
+    const { id } = request.params
+    const pipeline = await prisma.bolagsfaktaPipeline.findUnique({ where: { id } })
+    if (!pipeline) {
+      return reply.status(404).send({ error: 'Pipeline hittades inte' })
+    }
+
+    const existingProgress = getWebsiteDiscoveryProgress(id)
+    if (existingProgress) {
+      return reply.status(409).send({
+        error: 'Webbplatssökning pågår redan för denna pipeline',
+        progress: existingProgress,
+      })
+    }
+
+    const companies = await loadCompaniesForDiscovery(id)
+    if (companies.length === 0) {
+      return reply.status(200).send({
+        message: 'Alla företag i pipelinen har redan en webbplats eller saknar data',
+        totalCompanies: 0,
+      })
+    }
+
+    const job = await websiteDiscoveryQueue.add('discover-websites', { pipelineId: id }, {
+      jobId: `websites-${id}-${Date.now()}`,
+    })
+
+    return reply.status(202).send({
+      jobId: job.id,
+      pipelineId: id,
+      totalCompanies: companies.length,
+      totalBatches: Math.ceil(companies.length / 10),
+      status: 'queued',
+    })
+  })
+
+  // Hämta progress för pågående webbplatssökning
+  app.get<{ Params: { id: string } }>('/api/pipelines/:id/discover-websites/progress', async (request, reply) => {
+    const { id } = request.params
+
+    const inMemory = getWebsiteDiscoveryProgress(id)
+    if (inMemory) {
+      return { status: 'running', progress: inMemory }
+    }
+
+    const jobs = await websiteDiscoveryQueue.getJobs(['active', 'waiting', 'delayed'])
+    const activeJob = jobs.find((j) => (j.data as { pipelineId?: string })?.pipelineId === id)
+
+    if (activeJob) {
+      const progressData = activeJob.progress as Record<string, unknown> | undefined
+      return {
+        status: 'running',
+        progress: {
+          pipelineId: id,
+          totalCompanies: progressData?.totalCompanies ?? 0,
+          totalBatches: progressData?.totalBatches ?? 0,
+          completedBatches: progressData?.completedBatches ?? 0,
+          foundWebsites: progressData?.foundWebsites ?? 0,
+        },
+      }
+    }
+
+    const completed = await websiteDiscoveryQueue.getJobs(['completed'])
+    const lastCompleted = completed
+      .filter((j) => (j.data as { pipelineId?: string })?.pipelineId === id)
+      .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))[0]
+
+    if (lastCompleted) {
+      return {
+        status: 'completed',
+        result: lastCompleted.returnvalue,
+      }
+    }
+
+    const failed = await websiteDiscoveryQueue.getJobs(['failed'])
+    const lastFailed = failed
+      .filter((j) => (j.data as { pipelineId?: string })?.pipelineId === id)
+      .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))[0]
+
+    if (lastFailed) {
+      return {
+        status: 'failed',
+        error: lastFailed.failedReason ?? 'Okänt fel',
+      }
+    }
+
+    return { status: 'idle' }
+  })
+
+  // Stoppa pågående webbplatssökning och rensa kön
+  app.post<{ Params: { id: string } }>('/api/pipelines/:id/discover-websites/stop', async (request, reply) => {
+    const { id } = request.params
+    const result = await stopWebsiteDiscovery(id)
+    return { ok: true, pipelineId: id, ...result }
+  })
 }

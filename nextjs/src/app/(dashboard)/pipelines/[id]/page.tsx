@@ -199,15 +199,18 @@ export default async function PipelineDetailPage({ params }: PageProps) {
         pipelineId={id}
         initialStatus={pipeline.status}
         initialForetagCount={pipeline._count.foretag}
+        initialValidForetagCount={filteredForetagCount}
         bolagsfaktaForetagCount={pipeline.bolagsfaktaForetagCount}
         initialActiveDetailCount={activeDetailCount}
+        scrapeStartedAt={pipeline.scrapeStartedAt?.toISOString() ?? null}
+        lastScrapedAt={pipeline.lastScrapedAt?.toISOString() ?? null}
       />
 
       {/* Klar-banner */}
       {activeDetailCount === 0 && (
         <PipelineScrapeCompleteBanner
           status={pipeline.status}
-          listForetagCount={pipeline._count.foretag}
+          listForetagCount={filteredForetagCount}
         />
       )}
 
