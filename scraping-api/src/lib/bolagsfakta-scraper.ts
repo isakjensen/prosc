@@ -87,11 +87,95 @@ export async function newStealthPage(
   const page = await context.newPage()
 
   await page.addInitScript(() => {
+    // webdriver
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined })
-    // @ts-expect-error - intentionally delete non-standard navigator property
+    // @ts-expect-error
     delete navigator.__proto__.webdriver
-    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] })
-    Object.defineProperty(navigator, 'languages', { get: () => ['sv-SE', 'sv', 'en-US'] })
+
+    // window.chrome — Cloudflare kräver detta objekt
+    // @ts-expect-error
+    window.chrome = {
+      app: { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' }, RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' } },
+      runtime: {
+        OnInstalledReason: { CHROME_UPDATE: 'chrome_update', INSTALL: 'install', SHARED_MODULE_UPDATE: 'shared_module_update', UPDATE: 'update' },
+        OnRestartRequiredReason: { APP_UPDATE: 'app_update', OS_UPDATE: 'os_update', PERIODIC: 'periodic' },
+        PlatformArch: { ARM: 'arm', ARM64: 'arm64', MIPS: 'mips', MIPS64: 'mips64', X86_32: 'x86-32', X86_64: 'x86-64' },
+        PlatformOs: { ANDROID: 'android', CROS: 'cros', LINUX: 'linux', MAC: 'mac', OPENBSD: 'openbsd', WIN: 'win' },
+        RequestUpdateCheckStatus: { NO_UPDATE: 'no_update', THROTTLED: 'throttled', UPDATE_AVAILABLE: 'update_available' },
+        id: undefined,
+        connect: () => {},
+        sendMessage: () => {},
+      },
+    }
+
+    // Realistiska plugins (Chrome har normalt 3)
+    const makeMimeType = (type: string, suffixes: string, desc: string) => {
+      const mt = Object.create(MimeType.prototype)
+      Object.defineProperty(mt, 'type', { get: () => type })
+      Object.defineProperty(mt, 'suffixes', { get: () => suffixes })
+      Object.defineProperty(mt, 'description', { get: () => desc })
+      return mt
+    }
+    const makePlugin = (name: string, desc: string, filename: string, mimeTypes: MimeType[]) => {
+      const p = Object.create(Plugin.prototype)
+      Object.defineProperty(p, 'name', { get: () => name })
+      Object.defineProperty(p, 'description', { get: () => desc })
+      Object.defineProperty(p, 'filename', { get: () => filename })
+      Object.defineProperty(p, 'length', { get: () => mimeTypes.length })
+      mimeTypes.forEach((mt, i) => { p[i] = mt })
+      return p
+    }
+    const pdfMime = makeMimeType('application/pdf', 'pdf', 'Portable Document Format')
+    const pdfMime2 = makeMimeType('text/pdf', 'pdf', 'Portable Document Format')
+    const plugins = [
+      makePlugin('PDF Viewer', 'Portable Document Format', 'internal-pdf-viewer', [pdfMime, pdfMime2]),
+      makePlugin('Chrome PDF Viewer', 'Portable Document Format', 'internal-pdf-viewer', [pdfMime, pdfMime2]),
+      makePlugin('Chromium PDF Viewer', 'Portable Document Format', 'internal-pdf-viewer', [pdfMime, pdfMime2]),
+    ]
+    Object.defineProperty(navigator, 'plugins', { get: () => plugins })
+    Object.defineProperty(navigator, 'mimeTypes', { get: () => [pdfMime, pdfMime2] })
+
+    // Språk
+    Object.defineProperty(navigator, 'languages', { get: () => ['sv-SE', 'sv', 'en-US', 'en'] })
+
+    // Hårdvara
+    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 })
+    Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 })
+    Object.defineProperty(navigator, 'platform', { get: () => 'Win32' })
+
+    // Notification — headless returnerar 'denied' vilket är misstänkt
+    const _originalNotifPerm = window.Notification?.permission
+    if (window.Notification) {
+      Object.defineProperty(Notification, 'permission', { get: () => 'default' })
+    }
+
+    // Permissions API
+    const originalPermissionsQuery = navigator.permissions?.query?.bind(navigator.permissions)
+    if (originalPermissionsQuery) {
+      navigator.permissions.query = (parameters: PermissionDescriptor) => {
+        if (parameters.name === 'notifications') {
+          return Promise.resolve({ state: 'prompt', onchange: null } as PermissionStatus)
+        }
+        return originalPermissionsQuery(parameters)
+      }
+    }
+
+    // Screen
+    Object.defineProperty(screen, 'colorDepth', { get: () => 24 })
+    Object.defineProperty(screen, 'pixelDepth', { get: () => 24 })
+
+    // Connection
+    // @ts-expect-error
+    if (!navigator.connection) {
+      Object.defineProperty(navigator, 'connection', {
+        get: () => ({
+          rtt: 100,
+          downlink: 10,
+          effectiveType: '4g',
+          saveData: false,
+        }),
+      })
+    }
   })
 
   return page
