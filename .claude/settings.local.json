@@ -18,7 +18,11 @@
       "Bash(npx prisma:*)",
       "WebFetch(domain:localhost)",
       "Bash(curl -s \"http://localhost:3000/api/debug/branscher\")",
-      "Bash(curl -s \"http://localhost:3000/api/kommuner/lunds-kommun/branscher\")"
+      "Bash(curl -s \"http://localhost:3000/api/kommuner/lunds-kommun/branscher\")",
+      "Bash(findstr -i \"scripts\\\\|db:\")",
+      "Bash(npm run *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")"
     ]
   }
 }

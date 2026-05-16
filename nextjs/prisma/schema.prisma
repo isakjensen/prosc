@@ -757,7 +757,7 @@ model BolagsfaktaBransch {
 }
 
 model BolagsfaktaPipeline {
-  id                      String                    @id @default(cuid())
+  id                      String                          @id @default(cuid())
   namn                    String
   kommunSlug              String?
   kommunNamn              String?
@@ -766,16 +766,41 @@ model BolagsfaktaPipeline {
   branschKod              String?
   /// Antal företag enligt Bolagsfakta vid skapande (samma siffra som i bransch-dropdown)
   bolagsfaktaForetagCount Int?
-  status                  BolagsfaktaPipelineStatus @default(IDLE)
+  status                  BolagsfaktaPipelineStatus       @default(IDLE)
   scrapeStartedAt         DateTime?
   lastScrapedAt           DateTime?
   scrapeCurrentPage       Int?
-  scrapeCurrentUrl        String?                   @db.VarChar(2048)
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
+  scrapeCurrentUrl        String?                         @db.VarChar(2048)
+  createdAt               DateTime                        @default(now())
+  updatedAt               DateTime                        @updatedAt
   foretag                 BolagsfaktaForetag[]
+  scheduleEntries         BolagsfaktaPipelineSchedule[]
 
   @@map("bolagsfakta_pipelines")
+}
+
+model BolagsfaktaPipelineSchedule {
+  id          String                         @id @default(cuid())
+  pipelineId  String
+  scheduledAt DateTime
+  status      BolagsfaktaScheduleStatus      @default(PENDING)
+  /// Ordning inom samma schemalagda batch (lägre = körs först)
+  runOrder    Int
+  createdAt   DateTime                       @default(now())
+  pipeline    BolagsfaktaPipeline            @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@index([pipelineId])
+  @@index([scheduledAt, status])
+  @@map("bolagsfakta_pipeline_schedules")
+}
+
+/// Distribuerat lås så att bara en Next.js-process kör schedulern åt gången
+model BolagsfaktaPipelineSchedulerLock {
+  id         String   @id @default("singleton")
+  lockedAt   DateTime @default(now())
+  lockedUntil DateTime
+
+  @@map("bolagsfakta_pipeline_scheduler_lock")
 }
 
 model BolagsfaktaForetag {
@@ -785,6 +810,8 @@ model BolagsfaktaForetag {
   customerId       String?
   /// Flagga om företaget är redlistat (ska kunna synas i pipeline-tabellen)
   isRedlisted      Boolean                 @default(false)
+  /// Mjuk dölj-flagga per rad i pipelinen (ej aktiva/noll-omsättning). Syns ej som standard.
+  isHidden         Boolean                 @default(false)
   namn             String
   adress           String?
   orgNummer        String?
@@ -1212,6 +1239,14 @@ enum BolagsfaktaPipelineStatus {
   RUNNING
   COMPLETED
   STOPPED
+}
+
+enum BolagsfaktaScheduleStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
 
 enum BolagsfaktaDetailStatus {

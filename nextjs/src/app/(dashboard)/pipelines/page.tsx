@@ -1,33 +1,33 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/db'
-import { cn, formatDateTime } from '@/lib/utils'
-import { bolagsfaktaBranschListingUrl } from '@/lib/bolagsfakta-list-url'
+import { cn } from '@/lib/utils'
 import { getPipelineDetailSuccessByPipelineId } from '@/lib/pipeline-table-helpers'
-import PipelineListDeleteButton from './PipelineListDeleteButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { reconcileBolagsfaktaStaleStatusViaApi } from '@/lib/scraping-api-client'
-import { ShieldAlert, Building2, Database, Zap, GitBranch, ExternalLink } from 'lucide-react'
-import PipelineListLiveRefresh from './PipelineListLiveRefresh'
+import { ShieldAlert, Building2, Database, Zap, GitBranch } from 'lucide-react'
+import PipelineStatusFilter, { DEFAULT_VISIBLE } from './PipelineStatusFilter'
+import PipelineListClient from './PipelineListClient'
+import type { PipelineListItem } from './PipelineListClient'
 
-const statusLabel: Record<string, string> = {
-  IDLE: 'Ej startad',
-  RUNNING: 'Skrapar…',
-  COMPLETED: 'Klar',
-  STOPPED: 'Stoppad',
+interface PageProps {
+  searchParams: Promise<{ show?: string }>
 }
 
-const statusVariant: Record<string, 'gray' | 'info' | 'success' | 'danger'> = {
-  IDLE: 'gray',
-  RUNNING: 'info',
-  COMPLETED: 'success',
-  STOPPED: 'danger',
-}
-
-export default async function PipelinesPage() {
+export default async function PipelinesPage({ searchParams }: PageProps) {
   await reconcileBolagsfaktaStaleStatusViaApi()
+
+  const { show } = await searchParams
+
+  const validStatuses = new Set(['RUNNING', 'IDLE', 'COMPLETED', 'STOPPED'])
+  const visibleStatuses: string[] = show
+    ? show.split(',').filter((s) => validStatuses.has(s))
+    : DEFAULT_VISIBLE
+
+  // Fallback if all invalid
+  const effectiveVisible = visibleStatuses.length > 0 ? visibleStatuses : DEFAULT_VISIBLE
 
   const pipelines = await prisma.bolagsfaktaPipeline.findMany({
     orderBy: { createdAt: 'desc' },
@@ -41,10 +41,27 @@ export default async function PipelinesPage() {
   const totalDetailOk = [...detailSuccessByPipelineId.values()].reduce((s, v) => s + v, 0)
   const runningCount = pipelines.filter((p) => p.status === 'RUNNING').length
 
+  const statusCounts: Record<string, number> = {}
+  for (const p of pipelines) {
+    statusCounts[p.status] = (statusCounts[p.status] ?? 0) + 1
+  }
+
+  const clientPipelines: PipelineListItem[] = pipelines.map((p) => ({
+    id: p.id,
+    namn: p.namn,
+    kommunNamn: p.kommunNamn,
+    branschNamn: p.branschNamn,
+    kommunSlug: p.kommunSlug,
+    branschSlug: p.branschSlug,
+    branschKod: p.branschKod,
+    status: p.status,
+    lastScrapedAt: p.lastScrapedAt,
+    foretagCount: p._count.foretag,
+    detailOkCount: detailSuccessByPipelineId.get(p.id) ?? 0,
+  }))
+
   return (
     <div className="space-y-6">
-      <PipelineListLiveRefresh hasRunning={runningCount > 0} />
-
       {/* Hero */}
       <div className="page-hero pb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -119,6 +136,11 @@ export default async function PipelinesPage() {
             )}
           </div>
         )}
+
+        {/* Status filter */}
+        {pipelines.length > 0 && (
+          <PipelineStatusFilter counts={statusCounts} visibleStatuses={effectiveVisible} />
+        )}
       </div>
 
       {/* Tomt tillstånd */}
@@ -139,147 +161,12 @@ export default async function PipelinesPage() {
         </div>
       )}
 
-      {/* Pipeline-kort */}
+      {/* Pipeline-kort (client component med live-polling) */}
       {pipelines.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {pipelines.map((pipeline) => {
-            const listCount = pipeline._count.foretag
-            const detailOk = detailSuccessByPipelineId.get(pipeline.id) ?? 0
-            const detailPct = listCount > 0 ? Math.round((detailOk / listCount) * 100) : 0
-            const isRunning = pipeline.status === 'RUNNING'
-            const bolagsfaktaUrl = bolagsfaktaBranschListingUrl({
-              kommunSlug: pipeline.kommunSlug,
-              branschSlug: pipeline.branschSlug,
-              branschKod: pipeline.branschKod,
-            })
-
-            return (
-              <div
-                key={pipeline.id}
-                className={cn(
-                  'panel-surface lift-card flex flex-col overflow-hidden',
-                  isRunning && 'ring-1 ring-green-300/60 dark:ring-green-700/30',
-                )}
-              >
-                {/* Statuslinje i toppen */}
-                <div
-                  className={cn(
-                    'h-[3px] w-full',
-                    isRunning
-                      ? 'bg-gradient-to-r from-green-400 to-green-600'
-                      : pipeline.status === 'COMPLETED'
-                        ? 'bg-gradient-to-r from-brand-green to-brand-green/50'
-                        : pipeline.status === 'STOPPED'
-                          ? 'bg-gradient-to-r from-red-400 to-red-300'
-                          : 'bg-gray-200 dark:bg-zinc-700',
-                  )}
-                />
-
-                <div className="p-5 flex flex-col gap-4 flex-1">
-                  {/* Header: namn + badge */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <Link href={`/pipelines/${pipeline.id}`} className="group/name">
-                        <h3 className="font-semibold text-gray-900 dark:text-zinc-100 group-hover/name:text-brand-brown transition-colors leading-snug line-clamp-2">
-                          {pipeline.namn}
-                        </h3>
-                      </Link>
-                      <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5 truncate">
-                        {pipeline.kommunNamn}
-                        {pipeline.branschNamn && (
-                          <> · <span className="line-clamp-1 inline">{pipeline.branschNamn}</span></>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-                      {isRunning && (
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-60" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-                        </span>
-                      )}
-                      <Badge variant={statusVariant[pipeline.status] ?? 'gray'}>
-                        {statusLabel[pipeline.status] ?? pipeline.status}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Statistik */}
-                  {listCount > 0 ? (
-                    <div className="flex items-end gap-4">
-                      <div className="shrink-0">
-                        <p className="text-[2rem] font-bold tabular-nums text-gray-900 dark:text-zinc-100 leading-none tracking-tight">
-                          {listCount.toLocaleString('sv')}
-                        </p>
-                        <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5 font-medium uppercase tracking-wide">
-                          Företag
-                        </p>
-                      </div>
-                      <div className="flex-1 min-w-0 pb-0.5">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[11px] text-gray-500 dark:text-zinc-400 font-medium">Bolagsdata</span>
-                          <span className="text-[11px] font-bold tabular-nums text-gray-700 dark:text-zinc-300">
-                            {detailPct}%
-                          </span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-zinc-700 overflow-hidden">
-                          <div
-                            className={cn(
-                              'h-full rounded-full transition-all duration-500',
-                              detailPct === 100 ? 'bg-brand-green' : 'bg-brand-brown',
-                            )}
-                            style={{ width: `${detailPct}%` }}
-                          />
-                        </div>
-                        <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">
-                          {detailOk.toLocaleString('sv')} av {listCount.toLocaleString('sv')} hämtade
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center py-3">
-                      <p className="text-xs text-gray-400 dark:text-zinc-500 italic">Inga företag ännu — starta scraping</p>
-                    </div>
-                  )}
-
-                  {/* Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-zinc-800 mt-auto">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[11px] text-gray-400 dark:text-zinc-500 truncate">
-                        {pipeline.lastScrapedAt
-                          ? formatDateTime(pipeline.lastScrapedAt)
-                          : 'Ej körts'}
-                      </span>
-                      {bolagsfaktaUrl && (
-                        <a
-                          href={bolagsfaktaUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 text-gray-300 dark:text-zinc-600 hover:text-brand-brown transition-colors"
-                          title="Öppna på Bolagsfakta"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Link href={`/pipelines/${pipeline.id}`}>
-                        <Button variant="outline" size="sm" className="h-7 text-xs px-3">
-                          Öppna
-                        </Button>
-                      </Link>
-                      <PipelineListDeleteButton
-                        pipelineId={pipeline.id}
-                        pipelineNamn={pipeline.namn}
-                        status={pipeline.status}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <PipelineListClient
+          initialPipelines={clientPipelines}
+          visibleStatuses={effectiveVisible}
+        />
       )}
     </div>
   )

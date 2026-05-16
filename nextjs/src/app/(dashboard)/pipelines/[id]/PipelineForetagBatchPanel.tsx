@@ -61,6 +61,7 @@ export default function PipelineForetagBatchPanel({
   const [onlyMissingFixedData, setOnlyMissingFixedData] = useState(false)
   const [onlyHasFetchedData, setOnlyHasFetchedData] = useState(false)
   const [hideRedlisted, setHideRedlisted] = useState(false)
+  const [showHidden, setShowHidden] = useState(false)
   const [onlyEligibleForBatch, setOnlyEligibleForBatch] = useState(false)
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -118,6 +119,7 @@ export default function PipelineForetagBatchPanel({
     const q = query.trim().toLowerCase()
     const filtered = liveRows.filter((r) => {
       if (hideRedlisted && r.isRedlisted) return false
+      if (!showHidden && r.isHidden) return false
       if (onlyMissingFixedData && r.hasBolagsfakta) return false
       if (onlyHasFetchedData && !r.hasBolagsfakta) return false
       if (onlyEligibleForBatch && !isEligibleForBatch(r)) return false
@@ -175,6 +177,7 @@ export default function PipelineForetagBatchPanel({
     onlyMissingFixedData,
     onlyHasFetchedData,
     hideRedlisted,
+    showHidden,
     onlyEligibleForBatch,
   ])
 
@@ -869,10 +872,10 @@ export default function PipelineForetagBatchPanel({
 
       {/* Collapsible filter panel (opened via header button) */}
       {filtersOpen && (
-        <div className="border-b border-gray-100 bg-gray-50/50 dark:border-zinc-800 dark:bg-zinc-800/40 px-6 py-4">
-          <div className="flex flex-wrap gap-x-6 gap-y-3 items-end">
+        <div className="border-b border-gray-200 dark:border-zinc-700/80 bg-gray-100/80 dark:bg-zinc-900/80 px-6 py-5">
+          <div className="flex flex-wrap items-end justify-center gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Sortera efter</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Sortera efter</label>
               <Select
                 value={sortBy}
                 onChange={(e) => {
@@ -895,7 +898,7 @@ export default function PipelineForetagBatchPanel({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Ordning</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Ordning</label>
               <Select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value === "desc" ? "desc" : "asc")}
@@ -906,7 +909,7 @@ export default function PipelineForetagBatchPanel({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">CRM-status</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">CRM-status</label>
               <Select
                 value={stageFilter}
                 onChange={(e) => {
@@ -932,58 +935,68 @@ export default function PipelineForetagBatchPanel({
                 <option value="ARCHIVED">Arkiverad</option>
               </Select>
             </div>
+          </div>
 
-            <div className="flex flex-wrap gap-x-6 gap-y-2 items-center pt-1">
-              <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
-                  checked={onlyMissingFixedData}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    setOnlyMissingFixedData(checked)
-                    if (checked) setOnlyHasFetchedData(false)
-                  }}
-                />
-                Saknar bolagsdata
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
-                  checked={onlyHasFetchedData}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    setOnlyHasFetchedData(checked)
-                    if (checked) setOnlyMissingFixedData(false)
-                  }}
-                />
-                Har bolagsdata
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
-                  checked={hideRedlisted}
-                  onChange={(e) => setHideRedlisted(e.target.checked)}
-                />
-                Dölj filtrerade
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-gray-300 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
-                  checked={onlyEligibleForBatch}
-                  onChange={(e) => setOnlyEligibleForBatch(e.target.checked)}
-                />
-                Valbara för batch
-              </label>
-            </div>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-200 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border-gray-300 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                checked={onlyMissingFixedData}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  setOnlyMissingFixedData(checked)
+                  if (checked) setOnlyHasFetchedData(false)
+                }}
+              />
+              Saknar bolagsdata
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-200 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border-gray-300 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                checked={onlyHasFetchedData}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  setOnlyHasFetchedData(checked)
+                  if (checked) setOnlyMissingFixedData(false)
+                }}
+              />
+              Har bolagsdata
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-200 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border-gray-300 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                checked={hideRedlisted}
+                onChange={(e) => setHideRedlisted(e.target.checked)}
+              />
+              Dölj filtrerade
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-200 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border-gray-300 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                checked={showHidden}
+                onChange={(e) => setShowHidden(e.target.checked)}
+              />
+              Visa dolda
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-200 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border-gray-300 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-800 focus:ring-zinc-500 cursor-pointer"
+                checked={onlyEligibleForBatch}
+                onChange={(e) => setOnlyEligibleForBatch(e.target.checked)}
+              />
+              Valbara för batch
+            </label>
+          </div>
 
+          <div className="mt-3 flex justify-center">
             <Button
               variant="ghost"
               size="sm"
-              className="ml-auto self-end"
               onClick={() => {
                 setQuery("")
                 setSortBy("name")
@@ -992,6 +1005,7 @@ export default function PipelineForetagBatchPanel({
                 setOnlyMissingFixedData(false)
                 setOnlyHasFetchedData(false)
                 setHideRedlisted(false)
+                setShowHidden(false)
                 setOnlyEligibleForBatch(false)
               }}
             >

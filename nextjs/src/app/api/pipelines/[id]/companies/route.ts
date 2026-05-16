@@ -45,6 +45,7 @@ export async function GET(
     hasBolagsfakta: f.customer?.bolagsfaktaData != null,
     bolagsfaktaUpdatedAt: f.customer?.bolagsfaktaData?.updatedAt?.toISOString() ?? null,
     isRedlisted: f.isRedlisted,
+    isHidden: f.isHidden,
     detailStatus: f.detailStatus,
     detailJobId: f.detailJobId,
     detailQueuedAt: f.detailQueuedAt,

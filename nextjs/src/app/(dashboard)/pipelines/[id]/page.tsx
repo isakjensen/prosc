@@ -90,6 +90,7 @@ export default async function PipelineDetailPage({ params }: PageProps) {
     hasBolagsfakta: f.customer?.bolagsfaktaData != null,
     bolagsfaktaUpdatedAt: f.customer?.bolagsfaktaData?.updatedAt?.toISOString() ?? null,
     isRedlisted: f.isRedlisted,
+    isHidden: f.isHidden,
     omsattning: f.customer?.bolagsfaktaData?.omsattningSenaste ?? null,
     ebitda: f.customer?.bolagsfaktaData?.ebitdaSenaste ?? null,
     aretsResultat: f.customer?.bolagsfaktaData?.aretsResultatSenaste ?? null,

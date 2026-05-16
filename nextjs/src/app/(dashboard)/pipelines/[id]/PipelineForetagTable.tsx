@@ -44,6 +44,7 @@ export type PipelineForetagRow = {
   hasBolagsfakta: boolean
   bolagsfaktaUpdatedAt: string | null
   isRedlisted: boolean
+  isHidden: boolean
   detailStatus: "IDLE" | "QUEUED" | "RUNNING" | "SUCCESS" | "ERROR"
   detailJobId: string | null
   detailQueuedAt: string | null
@@ -217,48 +218,89 @@ function DetailScrapeStatusCell({
   }
 
   const s = f.detailStatus
-  if (!s || s === "IDLE") {
-    return <span className="text-xs text-gray-400">–</span>
+
+  if (s === "QUEUED" || s === "RUNNING" || s === "ERROR") {
+    const label = detailStatusLabel(s)
+    let Icon: LucideIcon | null = null
+    let textClass = "text-gray-600"
+
+    switch (s) {
+      case "ERROR":
+        Icon = AlertCircle
+        textClass = "text-red-600"
+        break
+      case "RUNNING":
+        Icon = Loader2
+        textClass = "text-brand-brown"
+        break
+      case "QUEUED":
+        Icon = Clock
+        textClass = "text-gray-500"
+        break
+      default:
+        break
+    }
+
+    return (
+      <div className="flex justify-center">
+        <span
+          className={`inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums ${textClass}`}
+          title={s === "ERROR" ? (f.detailError ?? label ?? undefined) : label ?? undefined}
+        >
+          {Icon ? (
+            <Icon
+              className={`h-3.5 w-3.5 shrink-0 ${s === "RUNNING" ? "animate-spin" : ""}`}
+              aria-hidden
+            />
+          ) : null}
+          {label}
+        </span>
+      </div>
+    )
   }
 
-  const label = detailStatusLabel(s)
-  let Icon: LucideIcon | null = null
-  let textClass = "text-gray-600"
+  if (s === "SUCCESS" || f.hasBolagsfakta) {
+    return (
+      <div className="flex justify-center">
+        <span
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-brand-green"
+          title="Bolagsdata hämtad"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Klar
+        </span>
+      </div>
+    )
+  }
 
-  switch (s) {
-    case "SUCCESS":
-      Icon = CheckCircle2
-      textClass = "text-brand-green"
-      break
-    case "ERROR":
-      Icon = AlertCircle
-      textClass = "text-red-600"
-      break
-    case "RUNNING":
-      Icon = Loader2
-      textClass = "text-brand-brown"
-      break
-    case "QUEUED":
-      Icon = Clock
-      textClass = "text-gray-500"
-      break
-    default:
-      break
+  if (f.isHidden) {
+    return (
+      <div className="flex justify-center">
+        <span className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-gray-400 dark:text-zinc-500">
+          Dold
+        </span>
+      </div>
+    )
+  }
+
+  if (f.isRedlisted) {
+    return (
+      <div className="flex justify-center">
+        <span className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-amber-600 dark:text-amber-500">
+          Filtrerad
+        </span>
+      </div>
+    )
   }
 
   return (
     <div className="flex justify-center">
       <span
-        className={`inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums ${textClass}`}
-        title={s === "ERROR" ? (f.detailError ?? label ?? undefined) : label ?? undefined}
+        className="inline-flex items-center justify-center gap-1.5 text-xs font-medium tabular-nums text-gray-400 dark:text-zinc-500"
+        title="Ingen data hämtad än"
       >
-        {Icon ? (
-          <Icon
-            className={`h-3.5 w-3.5 shrink-0 ${s === "RUNNING" ? "animate-spin" : ""}`}
-            aria-hidden
-          />
-        ) : null}
-        {label}
+        <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        Väntar
       </span>
     </div>
   )
@@ -352,15 +394,10 @@ export default function PipelineForetagTable({
           const eligible = isEligibleForBatch(f)
           const rowStatus = siteStatuses?.get(f.id) ?? statuses?.get(f.id)
           const rowError = siteErrors?.get(f.id) ?? errors?.get(f.id)
-          const nameClass = f.hasBolagsfakta
-            ? "font-medium text-brand-green hover:opacity-90 transition-colors inline-block max-w-full break-words"
-            : "font-medium text-gray-900 dark:text-zinc-200 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors inline-block max-w-full break-words"
+          const nameClass = "font-medium text-gray-900 dark:text-white hover:opacity-80 transition-colors inline-block max-w-full break-words"
 
           const nameInner = (
             <span className="inline-flex flex-wrap items-center gap-1.5">
-              {f.hasBolagsfakta && (
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-green" aria-hidden />
-              )}
               <span>{f.namn}</span>
             </span>
           )
@@ -415,7 +452,7 @@ export default function PipelineForetagTable({
                         {nameInner}
                       </Link>
                     ) : (
-                      <span className="inline-flex flex-wrap items-center gap-1.5 font-medium text-gray-500 max-w-full break-words">
+                      <span className="inline-flex flex-wrap items-center gap-1.5 font-medium text-gray-900 dark:text-white max-w-full break-words">
                         {nameInner}
                       </span>
                     )}
@@ -505,6 +542,7 @@ export default function PipelineForetagTable({
                   hasCustomer={Boolean(f.customerId)}
                   customerStage={f.customerStage}
                   isRedlisted={f.isRedlisted}
+                  isHidden={f.isHidden}
                   bolagsfaktaUrl={f.url}
                   detailStatus={f.detailStatus}
                   onSoloWebsiteDiscoverLoading={onSoloWebsiteDiscoverLoading}

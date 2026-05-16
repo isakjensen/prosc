@@ -23,6 +23,7 @@ interface Props {
   /** null om ingen kund; SCRAPED = pipeline-rad, PROSPECT = prospekt osv. */
   customerStage: string | null
   isRedlisted: boolean
+  isHidden: boolean
   bolagsfaktaUrl: string | null
   detailStatus: "IDLE" | "QUEUED" | "RUNNING" | "SUCCESS" | "ERROR"
   /** Meddelar tabellen att en en-rads webbsökning pågår (BF-data-kolumnen visar annan text). */
@@ -35,6 +36,7 @@ export default function PipelineForetagActions({
   hasCustomer,
   customerStage,
   isRedlisted,
+  isHidden,
   bolagsfaktaUrl,
   detailStatus,
   onSoloWebsiteDiscoverLoading,
@@ -47,7 +49,7 @@ export default function PipelineForetagActions({
   const [mounted, setMounted] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [loading, setLoading] = useState<
-    "fetch" | "discover" | "promote" | "demote" | "remove" | "redlist" | null
+    "fetch" | "discover" | "promote" | "demote" | "remove" | "redlist" | "hide" | null
   >(null)
   const [error, setError] = useState("")
 
@@ -281,6 +283,28 @@ export default function PipelineForetagActions({
     }
   }
 
+  async function toggleHidden() {
+    setLoading("hide")
+    setError("")
+    try {
+      const action = isHidden ? "unhide" : "hide"
+      const res = await fetch(`/api/pipelines/${pipelineId}/companies/${foretagId}/${action}`, {
+        method: "POST",
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
+      toast.success(isHidden ? "Företaget visas igen" : "Företaget är nu dolt")
+      setOpen(false)
+      router.refresh()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Kunde inte ändra synlighet."
+      setError(msg)
+      console.error("[PipelineForetagActions] hide/unhide failed", e)
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const canPromoteToProspect = hasCustomer && customerStage === "SCRAPED"
   const canReturnToPipeline = hasCustomer && customerStage === "PROSPECT"
   const canDiscoverWebsite =
@@ -368,6 +392,14 @@ export default function PipelineForetagActions({
             onClick={() => void addToFilterList()}
           >
             {loading === "redlist" ? "Sparar…" : isRedlisted ? "Redan filtrerad" : "Filtrera företag"}
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start rounded-none px-3 py-2 text-xs font-normal h-auto"
+            disabled={loading !== null}
+            onClick={() => void toggleHidden()}
+          >
+            {loading === "hide" ? "Sparar…" : isHidden ? "Visa i pipeline" : "Dölj från pipeline"}
           </Button>
           <div className="my-1 border-t border-gray-100" role="separator" />
           <Button
